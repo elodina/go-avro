@@ -8,6 +8,26 @@ import (
 var MAX_INT_BUF_SIZE = 5
 var MAX_LONG_BUF_SIZE = 10
 
+type AvroDecoder interface {
+	ReadNull() (interface{}, error)
+	ReadBoolean() (bool, error)
+	ReadInt() (int32, error)
+	ReadLong() (int64, error)
+	ReadFloat() (float32, error)
+	ReadDouble() (float64, error)
+	ReadBytes() ([]byte, error)
+	ReadString() (string, error)
+	ReadEnum() (int32, error)
+	ReadMapStart() (int64, error)
+	MapNext() (int64, error)
+	ReadFixed([]byte) error
+	ReadFixedWithBounds([]byte, int, int) error
+	SetBlock(*DataBlock)
+	Seek(int64)
+	Tell() int64
+
+}
+
 type BinaryDecoder struct {
 	buf []byte
 	pos int64
@@ -106,7 +126,7 @@ func (bd *BinaryDecoder) ReadBytes() ([]byte, error) {
 	}
 
 	bytes := make([]byte, length)
-	copy(bytes[:], bd.buf[bd.pos:int64(bd.pos)+length])
+	copy(bytes[:], bd.buf[bd.pos:bd.pos+length])
 	bd.pos += length
 	return bytes, err
 }
@@ -131,6 +151,72 @@ func (bd *BinaryDecoder) ReadDouble() (float64, error) {
 	double = math.Float64frombits(bits)
 	bd.pos += 8
 	return double, nil
+}
+
+func (bd *BinaryDecoder) ReadEnum() (int32, error) {
+	return bd.ReadInt()
+}
+
+func (bd *BinaryDecoder) ReadArrayStart() (int64, error) {
+	return bd.readItemCount()
+}
+
+func (bd *BinaryDecoder) ArrayNext() (int64, error) {
+	return bd.readItemCount()
+}
+
+func (bd *BinaryDecoder) ReadMapStart() (int64, error) {
+	return bd.readItemCount()
+}
+
+func (bd *BinaryDecoder) MapNext() (int64, error) {
+	return bd.readItemCount()
+}
+
+func (bd *BinaryDecoder) readItemCount() (int64, error) {
+	if count, err := bd.ReadLong(); err != nil {
+		return 0, err
+	} else {
+		if count < 0 {
+			bd.ReadLong()
+			count = -count
+		}
+		return count, err
+	}
+}
+
+func (bd *BinaryDecoder) ReadFixed(bytes []byte) error {
+	return bd.readBytes(bytes, 0, len(bytes))
+}
+
+func (bd *BinaryDecoder) ReadFixedWithBounds(bytes []byte, start int, length int) error {
+	return bd.readBytes(bytes, start, length)
+}
+
+func (bd *BinaryDecoder) readBytes(bytes []byte, start int, length int) error {
+	if length < 0 {
+		return NegativeBytesLength
+	}
+	if err := checkEOF(bd.buf, bd.pos, int(start + length)); err != nil {
+		return EOF
+	}
+	copy(bytes[:], bd.buf[bd.pos+int64(start):bd.pos+int64(start)+int64(length)])
+	bd.pos += int64(length)
+
+	return nil
+}
+
+func (bd *BinaryDecoder) SetBlock(block *DataBlock) {
+	bd.buf = block.data
+	bd.Seek(0)
+}
+
+func (bd *BinaryDecoder) Seek(pos int64) {
+	bd.pos = pos
+}
+
+func (bd *BinaryDecoder) Tell() int64 {
+	return bd.pos
 }
 
 func checkEOF(buf []byte, pos int64, length int) error {

@@ -65,10 +65,10 @@ var goodBytes = [][]byte {
 	[]byte {0x0C, 0xAC, 0xDC, 0x01, 0x00, 0x10, 0x0F},
 }
 
-var badBytes map[error][]byte = map[error][]byte {
-	EOF : nil, //empty array with no length
-	NegativeBytesLength : []byte {0x05, 0x03, 0xFF, 0x0A}, //negative length
-	EOF : []byte {0x08, 0xFF}, //length > array size
+var badBytes [][]interface{} = [][]interface{} {
+	[]interface{} {EOF, []byte(nil)}, //empty array with no length
+	[]interface{} {NegativeBytesLength, []byte {0x05, 0x03, 0xFF, 0x0A}},//negative length
+	[]interface{} {EOF, []byte {0x08, 0xFF}}, //length > array size
 }
 
 var goodStrings map[string][]byte = map[string][]byte {
@@ -82,8 +82,8 @@ var goodStrings map[string][]byte = map[string][]byte {
 	"!№;%:?*\"()@#$^&" : []byte {0x22, 0x21, 0xE2, 0x84, 0x96, 0x3B, 0x25, 0x3A, 0x3F, 0x2A, 0x22, 0x28, 0x29, 0x40, 0x23, 0x24, 0x5E, 0x26},
 }
 
-var badStrings map[error][]byte = map[error][]byte {
-	EOF : nil, //empty array with no length
-	EOF : []byte {0x05, 0x66, 0x6F, 0x6F, 0x6F}, //negative length
-	EOF : []byte {0x08, 0x66}, //length > array size
+var badStrings [][]interface{} = [][]interface{} {
+	[]interface{} {EOF, []byte(nil)}, //empty array with no length
+	[]interface{} {InvalidStringLength, []byte {0x05, 0x66, 0x6F, 0x6F, 0x6F}},//negative length
+	[]interface{} {EOF, []byte {0x08, 0x66}}, //length > array size
 }

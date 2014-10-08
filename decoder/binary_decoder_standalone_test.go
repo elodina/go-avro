@@ -64,8 +64,11 @@ func TestBytes(t *testing.T) {
 		}
 	}
 
-	for expected, invalid := range badBytes {
-		if _, err := NewBinaryDecoder(invalid).ReadBytes(); err != expected {
+	for index := 0; index < len(badBytes); index++ {
+		pair := badBytes[index]
+		expected := pair[0].(error)
+		arr := pair[1].([]byte)
+		if _, err := NewBinaryDecoder(arr).ReadBytes(); err != expected {
 			t.Fatalf("Unexpected error for bytes: expected %v, actual %v", expected, err)
 		}
 	}
@@ -78,8 +81,11 @@ func TestString(t *testing.T) {
 		}
 	}
 
-	for expected, invalid := range badStrings {
-		if _, err := NewBinaryDecoder(invalid).ReadString(); err != expected {
+	for index := 0; index < len(badStrings); index++ {
+		pair := badStrings[index]
+		expected := pair[0].(error)
+		arr := pair[1].([]byte)
+		if _, err := NewBinaryDecoder(arr).ReadString(); err != expected {
 			t.Fatalf("Unexpected error for string: expected %v, actual %v", expected, err)
 		}
 	}

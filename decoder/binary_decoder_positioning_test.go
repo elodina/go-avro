@@ -10,15 +10,15 @@ import (
 
 //this tests whether the decoder is able to sequentially read values and keep track of his position normally
 
-var BOOLEAN = "boolean"
-var INT = "int"
-var LONG = "long"
-var FLOAT = "float"
-var DOUBLE = "double"
-var BYTES = "bytes"
-var STRING = "string"
+var TYPE_BOOLEAN = "boolean"
+var TYPE_INT = "int"
+var TYPE_LONG = "long"
+var TYPE_FLOAT = "float"
+var TYPE_DOUBLE = "double"
+var TYPE_BYTES = "bytes"
+var TYPE_STRING = "string"
 
-var TYPES = []string {BOOLEAN, INT, LONG, FLOAT, DOUBLE, BYTES, STRING}
+var PRIMITIVES = []string {TYPE_BOOLEAN, TYPE_INT, TYPE_LONG, TYPE_FLOAT, TYPE_DOUBLE, TYPE_BYTES, TYPE_STRING}
 
 func TestPositioning(t *testing.T) {
 	bytes, types, expected := getTestData()
@@ -28,37 +28,37 @@ func TestPositioning(t *testing.T) {
 		currentExpected := expected[i]
 
 		switch currentType {
-		case BOOLEAN: {
+		case TYPE_BOOLEAN: {
 			value, _ := bd.ReadBoolean()
 			if value != currentExpected.(bool) {
 				t.Fatalf("Unexpected boolean: expected %v, actual %v\n", currentExpected, value)
 			}
 		}
-		case INT: {
+		case TYPE_INT: {
 			value, _ := bd.ReadInt()
 			if value != currentExpected.(int32) {
 				t.Fatalf("Unexpected int: expected %v, actual %v\n", currentExpected, value)
 			}
 		}
-		case LONG: {
+		case TYPE_LONG: {
 			value, _ := bd.ReadLong()
 			if value != currentExpected.(int64) {
 				t.Fatalf("Unexpected long: expected %v, actual %v\n", currentExpected, value)
 			}
 		}
-		case FLOAT: {
+		case TYPE_FLOAT: {
 			value, _ := bd.ReadFloat()
 			if value != currentExpected.(float32) {
 				t.Fatalf("Unexpected float: expected %v, actual %v\n", currentExpected, value)
 			}
 		}
-		case DOUBLE: {
+		case TYPE_DOUBLE: {
 			value, _ := bd.ReadDouble()
 			if value != currentExpected.(float64) {
 				t.Fatalf("Unexpected double: expected %v, actual %v\n", currentExpected, value)
 			}
 		}
-		case BYTES: {
+		case TYPE_BYTES: {
 			position := bd.pos
 			value, err := bd.ReadBytes()
 			if err != nil {
@@ -70,7 +70,7 @@ func TestPositioning(t *testing.T) {
 				}
 			}
 		}
-		case STRING: {
+		case TYPE_STRING: {
 			value, _ := bd.ReadString()
 			if value != currentExpected.(string) {
 				t.Fatalf("Unexpected string: expected %v, actual %v\n", currentExpected, value)
@@ -90,7 +90,7 @@ func getTestData() ([]byte, []string, []interface{}) {
 	var expected []interface{}
 
 	for i := 0; i < testSize; i++ {
-		currentType := TYPES[rand.Intn(len(TYPES))]
+		currentType := PRIMITIVES[rand.Intn(len(PRIMITIVES))]
 		types = append(types, currentType)
 		k, v := getRandomFromMap(currentType)
 		bytes = append(bytes, k...)
@@ -103,7 +103,7 @@ func getTestData() ([]byte, []string, []interface{}) {
 func getRandomFromMap(mapType string) ([]byte, interface{}) {
 	i := 0
 	switch mapType {
-	case BOOLEAN: {
+	case TYPE_BOOLEAN: {
 		random := rand.Intn(len(goodBooleans))
 		for value, bytes := range goodBooleans {
 			if i == random {
@@ -112,7 +112,7 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 			i++
 		}
 	}
-	case INT: {
+	case TYPE_INT: {
 		random := rand.Intn(len(goodInts))
 		for value, bytes := range goodInts {
 			if i == random {
@@ -121,7 +121,7 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 			i++
 		}
 	}
-	case LONG: {
+	case TYPE_LONG: {
 		random := rand.Intn(len(goodLongs))
 		for value, bytes := range goodLongs {
 			if i == random {
@@ -130,7 +130,7 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 			i++
 		}
 	}
-	case FLOAT: {
+	case TYPE_FLOAT: {
 		random := rand.Intn(len(goodFloats))
 		for value, bytes := range goodFloats {
 			if i == random {
@@ -139,7 +139,7 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 			i++
 		}
 	}
-	case DOUBLE: {
+	case TYPE_DOUBLE: {
 		random := rand.Intn(len(goodDoubles))
 		for value, bytes := range goodDoubles {
 			if i == random {
@@ -148,10 +148,10 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 			i++
 		}
 	}
-	case BYTES: {
+	case TYPE_BYTES: {
 		return goodBytes[rand.Intn(len(goodBytes))], "1"
 	}
-	case STRING: {
+	case TYPE_STRING: {
 		random := rand.Intn(len(goodStrings))
 		for value, bytes := range goodStrings {
 			if i == random {

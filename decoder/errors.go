@@ -19,3 +19,12 @@ var InvalidBool = errors.New("Invalid bool value")
 
 //happens when given value to decode as string has either negative or undecodable length
 var InvalidStringLength = errors.New("Invalid string length")
+
+//indicates the given file to decode does not correspond to Avro data file format
+var NotAvroFile = errors.New("Not an Avro data file")
+
+//happens when file header's sync and block's sync do not match - indicates corrupted data
+var InvalidSync = errors.New("Invalid sync")
+
+//happens when trying to read next block without finishing the previous one
+var BlockNotFinished = errors.New("Block read is unfinished")
