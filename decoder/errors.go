@@ -28,3 +28,6 @@ var InvalidSync = errors.New("Invalid sync")
 
 //happens when trying to read next block without finishing the previous one
 var BlockNotFinished = errors.New("Block read is unfinished")
+
+//happens when avro schema contains invalid value for fixed size
+var InvalidFixedSize = errors.New("Invalid Fixed type size")

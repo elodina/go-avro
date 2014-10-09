@@ -18,6 +18,8 @@ type AvroDecoder interface {
 	ReadBytes() ([]byte, error)
 	ReadString() (string, error)
 	ReadEnum() (int32, error)
+	ReadArrayStart() (int64, error)
+	ArrayNext() (int64, error)
 	ReadMapStart() (int64, error)
 	MapNext() (int64, error)
 	ReadFixed([]byte) error
