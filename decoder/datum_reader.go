@@ -78,6 +78,8 @@ func readValue(BindType int, field *Field, reflectField reflect.Value, dec AvroD
 	case MAP: return mapMap(field, reflectField, dec)
 	case UNION: return mapUnion(field, reflectField, dec)
 	case FIXED: return mapFixed(field, dec)
+	case RECORD: return mapRecord(field, reflectField, dec)
+	//TODO recursive types
 	}
 	panic("weird field")
 }
@@ -86,7 +88,7 @@ func setValue(field *Field, where reflect.Value, what reflect.Value) {
 	switch where.Kind() {
 	case reflect.Interface:
 		zero := reflect.Value{}
-		if  zero != what {
+		if zero != what {
 			where.Set(what)
 		}
 	default:
@@ -173,4 +175,14 @@ func mapFixed(field *Field, dec AvroDecoder) reflect.Value {
 	fixed := make([]byte, field.Size)
 	dec.ReadFixed(fixed)
 	return reflect.ValueOf(fixed)
+}
+
+func mapRecord(field *Field, reflectField reflect.Value, dec AvroDecoder) reflect.Value {
+	record := reflect.New(reflectField.Type().Elem()).Interface()
+
+	for i := 0; i < len(field.Subfields); i++ {
+		findAndSet(record, &(field.Subfields[i]), dec)
+	}
+
+	return reflect.ValueOf(record)
 }
