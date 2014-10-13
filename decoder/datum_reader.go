@@ -85,13 +85,8 @@ func readValue(BindType int, field *Field, reflectField reflect.Value, dec AvroD
 }
 
 func setValue(field *Field, where reflect.Value, what reflect.Value) {
-	switch where.Kind() {
-	case reflect.Interface:
-		zero := reflect.Value{}
-		if zero != what {
-			where.Set(what)
-		}
-	default:
+	zero := reflect.Value{}
+	if zero != what {
 		where.Set(what)
 	}
 }
@@ -113,7 +108,12 @@ func mapArray(field *Field, reflectField reflect.Value, dec AvroDecoder) reflect
 			arrayPart := reflect.MakeSlice(reflectField.Type(), int(arrayLength), int(arrayLength))
 			var i int64 = 0
 			for ; i < arrayLength; i++ {
-				arrayPart.Index(int(i)).Set(readValue(field.ItemType, field, reflectField, dec))
+				val := readValue(field.ItemType, field, reflectField, dec)
+				if val.Kind() == reflect.Ptr {
+					arrayPart.Index(int(i)).Set(val.Elem())
+				} else {
+					arrayPart.Index(int(i)).Set(val)
+				}
 			}
 			//concatenate arrays
 			concatArray := reflect.MakeSlice(reflectField.Type(), array.Len()+int(arrayLength), array.Cap()+int(arrayLength))
@@ -140,8 +140,12 @@ func mapMap(field *Field, reflectField reflect.Value, dec AvroDecoder) reflect.V
 			var i int64 = 0
 			for ; i < mapLength; i++ {
 				key := readValue(STRING, field, reflectField, dec)
-				value := readValue(field.ItemType, field, reflectField, dec)
-				resultMap.SetMapIndex(key, value)
+				val := readValue(field.ItemType, field, reflectField, dec)
+				if val.Kind() == reflect.Ptr {
+					resultMap.SetMapIndex(key, val.Elem())
+				} else {
+					resultMap.SetMapIndex(key, val)
+				}
 			}
 
 			mapLength, err = dec.MapNext()
@@ -167,7 +171,8 @@ func mapUnion(field *Field, reflectField reflect.Value, dec AvroDecoder) reflect
 	if unionType, err := dec.ReadInt(); err != nil {
 		panic(err)
 	} else {
-		return readValue(field.UnionTypes[unionType], field, reflectField, dec)
+		union := field.UnionTypes[unionType]
+		return readValue(union.Type, &union, reflectField, dec)
 	}
 }
 

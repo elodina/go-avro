@@ -31,3 +31,9 @@ var BlockNotFinished = errors.New("Block read is unfinished")
 
 //happens when avro schema contains invalid value for fixed size
 var InvalidFixedSize = errors.New("Invalid Fixed type size")
+
+//happens when avro schema contains invalid value for map value type or array item type
+var InvalidValueType = errors.New("Invalid array or map value type")
+
+//happens when avro schema contains a union within union
+var NestedUnionsNotAllowed = errors.New("Nested unions are not allowed")
