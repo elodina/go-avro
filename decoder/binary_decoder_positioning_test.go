@@ -82,7 +82,7 @@ func TestPositioning(t *testing.T) {
 
 func getTestData() ([]byte, []string, []interface{}) {
 	rand.Seed(time.Now().Unix())
-	testSize := rand.Intn(10000) + 1 //1 to 10
+	testSize := rand.Intn(10000) + 1
 	fmt.Printf("Testing positioning on %d sequential values\n", testSize)
 
 	var bytes []byte

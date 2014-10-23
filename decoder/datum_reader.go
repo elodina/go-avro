@@ -17,19 +17,19 @@ func (ge *GenericEnum) Get() string {
 
 type DatumReader interface {
 	Read(interface{}, AvroDecoder) bool
-	SetSchema(*Schema)
+	SetSchema(Schema)
 }
 
 type GenericDatumReader struct {
 	dataType reflect.Type
-	schema *Schema
+	schema Schema
 }
 
 func NewGenericDatumReader() *GenericDatumReader {
 	return &GenericDatumReader{}
 }
 
-func (gdr *GenericDatumReader) SetSchema(schema *Schema) {
+func (gdr *GenericDatumReader) SetSchema(schema Schema) {
 	gdr.schema = schema
 }
 
@@ -39,15 +39,16 @@ func (gdr *GenericDatumReader) Read(v interface{}, dec AvroDecoder) bool {
 		panic("Not applicable for non-pointer types or nil")
 	}
 
-	for i := 0; i < len(gdr.schema.Fields); i++ {
-		field := &(gdr.schema.Fields[i])
+	sch := gdr.schema.(*RecordSchema)
+	for i := 0; i < len(sch.Fields); i++ {
+		field := sch.Fields[i]
 		findAndSet(v, field, dec)
 	}
 
 	return true
 }
 
-func findAndSet(v interface{}, field *Field, dec AvroDecoder) {
+func findAndSet(v interface{}, field *SchemaField, dec AvroDecoder) {
 	fieldName := field.Name
 	elem := reflect.ValueOf(v).Elem()
 	f := elem.FieldByName(strings.ToUpper(fieldName[0:1]) + fieldName[1:])
@@ -59,12 +60,12 @@ func findAndSet(v interface{}, field *Field, dec AvroDecoder) {
 		panic(fmt.Sprintf("Field %s does not exist!\n", fieldName))
 	}
 
-	value := readValue(field.Type, field, f, dec)
+	value := readValue(field.Type, f, dec)
 	setValue(field, f, value)
 }
 
-func readValue(BindType int, field *Field, reflectField reflect.Value, dec AvroDecoder) reflect.Value {
-	switch BindType {
+func readValue(field Schema, reflectField reflect.Value, dec AvroDecoder) reflect.Value {
+	switch field.Type() {
 	case NULL: return reflect.ValueOf(nil)
 	case BOOLEAN: return mapPrimitive(func() (interface{}, error) {return dec.ReadBoolean()})
 	case INT: return mapPrimitive(func() (interface{}, error) {return dec.ReadInt()})
@@ -84,7 +85,7 @@ func readValue(BindType int, field *Field, reflectField reflect.Value, dec AvroD
 	panic("weird field")
 }
 
-func setValue(field *Field, where reflect.Value, what reflect.Value) {
+func setValue(field *SchemaField, where reflect.Value, what reflect.Value) {
 	zero := reflect.Value{}
 	if zero != what {
 		where.Set(what)
@@ -99,7 +100,7 @@ func mapPrimitive(reader func() (interface{}, error)) reflect.Value {
 	}
 }
 
-func mapArray(field *Field, reflectField reflect.Value, dec AvroDecoder) reflect.Value {
+func mapArray(field Schema, reflectField reflect.Value, dec AvroDecoder) reflect.Value {
 	if arrayLength, err := dec.ReadArrayStart(); err != nil {
 		panic(err)
 	} else {
@@ -108,7 +109,7 @@ func mapArray(field *Field, reflectField reflect.Value, dec AvroDecoder) reflect
 			arrayPart := reflect.MakeSlice(reflectField.Type(), int(arrayLength), int(arrayLength))
 			var i int64 = 0
 			for ; i < arrayLength; i++ {
-				val := readValue(field.ItemType, field, reflectField, dec)
+				val := readValue(field.(*ArraySchema).Items, arrayPart.Index(int(i)), dec)
 				if val.Kind() == reflect.Ptr {
 					arrayPart.Index(int(i)).Set(val.Elem())
 				} else {
@@ -131,7 +132,7 @@ func mapArray(field *Field, reflectField reflect.Value, dec AvroDecoder) reflect
 	}
 }
 
-func mapMap(field *Field, reflectField reflect.Value, dec AvroDecoder) reflect.Value {
+func mapMap(field Schema, reflectField reflect.Value, dec AvroDecoder) reflect.Value {
 	if mapLength, err := dec.ReadMapStart(); err != nil {
 		panic(err)
 	} else {
@@ -139,8 +140,8 @@ func mapMap(field *Field, reflectField reflect.Value, dec AvroDecoder) reflect.V
 		for {
 			var i int64 = 0
 			for ; i < mapLength; i++ {
-				key := readValue(STRING, field, reflectField, dec)
-				val := readValue(field.ItemType, field, reflectField, dec)
+				key := readValue(&StringSchema{}, reflectField, dec)
+				val := readValue(field.(*MapSchema).Values, reflectField, dec)
 				if val.Kind() == reflect.Ptr {
 					resultMap.SetMapIndex(key, val.Elem())
 				} else {
@@ -159,34 +160,40 @@ func mapMap(field *Field, reflectField reflect.Value, dec AvroDecoder) reflect.V
 	}
 }
 
-func mapEnum(field *Field, dec AvroDecoder) reflect.Value {
+func mapEnum(field Schema, dec AvroDecoder) reflect.Value {
 	if enum, err := dec.ReadEnum(); err != nil {
 		panic(err)
 	} else {
-		return reflect.ValueOf(GenericEnum{field.Symbols, enum})
+		return reflect.ValueOf(GenericEnum{field.(*EnumSchema).Symbols, enum})
 	}
 }
 
-func mapUnion(field *Field, reflectField reflect.Value, dec AvroDecoder) reflect.Value {
+func mapUnion(field Schema, reflectField reflect.Value, dec AvroDecoder) reflect.Value {
 	if unionType, err := dec.ReadInt(); err != nil {
 		panic(err)
 	} else {
-		union := field.UnionTypes[unionType]
-		return readValue(union.Type, &union, reflectField, dec)
+		union := field.(*UnionSchema).Types[unionType]
+		return readValue(union, reflectField, dec)
 	}
 }
 
-func mapFixed(field *Field, dec AvroDecoder) reflect.Value {
-	fixed := make([]byte, field.Size)
+func mapFixed(field Schema, dec AvroDecoder) reflect.Value {
+	fixed := make([]byte, field.(*FixedSchema).Size)
 	dec.ReadFixed(fixed)
 	return reflect.ValueOf(fixed)
 }
 
-func mapRecord(field *Field, reflectField reflect.Value, dec AvroDecoder) reflect.Value {
-	record := reflect.New(reflectField.Type().Elem()).Interface()
+func mapRecord(field Schema, reflectField reflect.Value, dec AvroDecoder) reflect.Value {
+	var t reflect.Type
+	switch reflectField.Kind() {
+		case reflect.Ptr, reflect.Array, reflect.Map, reflect.Slice, reflect.Chan: t = reflectField.Type().Elem()
+		default: t = reflectField.Type()
+	}
+	record := reflect.New(t).Interface()
 
-	for i := 0; i < len(field.Subfields); i++ {
-		findAndSet(record, &(field.Subfields[i]), dec)
+	recordSchema := field.(*RecordSchema)
+	for i := 0; i < len(recordSchema.Fields); i++ {
+		findAndSet(record, recordSchema.Fields[i], dec)
 	}
 
 	return reflect.ValueOf(record)

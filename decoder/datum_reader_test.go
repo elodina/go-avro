@@ -168,6 +168,7 @@ func TestComplexBinding(t *testing.T) {
 
 //complex within complex
 type complexOfComplex struct {
+	ArrayStringArray [][]string
 	RecordArray []testRecord
 	IntOrStringArray []interface{}
 	RecordMap map[string]testRecord2
@@ -197,6 +198,19 @@ func TestComplexOfComplexBinding(t *testing.T) {
 		if !ok {
 			break
 		} else {
+			arrayLength := 5
+			if (len(c.ArrayStringArray) != arrayLength) {
+				t.Errorf("Expected array of arrays length %d, actual %d", arrayLength, len(c.ArrayStringArray))
+			}
+
+			for i := 0; i < arrayLength; i++ {
+				for j := 0; j < arrayLength; j++ {
+					if c.ArrayStringArray[i][j] != fmt.Sprintf("string%d%d", i, j) {
+						t.Errorf("Expected array element %d, actual %d", fmt.Sprintf("string%d%d", i, j), c.ArrayStringArray[i][j])
+					}
+				}
+			}
+
 			recordArrayLength := 2
 			if len(c.RecordArray) != recordArrayLength {
 				t.Errorf("Expected record array length %d, actual %d", recordArrayLength, len(c.RecordArray))
@@ -241,7 +255,6 @@ func TestComplexOfComplexBinding(t *testing.T) {
 			primitiveAssert(t, c.IntOrStringMap["one more key"], int32(123))
 			primitiveAssert(t, c.IntOrStringMap["another key"], "another value")
 
-			arrayLength := 5
 			if len(c.NullOrRecordUnion.StringArray) != arrayLength {
 				t.Errorf("Expected record union string array length %d, actual %d", arrayLength, len(c.NullOrRecordUnion.StringArray))
 			}

@@ -87,7 +87,7 @@ func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReade
 		dec.ReadFixed(dfr.header.sync)
 		//TODO codec?
 
-		dfr.datum.SetSchema(AvroSchema(dfr.header.meta[SCHEMA_KEY]))
+		dfr.datum.SetSchema(Parse(dfr.header.meta[SCHEMA_KEY]))
 		dfr.block = &DataBlock{}
 
 		if dfr.hasNextBlock() {

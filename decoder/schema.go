@@ -2,7 +2,22 @@ package decoder
 
 import (
 	"encoding/json"
-	"strings"
+)
+
+const (
+	type_record  = "record"
+	type_enum    = "enum"
+	type_array   = "array"
+	type_map     = "map"
+	type_fixed   = "fixed"
+	type_string  = "string"
+	type_bytes   = "bytes"
+	type_int     = "int"
+	type_long    = "long"
+	type_float   = "float"
+	type_double  = "double"
+	type_boolean = "boolean"
+	type_null    = "null"
 )
 
 const (
@@ -22,197 +37,221 @@ const (
 	NULL
 )
 
-var TYPES = map[string]int {
-	"record" : RECORD,
-	"enum" : ENUM,
-	"array" : ARRAY,
-	"map" : MAP,
-	"union" : UNION,
-	"fixed" : FIXED,
-	"string" : STRING,
-	"bytes" : BYTES,
-	"int" : INT,
-	"long" : LONG,
-	"float" : FLOAT,
-	"double" : DOUBLE,
-	"boolean" : BOOLEAN,
-	"null" : NULL,
+//TODO optional fields!
+const (
+	aliasesField   = "aliases"
+	docField       = "doc"
+	fieldsField    = "fields"
+	itemsField     = "items"
+	nameField      = "name"
+	namespaceField = "namespace"
+	sizeField      = "size"
+	symbolsField   = "symbols"
+	typeField      = "type"
+	valuesField    = "values"
+)
+
+type Schema interface {
+	Type() int
 }
 
-var NAME_FIELD_NAME = "name"
-var DOC_FIELD_NAME = "doc"
-var TYPE_FIELD_NAME = "type"
-var ITEMS_FIELD_NAME = "items"
-var SYMBOLS_FIELD_NAME = "symbols"
-var VALUES_FIELD_NAME = "values"
-var SIZE_FIELD_NAME = "size"
-var FIELDS_FIELD_NAME = "fields"
+// PRIMITIVES
+type StringSchema struct {}
 
-//TODO !!!!!! seems like this should be rewritten as root schema can be other than record
-type Schema struct {
-	Type string
-	Name string
+func (ss *StringSchema) Type() int {
+	return STRING
+}
+
+type BytesSchema struct {}
+
+func (bs *BytesSchema) Type() int {
+	return BYTES
+}
+
+type IntSchema struct {}
+
+func (is *IntSchema) Type() int {
+	return INT
+}
+
+type LongSchema struct {}
+
+func (ls *LongSchema) Type() int {
+	return LONG
+}
+
+type FloatSchema struct {}
+
+func (fs *FloatSchema) Type() int {
+	return FLOAT
+}
+
+type DoubleSchema struct {}
+
+func (ds *DoubleSchema) Type() int {
+	return DOUBLE
+}
+
+type BooleanSchema struct {}
+
+func (bs *BooleanSchema) Type() int {
+	return BOOLEAN
+}
+
+type NullSchema struct {}
+
+func (ns *NullSchema) Type() int {
+	return NULL
+}
+
+//COMPLEX
+type RecordSchema struct {
+	Name      string
 	Namespace string
-	Doc string
-	Fields []Field
+	Doc       string
+	Aliases   []string
+	Fields    []*SchemaField
 }
 
-type Field struct {
+type SchemaField struct {
 	Name string
-	Type int
-	ItemType int //for arrays and maps
-	Symbols []string //for enums
-	UnionTypes []Field //for unions
-	Size int //for fixed
-	Subfields []Field //for records
+	Doc  string
+	Type Schema
 }
 
-func (f *Field) IsPrimitive() bool {
-	return f.Type > FIXED
+func (rs *RecordSchema) Type() int {
+	return RECORD
 }
 
-type schema struct {
-	Type string
-	Name string
+type EnumSchema struct {
+	Name      string
 	Namespace string
-	Doc string
-	Aliases []string
-	Fields []field
+	Aliases   []string
+	Doc       string
+	Symbols   []string
 }
 
-type field struct {
+func (es *EnumSchema) Type() int {
+	return ENUM
+}
+
+type ArraySchema struct {
+	Items Schema
+}
+
+func (as *ArraySchema) Type() int {
+	return ARRAY
+}
+
+type MapSchema struct {
+	Values Schema
+}
+
+func (ms *MapSchema) Type() int {
+	return MAP
+}
+
+type UnionSchema struct {
+	Types []Schema
+}
+
+func (us *UnionSchema) Type() int {
+	return UNION
+}
+
+type FixedSchema struct {
 	Name string
-	Doc string
-	Type interface{}
-	Default interface{}
+	Size int
 }
 
-func AvroSchema(bytes []byte) *Schema {
-	jsonSchema := &schema{}
-	json.Unmarshal(bytes, jsonSchema)
-
-	schema := &Schema {
-		Type : jsonSchema.Type,
-		Name : jsonSchema.Name,
-		Namespace : jsonSchema.Namespace,
-		Doc : jsonSchema.Doc,
-	}
-	schema.Fields = make([]Field, len(jsonSchema.Fields))
-
-	for i := 0; i < len(jsonSchema.Fields); i++ {
-		field := jsonSchema.Fields[i]
-		schema.Fields[i] = fieldByType(field)
-	}
-	return schema
+func (fs *FixedSchema) Type() int {
+	return FIXED
 }
 
-func fieldByType(field field) Field {
-	//TODO ugh..
-	if value, ok := field.Type.(string); !ok {
-		if dict, ok := field.Type.(map[string]interface{}); !ok {
-			return unionField(field)
+//OTHER
+func Parse(jsn []byte) Schema {
+	var f interface{}
+	if err := json.Unmarshal(jsn, &f); err != nil {
+		panic(err)
+	}
+
+	switch v := f.(type) {
+	case map[string]interface{}:
+		if v[typeField] == type_record {
+			return schemaByType(v)
 		} else {
-			complexType := TYPES[dict[TYPE_FIELD_NAME].(string)]
-			switch complexType {
-			case ARRAY: return valueField(field, dict, ITEMS_FIELD_NAME)
-			case ENUM: return enumField(field, dict)
-			case MAP: return valueField(field, dict, VALUES_FIELD_NAME)
-			case FIXED: return fixedField(field, dict)
-			case RECORD: {
-				recordField := Field{Name: field.Name, Type: complexType}
-				populateRecordField(&recordField, dict[FIELDS_FIELD_NAME].([]interface{}))
-				return recordField
-			}
-			}
+			return schemaByType(v[typeField])
 		}
-	} else {
-		return Field{Name: field.Name, Type: TYPES[value]}
+	default:
+		panic(InvalidSchema)
 	}
-	panic("weird field by type")
 }
 
-func enumField(ef field, dict map[string]interface{}) Field {
-	symbols := make([]string, len(dict[SYMBOLS_FIELD_NAME].([]interface{})))
-	for i, symbol := range dict[SYMBOLS_FIELD_NAME].([]interface{}) {
+func schemaByType(i interface{}) Schema {
+	switch v := i.(type) {
+	case string:
+		switch v {
+		case type_null: return &NullSchema{}
+		case type_boolean: return &BooleanSchema{}
+		case type_int: return &IntSchema{}
+		case type_long: return &LongSchema{}
+		case type_float: return &FloatSchema{}
+		case type_double: return &DoubleSchema{}
+		case type_bytes: return &BytesSchema{}
+		case type_string: return &StringSchema{}
+		}
+	case map[string]interface{}:
+		switch v[typeField] {
+		case type_array: return &ArraySchema{ Items : schemaByType(v[itemsField])}
+		case type_map: return &MapSchema{ Values : schemaByType(v[valuesField])}
+		case type_enum: return parseEnumSchema(v)
+		case type_fixed: return parseFixedSchema(v)
+		case type_record: return parseRecordSchema(v)
+		}
+	case []interface{}: return parseUnionSchema(v)
+	}
+	panic(InvalidSchema)
+}
+
+func parseEnumSchema(v map[string]interface{}) Schema {
+	symbols := make([]string, len(v[symbolsField].([]interface{})))
+	for i, symbol := range v[symbolsField].([]interface{}) {
 		symbols[i] = symbol.(string)
 	}
-	return Field{Name: ef.Name, Type: TYPES[dict[TYPE_FIELD_NAME].(string)], Symbols: symbols}
+
+	return &EnumSchema{ Name : v[nameField].(string), Symbols : symbols}
 }
 
-func unionField(uf field) Field {
-	unionTypes := make([]Field, 2)
-	for i, types := range uf.Type.([]interface{}) {
-		if stringType, ok := types.(string); !ok {
-			if mapType, ok := types.(map[string]interface{}); !ok {
-				//nested unions are not allowed by spec
-				panic(NestedUnionsNotAllowed)
-			} else {
-				schemaField := field{Type: mapType}
-				unionTypes[i] = fieldByType(schemaField)
-			}
-		} else {
-			unionTypes[i] = Field{Type: TYPES[stringType]}
-		}
-	}
-	return Field{Name: uf.Name, Type: UNION, UnionTypes: unionTypes}
-}
-
-func valueField(f field, dict map[string]interface{}, typeInfoField string) Field {
-	if itemType, ok := dict[typeInfoField].(string); !ok {
-		if complexType, ok := dict[typeInfoField].(map[string]interface{}); !ok {
-			if unionType, ok := dict[typeInfoField].([]interface{}); !ok {
-				panic(InvalidValueType)
-			} else {
-				unionTypes := make([]Field, 2)
-				for i, types := range unionType {
-					unionTypes[i] = Field{Type: TYPES[types.(string)]}
-				}
-				return Field{Name: f.Name, Type: TYPES[dict[TYPE_FIELD_NAME].(string)], ItemType: UNION, UnionTypes: unionTypes}
-			}
-		} else {
-			schemaField := field{}
-			schemaField.Type = complexType
-			byType := fieldByType(schemaField)
-
-			return Field{Name: f.Name, Type: TYPES[dict[TYPE_FIELD_NAME].(string)], ItemType: TYPES[complexType[TYPE_FIELD_NAME].(string)], Symbols: byType.Symbols,
-				UnionTypes: byType.UnionTypes, Size: byType.Size, Subfields: byType.Subfields}
-		}
-	} else {
-		return Field{Name: f.Name, Type: TYPES[dict[TYPE_FIELD_NAME].(string)], ItemType: TYPES[itemType]}
-	}
-}
-
-func fixedField(ff field, dict map[string]interface{}) Field {
-	if size, ok := dict[SIZE_FIELD_NAME].(float64); !ok {
+func parseFixedSchema(v map[string]interface{}) Schema {
+	if size, ok := v[sizeField].(float64); !ok {
 		panic(InvalidFixedSize)
 	} else {
-		return Field{Name: ff.Name, Type: TYPES[dict[TYPE_FIELD_NAME].(string)], Size: int(size)}
+		return &FixedSchema{ Name : v[nameField].(string), Size : int(size)}
 	}
 }
 
-func recordField(rf field, dict map[string]interface{}) Field {
-	recordField := Field{Name: rf.Name, Type: TYPES[dict[TYPE_FIELD_NAME].(string)]}
-	populateRecordField(&recordField, dict[FIELDS_FIELD_NAME].([]interface{}))
-	return recordField
+func parseUnionSchema(v []interface{}) Schema {
+	types := make([]Schema, 2)
+	for i := range types {
+		types[i] = schemaByType(v[i])
+	}
+	return &UnionSchema{ Types : types }
 }
 
-func populateRecordField(recordField *Field, fields []interface{}) {
-	typedFields := make([]field, len(fields))
-	for i, f := range fields {
-		fieldMap := f.(map[string]interface{})
-		schemaField := field{}
-		for k, v := range fieldMap {
-			switch strings.ToLower(k) {
-				case NAME_FIELD_NAME: schemaField.Name = v.(string)
-				case TYPE_FIELD_NAME: schemaField.Type = v
-				case DOC_FIELD_NAME: schemaField.Doc = v.(string)
-			}
-		}
-		typedFields[i] = schemaField
+func parseRecordSchema(v map[string]interface{}) Schema {
+	fields := make([]*SchemaField, len(v[fieldsField].([]interface{})))
+	for i := range fields {
+		fields[i] = parseSchemaField(v[fieldsField].([]interface{})[i])
 	}
+	return &RecordSchema{ Name : v[nameField].(string), Fields : fields }
+}
 
-	recordField.Subfields = make([]Field, len(fields))
-	for i, f := range typedFields {
-		recordField.Subfields[i] = fieldByType(f)
+func parseSchemaField(i interface{}) *SchemaField {
+	switch v := i.(type) {
+	case map[string]interface{}:
+		schemaField := &SchemaField{ Name : v[nameField].(string) }
+		schemaField.Type = schemaByType(v[typeField])
+		return schemaField
 	}
+	panic(InvalidSchema)
 }
