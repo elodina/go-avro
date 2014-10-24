@@ -1,4 +1,6 @@
-package decoder
+package test
+
+import "github.com/stealthly/go-avro/avro"
 
 var goodBooleans map[bool][]byte = map[bool][]byte {
 	false : []byte {0x00},
@@ -6,7 +8,7 @@ var goodBooleans map[bool][]byte = map[bool][]byte {
 }
 
 var badBooleans map[error][]byte = map[error][]byte {
-	InvalidBool : []byte {0x02},
+	avro.InvalidBool : []byte {0x02},
 }
 
 var goodInts map[int32][]byte = map[int32][]byte {
@@ -66,9 +68,9 @@ var goodBytes = [][]byte {
 }
 
 var badBytes [][]interface{} = [][]interface{} {
-	[]interface{} {EOF, []byte(nil)}, //empty array with no length
-	[]interface{} {NegativeBytesLength, []byte {0x05, 0x03, 0xFF, 0x0A}},//negative length
-	[]interface{} {EOF, []byte {0x08, 0xFF}}, //length > array size
+	[]interface{} {avro.EOF, []byte(nil)}, //empty array with no length
+	[]interface{} {avro.NegativeBytesLength, []byte {0x05, 0x03, 0xFF, 0x0A}},//negative length
+	[]interface{} {avro.EOF, []byte {0x08, 0xFF}}, //length > array size
 }
 
 var goodStrings map[string][]byte = map[string][]byte {
@@ -83,7 +85,7 @@ var goodStrings map[string][]byte = map[string][]byte {
 }
 
 var badStrings [][]interface{} = [][]interface{} {
-	[]interface{} {EOF, []byte(nil)}, //empty array with no length
-	[]interface{} {InvalidStringLength, []byte {0x05, 0x66, 0x6F, 0x6F, 0x6F}},//negative length
-	[]interface{} {EOF, []byte {0x08, 0x66}}, //length > array size
+	[]interface{} {avro.EOF, []byte(nil)}, //empty array with no length
+	[]interface{} {avro.InvalidStringLength, []byte {0x05, 0x66, 0x6F, 0x6F, 0x6F}},//negative length
+	[]interface{} {avro.EOF, []byte {0x08, 0x66}}, //length > array size
 }

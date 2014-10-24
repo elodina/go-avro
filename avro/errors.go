@@ -1,4 +1,4 @@
-package decoder
+package avro
 
 import "errors"
 
@@ -40,3 +40,6 @@ var NestedUnionsNotAllowed = errors.New("Nested unions are not allowed")
 
 //happens when avro schema is unparsable or is invalid in any other way
 var InvalidSchema = errors.New("Invalid schema")
+
+//happens when a datum reader has no set schema
+var SchemaNotSet = errors.New("Schema not set")

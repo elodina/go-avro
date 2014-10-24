@@ -3,68 +3,70 @@ package encoder
 import (
 	"math"
 	"encoding/binary"
+	"bytes"
 )
 
-type AvroEncoder interface {
-	WriteNull(interface{}) []byte
-	WriteBoolean(bool) []byte
-	WriteInt(int32) []byte
-	WriteLong(int64) []byte
-	WriteFloat(float32) []byte
-	WriteDouble(float64) []byte
-	WriteBytes([]byte) []byte
-	WriteString(string) []byte
-}
+
 
 type BinaryEncoder struct {
-
+	buffer *bytes.Buffer
 }
 
-func NewBinaryEncoder() *BinaryEncoder {
-	return &BinaryEncoder{}
+func NewBinaryEncoder(buffer *bytes.Buffer) *BinaryEncoder {
+	return &BinaryEncoder{ buffer : buffer }
 }
 
-func (be *BinaryEncoder) WriteNull(_ interface{}) []byte {
-	return nil
+func (be *BinaryEncoder) WriteNull(_ interface{}) {
+	//do nothing
 }
 
-func (be *BinaryEncoder) WriteBoolean(x bool) []byte {
+func (be *BinaryEncoder) WriteBoolean(x bool) {
 	if x {
-		return []byte {0x01}
+		be.buffer.Write([]byte {0x01})
+//		return []byte {0x01}
 	} else {
-		return []byte {0x00}
+		be.buffer.Write([]byte {0x00})
+//		return []byte {0x00}
 	}
 }
 
-func (be *BinaryEncoder) WriteInt(x int32) []byte {
-	return be.writeVarint(int64(x))
+func (be *BinaryEncoder) WriteInt(x int32) {
+	be.buffer.Write(be.encodeVarint(int64(x)))
+//	return be.writeVarint(int64(x))
 }
 
-func (be *BinaryEncoder) WriteLong(x int64) []byte {
-	return be.writeVarint(x)
+func (be *BinaryEncoder) WriteLong(x int64) {
+	be.buffer.Write(be.encodeVarint(x))
+//	return be.writeVarint(x)
 }
 
-func (be *BinaryEncoder) WriteFloat(x float32) []byte {
+func (be *BinaryEncoder) WriteFloat(x float32) {
 	bytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bytes, math.Float32bits(x))
-	return bytes
+	be.buffer.Write(bytes)
+//	return bytes
 }
 
-func (be *BinaryEncoder) WriteDouble(x float64) []byte {
+func (be *BinaryEncoder) WriteDouble(x float64) {
 	bytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bytes, math.Float64bits(x))
-	return bytes
+	be.buffer.Write(bytes)
+//	return bytes
 }
 
-func (be *BinaryEncoder) WriteBytes(x []byte) []byte {
-	return append(be.WriteLong(int64(len(x))), x...)
+func (be *BinaryEncoder) WriteBytes(x []byte) {
+	be.WriteLong(int64(len(x)))
+	be.buffer.Write(x)
+//	return append(be.WriteLong(int64(len(x))), x...)
 }
 
-func (be *BinaryEncoder) WriteString(x string) []byte {
-	return append(be.WriteLong(int64(len(x))), []byte(x)...)
+func (be *BinaryEncoder) WriteString(x string) {
+	be.WriteLong(int64(len(x)))
+	be.buffer.Write([]byte(x))
+//	return append(be.WriteLong(int64(len(x))), []byte(x)...)
 }
 
-func (be *BinaryEncoder) writeVarint(x int64) []byte {
+func (be *BinaryEncoder) encodeVarint(x int64) []byte {
 	var buf = make([]byte, 10)
 	ux := uint64(x) << 1
 	if x < 0 {

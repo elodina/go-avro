@@ -3,32 +3,11 @@ package decoder
 import (
 	"encoding/binary"
 	"math"
+	"github.com/stealthly/go-avro/avro"
 )
 
 var MAX_INT_BUF_SIZE = 5
 var MAX_LONG_BUF_SIZE = 10
-
-type AvroDecoder interface {
-	ReadNull() (interface{}, error)
-	ReadBoolean() (bool, error)
-	ReadInt() (int32, error)
-	ReadLong() (int64, error)
-	ReadFloat() (float32, error)
-	ReadDouble() (float64, error)
-	ReadBytes() ([]byte, error)
-	ReadString() (string, error)
-	ReadEnum() (int32, error)
-	ReadArrayStart() (int64, error)
-	ArrayNext() (int64, error)
-	ReadMapStart() (int64, error)
-	MapNext() (int64, error)
-	ReadFixed([]byte) error
-	ReadFixedWithBounds([]byte, int, int) error
-	SetBlock(*DataBlock)
-	Seek(int64)
-	Tell() int64
-
-}
 
 type BinaryDecoder struct {
 	buf []byte
@@ -39,21 +18,20 @@ func NewBinaryDecoder(buf []byte) *BinaryDecoder {
 	return &BinaryDecoder{buf, 0}
 }
 
-//TODO not sure if this even needed
 func (bd *BinaryDecoder) ReadNull() (interface{}, error) {
 	return nil, nil
 }
 
 func (bd *BinaryDecoder) ReadInt() (int32, error) {
 	if err := checkEOF(bd.buf, bd.pos, 1); err != nil {
-		return 0, EOF
+		return 0, avro.EOF
 	}
 	var value uint32
 	var b uint8
 	var offset int
 	for {
 		if offset == MAX_INT_BUF_SIZE {
-			return 0, IntOverflow
+			return 0, avro.IntOverflow
 		}
 		b = bd.buf[bd.pos]
 		value |= uint32(b & 0x7F)<<uint(7 * offset)
@@ -72,7 +50,7 @@ func (bd *BinaryDecoder) ReadLong() (int64, error) {
 	var offset int
 	for {
 		if offset == MAX_LONG_BUF_SIZE {
-			return 0, LongOverflow
+			return 0, avro.LongOverflow
 		}
 		b = bd.buf[bd.pos]
 		value |= uint64(b & 0x7F)<<uint(7 * offset)
@@ -91,7 +69,7 @@ func (bd *BinaryDecoder) ReadString() (string, error) {
 	}
 	length, err := bd.ReadInt()
 	if err != nil || length < 0 {
-		return "", InvalidStringLength
+		return "", avro.InvalidStringLength
 	}
 	if err := checkEOF(bd.buf, bd.pos, int(length)); err != nil {
 		return "", err
@@ -106,7 +84,7 @@ func (bd *BinaryDecoder) ReadBoolean() (bool, error) {
 	bd.pos++
 	var err error = nil
 	if b != 0 && b != 1 {
-		err = InvalidBool
+		err = avro.InvalidBool
 	}
 	return b == 1, err
 }
@@ -114,17 +92,17 @@ func (bd *BinaryDecoder) ReadBoolean() (bool, error) {
 func (bd *BinaryDecoder) ReadBytes() ([]byte, error) {
 	//TODO make something with these if's!!
 	if err := checkEOF(bd.buf, bd.pos, 1); err != nil {
-		return nil, EOF
+		return nil, avro.EOF
 	}
 	length, err := bd.ReadLong()
 	if err != nil {
 		return nil, err
 	}
 	if length < 0 {
-		return nil, NegativeBytesLength
+		return nil, avro.NegativeBytesLength
 	}
 	if err := checkEOF(bd.buf, bd.pos, int(length)); err != nil {
-		return nil, EOF
+		return nil, avro.EOF
 	}
 
 	bytes := make([]byte, length)
@@ -197,10 +175,10 @@ func (bd *BinaryDecoder) ReadFixedWithBounds(bytes []byte, start int, length int
 
 func (bd *BinaryDecoder) readBytes(bytes []byte, start int, length int) error {
 	if length < 0 {
-		return NegativeBytesLength
+		return avro.NegativeBytesLength
 	}
 	if err := checkEOF(bd.buf, bd.pos, int(start + length)); err != nil {
-		return EOF
+		return avro.EOF
 	}
 	copy(bytes[:], bd.buf[bd.pos+int64(start):bd.pos+int64(start)+int64(length)])
 	bd.pos += int64(length)
@@ -208,8 +186,8 @@ func (bd *BinaryDecoder) readBytes(bytes []byte, start int, length int) error {
 	return nil
 }
 
-func (bd *BinaryDecoder) SetBlock(block *DataBlock) {
-	bd.buf = block.data
+func (bd *BinaryDecoder) SetBlock(block *avro.DataBlock) {
+	bd.buf = block.Data
 	bd.Seek(0)
 }
 
@@ -223,7 +201,7 @@ func (bd *BinaryDecoder) Tell() int64 {
 
 func checkEOF(buf []byte, pos int64, length int) error {
 	if int64(len(buf)) < pos+int64(length) {
-		return EOF
+		return avro.EOF
 	}
 	return nil
 }

@@ -1,7 +1,8 @@
-package decoder
+package schema
 
 import (
 	"encoding/json"
+	"github.com/stealthly/go-avro/avro"
 )
 
 const (
@@ -183,7 +184,7 @@ func Parse(jsn []byte) Schema {
 			return schemaByType(v[typeField])
 		}
 	default:
-		panic(InvalidSchema)
+		panic(avro.InvalidSchema)
 	}
 }
 
@@ -210,7 +211,7 @@ func schemaByType(i interface{}) Schema {
 		}
 	case []interface{}: return parseUnionSchema(v)
 	}
-	panic(InvalidSchema)
+	panic(avro.InvalidSchema)
 }
 
 func parseEnumSchema(v map[string]interface{}) Schema {
@@ -224,7 +225,7 @@ func parseEnumSchema(v map[string]interface{}) Schema {
 
 func parseFixedSchema(v map[string]interface{}) Schema {
 	if size, ok := v[sizeField].(float64); !ok {
-		panic(InvalidFixedSize)
+		panic(avro.InvalidFixedSize)
 	} else {
 		return &FixedSchema{ Name : v[nameField].(string), Size : int(size)}
 	}
@@ -253,5 +254,5 @@ func parseSchemaField(i interface{}) *SchemaField {
 		schemaField.Type = schemaByType(v[typeField])
 		return schemaField
 	}
-	panic(InvalidSchema)
+	panic(avro.InvalidSchema)
 }

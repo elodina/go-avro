@@ -1,12 +1,13 @@
-package decoder
+package test
 
 import (
 	"testing"
 	"fmt"
+	"github.com/stealthly/go-avro/decoder"
 )
 
 //primitives
-type primitive struct {
+type Primitive struct {
 	BooleanField bool
 	IntField int32
 	LongField int64
@@ -31,43 +32,25 @@ var (
 )
 
 func TestPrimitiveBinding(t *testing.T) {
-	datumReader := NewGenericDatumReader()
-	reader, err := NewDataFileReader("../test_data/primitives.avro", datumReader)
+	datumReader := decoder.NewGenericDatumReader()
+	reader, err := decoder.NewDataFileReader("../test/primitives.avro", datumReader)
 	if err != nil {
 		t.Fatal(err)
 	}
 	for {
-		p := &primitive{}
+		p := &Primitive{}
 		ok := reader.Next(p)
 		if !ok {
 			break
 		} else {
-			primitiveAssert(t, p.BooleanField, primitive_bool)
-			primitiveAssert(t, p.IntField, primitive_int)
-			primitiveAssert(t, p.LongField, primitive_long)
-			primitiveAssert(t, p.FloatField, primitive_float)
-			primitiveAssert(t, p.DoubleField, primitive_double)
-			byteArrayAssert(t, p.BytesField, primitive_bytes)
-			primitiveAssert(t, p.StringField, primitive_string)
-			primitiveAssert(t, p.NullField, primitive_null)
-		}
-	}
-}
-
-func primitiveAssert(t *testing.T, actual interface{}, expected interface{}) {
-	if actual != expected {
-		t.Errorf("Expected %v, actual %v", expected, actual)
-	}
-}
-
-func byteArrayAssert(t *testing.T, actual []byte, expected []byte) {
-	if len(actual) != len(expected) {
-		t.Errorf("Expected array length %d, actual %d", len(expected), len(actual))
-	}
-
-	for i := 0; i < len(expected); i++ {
-		if actual[i] != expected[i] {
-			t.Errorf("Expected %v, actual %v", expected[i], actual[i])
+			PrimitiveAssert(t, p.BooleanField, primitive_bool)
+			PrimitiveAssert(t, p.IntField, primitive_int)
+			PrimitiveAssert(t, p.LongField, primitive_long)
+			PrimitiveAssert(t, p.FloatField, primitive_float)
+			PrimitiveAssert(t, p.DoubleField, primitive_double)
+			ByteArrayAssert(t, p.BytesField, primitive_bytes)
+			PrimitiveAssert(t, p.StringField, primitive_string)
+			PrimitiveAssert(t, p.NullField, primitive_null)
 		}
 	}
 }
@@ -76,7 +59,7 @@ func byteArrayAssert(t *testing.T, actual []byte, expected []byte) {
 type complex struct {
 	StringArray []string
 	LongArray []int64
-	EnumField GenericEnum
+	EnumField decoder.GenericEnum
 	MapOfInts map[string]int32
 	UnionField string
 	FixedField []byte
@@ -102,8 +85,8 @@ var (
 )
 
 func TestComplexBinding(t *testing.T) {
-	datumReader := NewGenericDatumReader()
-	reader, err := NewDataFileReader("../test_data/complex.avro", datumReader)
+	datumReader := decoder.NewGenericDatumReader()
+	reader, err := decoder.NewDataFileReader("../test/complex.avro", datumReader)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,11 +140,11 @@ func TestComplexBinding(t *testing.T) {
 				t.Errorf("Invalid union value: expected %v, actual %v", complex_union, c.UnionField)
 			}
 
-			byteArrayAssert(t, c.FixedField, complex_fixed)
-			primitiveAssert(t, c.RecordField.LongRecordField, complex_record_long)
-			primitiveAssert(t, c.RecordField.StringRecordField, complex_record_string)
-			primitiveAssert(t, c.RecordField.IntRecordField, complex_record_int)
-			primitiveAssert(t, c.RecordField.FloatRecordField, complex_record_float)
+			ByteArrayAssert(t, c.FixedField, complex_fixed)
+			PrimitiveAssert(t, c.RecordField.LongRecordField, complex_record_long)
+			PrimitiveAssert(t, c.RecordField.StringRecordField, complex_record_string)
+			PrimitiveAssert(t, c.RecordField.IntRecordField, complex_record_int)
+			PrimitiveAssert(t, c.RecordField.FloatRecordField, complex_record_float)
 		}
 	}
 }
@@ -183,12 +166,12 @@ type testRecord2 struct {
 
 type testRecord3 struct {
 	StringArray []string
-	EnumRecordField GenericEnum
+	EnumRecordField decoder.GenericEnum
 }
 
 func TestComplexOfComplexBinding(t *testing.T) {
-	datumReader := NewGenericDatumReader()
-	reader, err := NewDataFileReader("../test_data/complex_of_complex.avro", datumReader)
+	datumReader := decoder.NewGenericDatumReader()
+	reader, err := decoder.NewDataFileReader("../test/complex_of_complex.avro", datumReader)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,10 +202,10 @@ func TestComplexOfComplexBinding(t *testing.T) {
 			for i := 0; i < recordArrayLength; i++ {
 				rec := c.RecordArray[i]
 
-				primitiveAssert(t, rec.LongRecordField, int64(i))
-				primitiveAssert(t, rec.StringRecordField, fmt.Sprintf("TestRecord%d", i))
-				primitiveAssert(t, rec.IntRecordField, int32(1000 + i))
-				primitiveAssert(t, rec.FloatRecordField, float32(i) + 0.05)
+				PrimitiveAssert(t, rec.LongRecordField, int64(i))
+				PrimitiveAssert(t, rec.StringRecordField, fmt.Sprintf("TestRecord%d", i))
+				PrimitiveAssert(t, rec.IntRecordField, int32(1000 + i))
+				PrimitiveAssert(t, rec.FloatRecordField, float32(i) + 0.05)
 			}
 
 			intOrString := []interface{} {int32(32), "not an integer", int32(49)}
@@ -232,7 +215,7 @@ func TestComplexOfComplexBinding(t *testing.T) {
 			}
 
 			for i := 0; i < len(intOrString); i++ {
-				primitiveAssert(t, c.IntOrStringArray[i], intOrString[i])
+				PrimitiveAssert(t, c.IntOrStringArray[i], intOrString[i])
 			}
 
 			recordMapLength := 2
@@ -241,25 +224,25 @@ func TestComplexOfComplexBinding(t *testing.T) {
 			}
 
 			rec1 := c.RecordMap["a key"]
-			primitiveAssert(t, rec1.DoubleRecordField, float64(32.5))
-			byteArrayAssert(t, rec1.FixedRecordField, []byte {0x00, 0x01, 0x02, 0x03})
+			PrimitiveAssert(t, rec1.DoubleRecordField, float64(32.5))
+			ByteArrayAssert(t, rec1.FixedRecordField, []byte {0x00, 0x01, 0x02, 0x03})
 			rec2 := c.RecordMap["another key"]
-			primitiveAssert(t, rec2.DoubleRecordField, float64(33.5))
-			byteArrayAssert(t, rec2.FixedRecordField, []byte {0x01, 0x02, 0x03, 0x04})
+			PrimitiveAssert(t, rec2.DoubleRecordField, float64(33.5))
+			ByteArrayAssert(t, rec2.FixedRecordField, []byte {0x01, 0x02, 0x03, 0x04})
 
 			stringMapLength := 3
 			if len(c.IntOrStringMap) != stringMapLength {
 				t.Errorf("Expected string map length %d, actual %d", stringMapLength, len(c.IntOrStringMap))
 			}
-			primitiveAssert(t, c.IntOrStringMap["a key"], "a value")
-			primitiveAssert(t, c.IntOrStringMap["one more key"], int32(123))
-			primitiveAssert(t, c.IntOrStringMap["another key"], "another value")
+			PrimitiveAssert(t, c.IntOrStringMap["a key"], "a value")
+			PrimitiveAssert(t, c.IntOrStringMap["one more key"], int32(123))
+			PrimitiveAssert(t, c.IntOrStringMap["another key"], "another value")
 
 			if len(c.NullOrRecordUnion.StringArray) != arrayLength {
 				t.Errorf("Expected record union string array length %d, actual %d", arrayLength, len(c.NullOrRecordUnion.StringArray))
 			}
 			for i := 0; i < arrayLength; i++ {
-				primitiveAssert(t, c.NullOrRecordUnion.StringArray[i], fmt.Sprintf("%d", i))
+				PrimitiveAssert(t, c.NullOrRecordUnion.StringArray[i], fmt.Sprintf("%d", i))
 			}
 
 			enumValues := []string {"A", "B", "C", "D"}

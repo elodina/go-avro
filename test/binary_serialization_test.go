@@ -1,11 +1,11 @@
-package decoder
+package test
 
 import (
 	"testing"
 	"math/rand"
-	crand "crypto/rand"
 	"bytes"
 	"github.com/stealthly/go-avro/encoder"
+	"github.com/stealthly/go-avro/decoder"
 )
 
 //this makes sure the given value remains the same after encoding and decoding
@@ -13,7 +13,9 @@ import (
 const testTimes = 10000
 
 func TestNullSerialization(t *testing.T) {
-	if decoded, err := NewBinaryDecoder(encoder.NewBinaryEncoder().WriteNull(nil)).ReadNull(); err != nil {
+	buf := &bytes.Buffer{}
+	encoder.NewBinaryEncoder(buf).WriteNull(nil)
+	if decoded, err := decoder.NewBinaryDecoder(buf.Bytes()).ReadNull(); err != nil {
 		t.Fatalf("Error decoding null: %v", err)
 	} else {
 		if decoded != nil {
@@ -27,7 +29,9 @@ func TestBooleanSerialization(t *testing.T) {
 
 	for i := range values {
 		value := values[i]
-		if decoded, err := NewBinaryDecoder(encoder.NewBinaryEncoder().WriteBoolean(value)).ReadBoolean(); err != nil {
+		buf := &bytes.Buffer{}
+		encoder.NewBinaryEncoder(buf).WriteBoolean(value)
+		if decoded, err := decoder.NewBinaryDecoder(buf.Bytes()).ReadBoolean(); err != nil {
 			t.Fatalf("Error decoding boolean: %v", err)
 		} else {
 			if decoded != value {
@@ -45,7 +49,9 @@ func TestIntSerialization(t *testing.T) {
 		}
 		return r
 	}, func(r interface{}) (interface{}, error) {
-		return NewBinaryDecoder(encoder.NewBinaryEncoder().WriteInt(r.(int32))).ReadInt()
+		buf := &bytes.Buffer{}
+		encoder.NewBinaryEncoder(buf).WriteInt(r.(int32))
+		return decoder.NewBinaryDecoder(buf.Bytes()).ReadInt()
 	})
 }
 
@@ -57,7 +63,9 @@ func TestLongSerialization(t *testing.T) {
 		}
 		return r
 	}, func(r interface{}) (interface{}, error) {
-		return NewBinaryDecoder(encoder.NewBinaryEncoder().WriteLong(r.(int64))).ReadLong()
+		buf := &bytes.Buffer{}
+		encoder.NewBinaryEncoder(buf).WriteLong(r.(int64))
+		return decoder.NewBinaryDecoder(buf.Bytes()).ReadLong()
 	})
 }
 
@@ -69,7 +77,9 @@ func TestFloatSerialization(t *testing.T) {
 		}
 		return r
 	}, func(r interface{}) (interface{}, error) {
-		return NewBinaryDecoder(encoder.NewBinaryEncoder().WriteFloat(r.(float32))).ReadFloat()
+		buf := &bytes.Buffer{}
+		encoder.NewBinaryEncoder(buf).WriteFloat(r.(float32))
+		return decoder.NewBinaryDecoder(buf.Bytes()).ReadFloat()
 	})
 }
 
@@ -81,14 +91,18 @@ func TestDoubleSerialization(t *testing.T) {
 		}
 		return r
 	}, func(r interface{}) (interface{}, error) {
-		return NewBinaryDecoder(encoder.NewBinaryEncoder().WriteDouble(r.(float64))).ReadDouble()
+		buf := &bytes.Buffer{}
+		encoder.NewBinaryEncoder(buf).WriteDouble(r.(float64))
+		return decoder.NewBinaryDecoder(buf.Bytes()).ReadDouble()
 	})
 }
 
 func TestBytesSerialization(t *testing.T) {
 	for i := 1; i <= testTimes/10; i++ {
-		r := randByteArray(i)
-		if decoded, err := NewBinaryDecoder(encoder.NewBinaryEncoder().WriteBytes(r)).ReadBytes(); err != nil {
+		r := RandomBytes(i)//randByteArray(i)
+		buf := &bytes.Buffer{}
+		encoder.NewBinaryEncoder(buf).WriteBytes(r)
+		if decoded, err := decoder.NewBinaryDecoder(buf.Bytes()).ReadBytes(); err != nil {
 			t.Fatalf("Error decoding: %v", err)
 		} else {
 			if !bytes.Equal(decoded, r) {
@@ -99,28 +113,30 @@ func TestBytesSerialization(t *testing.T) {
 }
 
 func TestStringSerialization(t *testing.T) {
-	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZйцукенгшщзхъфывапролджэжячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ0123456789!@#$%^&*()")
+//	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZйцукенгшщзхъфывапролджэжячсмитьбюЙЦУКЕНГШЩЗХЪФЫВАПРОЛДЖЭЯЧСМИТЬБЮ0123456789!@#$%^&*()")
 
 	testPrimitiveSerialization(t, func(i int) interface{} {
-		return randString(i, letters)
+		return RandomString(i)//randString(i, letters)
 	}, func(r interface{}) (interface{}, error) {
-		return NewBinaryDecoder(encoder.NewBinaryEncoder().WriteString(r.(string))).ReadString()
+		buf := &bytes.Buffer{}
+		encoder.NewBinaryEncoder(buf).WriteString(r.(string))
+		return decoder.NewBinaryDecoder(buf.Bytes()).ReadString()
 	})
 }
 
-func randByteArray(n int) []byte {
-	b := make([]byte, n)
-	crand.Read(b)
-	return b
-}
-
-func randString(n int, letters []rune) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
+//func randByteArray(n int) []byte {
+//	b := make([]byte, n)
+//	crand.Read(b)
+//	return b
+//}
+//
+//func randString(n int, letters []rune) string {
+//	b := make([]rune, n)
+//	for i := range b {
+//		b[i] = letters[rand.Intn(len(letters))]
+//	}
+//	return string(b)
+//}
 
 func testPrimitiveSerialization(t *testing.T, random func(int) interface{}, serialize func(interface{}) (interface{}, error)) {
 	for i := 1; i <= testTimes; i++ {

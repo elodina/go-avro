@@ -1,4 +1,4 @@
-package decoder
+package test
 
 import (
 	"math/rand"
@@ -6,6 +6,7 @@ import (
 	"time"
 	"encoding/hex"
 	"fmt"
+	"github.com/stealthly/go-avro/decoder"
 )
 
 //this tests whether the decoder is able to sequentially read values and keep track of his position normally
@@ -22,7 +23,7 @@ var PRIMITIVES = []string {TYPE_BOOLEAN, TYPE_INT, TYPE_LONG, TYPE_FLOAT, TYPE_D
 
 func TestPositioning(t *testing.T) {
 	bytes, types, expected := getTestData()
-	bd := NewBinaryDecoder(bytes)
+	bd := decoder.NewBinaryDecoder(bytes)
 	for i := 0; i < len(types); i++ {
 		currentType := types[i]
 		currentExpected := expected[i]
@@ -59,7 +60,7 @@ func TestPositioning(t *testing.T) {
 			}
 		}
 		case TYPE_BYTES: {
-			position := bd.pos
+			position := bd.Tell()
 			value, err := bd.ReadBytes()
 			if err != nil {
 				t.Fatal("Unexpected error during decoding bytes: %v", err)

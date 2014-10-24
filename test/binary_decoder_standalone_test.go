@@ -1,18 +1,19 @@
-package decoder
+package test
 
 import (
 	"testing"
 	"encoding/hex"
+	"github.com/stealthly/go-avro/decoder"
 )
 
 func TestBool(t *testing.T) {
 	for value, bytes := range goodBooleans {
-		if actual, _ := NewBinaryDecoder(bytes).ReadBoolean(); actual != value {
+		if actual, _ := decoder.NewBinaryDecoder(bytes).ReadBoolean(); actual != value {
 			t.Fatalf("Unexpected boolean: expected %v, actual %v\n", value, actual)
 		}
 	}
 	for expected, invalid := range badBooleans {
-		if _, err := NewBinaryDecoder(invalid).ReadBoolean(); err != expected {
+		if _, err := decoder.NewBinaryDecoder(invalid).ReadBoolean(); err != expected {
 			t.Fatalf("Unexpected error for boolean: expected %v, actual %v", expected, err)
 		}
 	}
@@ -20,7 +21,7 @@ func TestBool(t *testing.T) {
 
 func TestInt(t *testing.T) {
 	for value, bytes := range goodInts {
-		if actual, _ := NewBinaryDecoder(bytes).ReadInt(); actual != value {
+		if actual, _ := decoder.NewBinaryDecoder(bytes).ReadInt(); actual != value {
 			t.Fatalf("Unexpected int: expected %v, actual %v\n", value, actual)
 		}
 	}
@@ -28,7 +29,7 @@ func TestInt(t *testing.T) {
 
 func TestLong(t *testing.T) {
 	for value, bytes := range goodLongs {
-		if actual, _ := NewBinaryDecoder(bytes).ReadLong(); actual != value {
+		if actual, _ := decoder.NewBinaryDecoder(bytes).ReadLong(); actual != value {
 			t.Fatalf("Unexpected long: expected %v, actual %v\n", value, actual)
 		}
 	}
@@ -36,7 +37,7 @@ func TestLong(t *testing.T) {
 
 func TestFloat(t *testing.T) {
 	for value, bytes := range goodFloats {
-		if actual, _ := NewBinaryDecoder(bytes).ReadFloat(); actual != value {
+		if actual, _ := decoder.NewBinaryDecoder(bytes).ReadFloat(); actual != value {
 			t.Fatalf("Unexpected float: expected %v, actual %v\n", value, actual)
 		}
 	}
@@ -44,7 +45,7 @@ func TestFloat(t *testing.T) {
 
 func TestDouble(t *testing.T) {
 	for value, bytes := range goodDoubles {
-		if actual, _ := NewBinaryDecoder(bytes).ReadDouble(); actual != value {
+		if actual, _ := decoder.NewBinaryDecoder(bytes).ReadDouble(); actual != value {
 			t.Fatalf("Unexpected double: expected %v, actual %v\n", value, actual)
 		}
 	}
@@ -53,7 +54,7 @@ func TestDouble(t *testing.T) {
 func TestBytes(t *testing.T) {
 	for index := 0; index < len(goodBytes); index++ {
 		bytes := goodBytes[index]
-		actual, err := NewBinaryDecoder(bytes).ReadBytes()
+		actual, err := decoder.NewBinaryDecoder(bytes).ReadBytes()
 		if err != nil {
 			t.Fatal("Unexpected error during decoding bytes: %v", err)
 		}
@@ -68,7 +69,7 @@ func TestBytes(t *testing.T) {
 		pair := badBytes[index]
 		expected := pair[0].(error)
 		arr := pair[1].([]byte)
-		if _, err := NewBinaryDecoder(arr).ReadBytes(); err != expected {
+		if _, err := decoder.NewBinaryDecoder(arr).ReadBytes(); err != expected {
 			t.Fatalf("Unexpected error for bytes: expected %v, actual %v", expected, err)
 		}
 	}
@@ -76,7 +77,7 @@ func TestBytes(t *testing.T) {
 
 func TestString(t *testing.T) {
 	for value, bytes := range goodStrings {
-		if actual, _ := NewBinaryDecoder(bytes).ReadString(); actual != value {
+		if actual, _ := decoder.NewBinaryDecoder(bytes).ReadString(); actual != value {
 			t.Fatalf("Unexpected string: expected %v, actual %v\n", value, actual)
 		}
 	}
@@ -85,7 +86,7 @@ func TestString(t *testing.T) {
 		pair := badStrings[index]
 		expected := pair[0].(error)
 		arr := pair[1].([]byte)
-		if _, err := NewBinaryDecoder(arr).ReadString(); err != expected {
+		if _, err := decoder.NewBinaryDecoder(arr).ReadString(); err != expected {
 			t.Fatalf("Unexpected error for string: expected %v, actual %v", expected, err)
 		}
 	}
