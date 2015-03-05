@@ -1,17 +1,15 @@
-package decoder
+package avro
 
 import (
-	"io/ioutil"
 	"bytes"
-	"fmt"
-	"math"
 	"errors"
-	"github.com/stealthly/go-avro/avro"
-	"github.com/stealthly/go-avro/schema"
+	"fmt"
+	"io/ioutil"
+	"math"
 )
 
 var VERSION byte = 1
-var MAGIC []byte = []byte {byte('O'), byte('b'), byte('j'), VERSION}
+var MAGIC []byte = []byte{byte('O'), byte('b'), byte('j'), VERSION}
 
 var SYNC_SIZE = 16
 var SCHEMA_KEY = "avro.schema"
@@ -22,10 +20,10 @@ var syncBuffer = make([]byte, SYNC_SIZE)
 type DataFileReader struct {
 	data         []byte
 	header       *header
-	block        *avro.DataBlock
-	dec          avro.Decoder
-	blockDecoder avro.Decoder
-	datum        avro.DatumReader
+	block        *DataBlock
+	dec          Decoder
+	blockDecoder Decoder
+	datum        DatumReader
 }
 
 type header struct {
@@ -41,21 +39,21 @@ func newHeader() *header {
 	return header
 }
 
-func NewDataFileReader(filename string, datumReader avro.DatumReader) (*DataFileReader, error) {
+func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReader, error) {
 	if buf, err := ioutil.ReadFile(filename); err != nil {
 		return nil, err
 	} else {
 		if len(buf) < len(MAGIC) || !bytes.Equal(MAGIC, buf[0:4]) {
-			return nil, avro.NotAvroFile
+			return nil, NotAvroFile
 		}
 
 		dec := NewBinaryDecoder(buf)
 		blockDecoder := NewBinaryDecoder(nil)
-		dfr := &DataFileReader {
-			data: buf,
-			dec: dec,
+		dfr := &DataFileReader{
+			data:         buf,
+			dec:          dec,
 			blockDecoder: blockDecoder,
-			datum: datumReader,
+			datum:        datumReader,
 		}
 		dfr.Seek(4) //skip the magic bytes
 
@@ -89,8 +87,8 @@ func NewDataFileReader(filename string, datumReader avro.DatumReader) (*DataFile
 		dec.ReadFixed(dfr.header.sync)
 		//TODO codec?
 
-		dfr.datum.SetSchema(schema.Parse(dfr.header.meta[SCHEMA_KEY]))
-		dfr.block = &avro.DataBlock{}
+		dfr.datum.SetSchema(Parse(dfr.header.meta[SCHEMA_KEY]))
+		dfr.block = &DataBlock{}
 
 		if dfr.hasNextBlock() {
 			if err := dfr.NextBlock(); err != nil {
@@ -109,7 +107,7 @@ func (dfr *DataFileReader) Seek(pos int64) {
 func (dfr *DataFileReader) hasNext() (bool, error) {
 	if dfr.block.BlockRemaining == 0 {
 		if int64(dfr.block.BlockSize) != dfr.blockDecoder.Tell() {
-			return false, avro.BlockNotFinished
+			return false, BlockNotFinished
 		}
 		if dfr.hasNextBlock() {
 			if err := dfr.NextBlock(); err != nil {
@@ -162,12 +160,10 @@ func (dfr *DataFileReader) NextBlock() error {
 			dfr.dec.ReadFixedWithBounds(block.Data, 0, int(block.BlockSize))
 			dfr.dec.ReadFixed(syncBuffer)
 			if !bytes.Equal(syncBuffer, dfr.header.sync) {
-				return avro.InvalidSync
+				return InvalidSync
 			}
 			dfr.blockDecoder.SetBlock(dfr.block)
 		}
 	}
 	return nil
 }
-
-

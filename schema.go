@@ -1,8 +1,7 @@
-package schema
+package avro
 
 import (
 	"encoding/json"
-	"github.com/stealthly/go-avro/avro"
 )
 
 const (
@@ -57,49 +56,49 @@ type Schema interface {
 }
 
 // PRIMITIVES
-type StringSchema struct {}
+type StringSchema struct{}
 
 func (ss *StringSchema) Type() int {
 	return STRING
 }
 
-type BytesSchema struct {}
+type BytesSchema struct{}
 
 func (bs *BytesSchema) Type() int {
 	return BYTES
 }
 
-type IntSchema struct {}
+type IntSchema struct{}
 
 func (is *IntSchema) Type() int {
 	return INT
 }
 
-type LongSchema struct {}
+type LongSchema struct{}
 
 func (ls *LongSchema) Type() int {
 	return LONG
 }
 
-type FloatSchema struct {}
+type FloatSchema struct{}
 
 func (fs *FloatSchema) Type() int {
 	return FLOAT
 }
 
-type DoubleSchema struct {}
+type DoubleSchema struct{}
 
 func (ds *DoubleSchema) Type() int {
 	return DOUBLE
 }
 
-type BooleanSchema struct {}
+type BooleanSchema struct{}
 
 func (bs *BooleanSchema) Type() int {
 	return BOOLEAN
 }
 
-type NullSchema struct {}
+type NullSchema struct{}
 
 func (ns *NullSchema) Type() int {
 	return NULL
@@ -184,7 +183,7 @@ func Parse(jsn []byte) Schema {
 			return schemaByType(v[typeField])
 		}
 	default:
-		panic(avro.InvalidSchema)
+		panic(InvalidSchema)
 	}
 }
 
@@ -192,26 +191,40 @@ func schemaByType(i interface{}) Schema {
 	switch v := i.(type) {
 	case string:
 		switch v {
-		case type_null: return &NullSchema{}
-		case type_boolean: return &BooleanSchema{}
-		case type_int: return &IntSchema{}
-		case type_long: return &LongSchema{}
-		case type_float: return &FloatSchema{}
-		case type_double: return &DoubleSchema{}
-		case type_bytes: return &BytesSchema{}
-		case type_string: return &StringSchema{}
+		case type_null:
+			return &NullSchema{}
+		case type_boolean:
+			return &BooleanSchema{}
+		case type_int:
+			return &IntSchema{}
+		case type_long:
+			return &LongSchema{}
+		case type_float:
+			return &FloatSchema{}
+		case type_double:
+			return &DoubleSchema{}
+		case type_bytes:
+			return &BytesSchema{}
+		case type_string:
+			return &StringSchema{}
 		}
 	case map[string]interface{}:
 		switch v[typeField] {
-		case type_array: return &ArraySchema{ Items : schemaByType(v[itemsField])}
-		case type_map: return &MapSchema{ Values : schemaByType(v[valuesField])}
-		case type_enum: return parseEnumSchema(v)
-		case type_fixed: return parseFixedSchema(v)
-		case type_record: return parseRecordSchema(v)
+		case type_array:
+			return &ArraySchema{Items: schemaByType(v[itemsField])}
+		case type_map:
+			return &MapSchema{Values: schemaByType(v[valuesField])}
+		case type_enum:
+			return parseEnumSchema(v)
+		case type_fixed:
+			return parseFixedSchema(v)
+		case type_record:
+			return parseRecordSchema(v)
 		}
-	case []interface{}: return parseUnionSchema(v)
+	case []interface{}:
+		return parseUnionSchema(v)
 	}
-	panic(avro.InvalidSchema)
+	panic(InvalidSchema)
 }
 
 func parseEnumSchema(v map[string]interface{}) Schema {
@@ -220,14 +233,14 @@ func parseEnumSchema(v map[string]interface{}) Schema {
 		symbols[i] = symbol.(string)
 	}
 
-	return &EnumSchema{ Name : v[nameField].(string), Symbols : symbols}
+	return &EnumSchema{Name: v[nameField].(string), Symbols: symbols}
 }
 
 func parseFixedSchema(v map[string]interface{}) Schema {
 	if size, ok := v[sizeField].(float64); !ok {
-		panic(avro.InvalidFixedSize)
+		panic(InvalidFixedSize)
 	} else {
-		return &FixedSchema{ Name : v[nameField].(string), Size : int(size)}
+		return &FixedSchema{Name: v[nameField].(string), Size: int(size)}
 	}
 }
 
@@ -236,7 +249,7 @@ func parseUnionSchema(v []interface{}) Schema {
 	for i := range types {
 		types[i] = schemaByType(v[i])
 	}
-	return &UnionSchema{ Types : types }
+	return &UnionSchema{Types: types}
 }
 
 func parseRecordSchema(v map[string]interface{}) Schema {
@@ -244,15 +257,15 @@ func parseRecordSchema(v map[string]interface{}) Schema {
 	for i := range fields {
 		fields[i] = parseSchemaField(v[fieldsField].([]interface{})[i])
 	}
-	return &RecordSchema{ Name : v[nameField].(string), Fields : fields }
+	return &RecordSchema{Name: v[nameField].(string), Fields: fields}
 }
 
 func parseSchemaField(i interface{}) *SchemaField {
 	switch v := i.(type) {
 	case map[string]interface{}:
-		schemaField := &SchemaField{ Name : v[nameField].(string) }
+		schemaField := &SchemaField{Name: v[nameField].(string)}
 		schemaField.Type = schemaByType(v[typeField])
 		return schemaField
 	}
-	panic(avro.InvalidSchema)
+	panic(InvalidSchema)
 }

@@ -48,7 +48,3 @@ type DatumWriter interface {
 	SetSchema(Schema)
 	Write(interface{}, Encoder)
 }
-
-type Schema interface {
-	Type() int
-}
