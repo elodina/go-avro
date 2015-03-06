@@ -54,7 +54,7 @@ func write(v reflect.Value, enc Encoder, s Schema) error {
 		return writeRecord(v, enc, s)
 	}
 
-    return nil
+	return nil
 }
 
 func writeBoolean(v reflect.Value, enc Encoder) {
@@ -89,14 +89,14 @@ func writeRecord(v reflect.Value, enc Encoder, s Schema) error {
 	rs := s.(*RecordSchema)
 	for i := range rs.Fields {
 		schemaField := rs.Fields[i]
-        field, err := findField(v, schemaField.Name)
-        if err != nil {
-            return err
-        }
+		field, err := findField(v, schemaField.Name)
+		if err != nil {
+			return err
+		}
 		write(field, enc, schemaField.Type)
 	}
 
-    return nil
+	return nil
 }
 
 func findField(where reflect.Value, name string) (reflect.Value, error) {

@@ -134,9 +134,9 @@ func (this *DataFileReader) Next(v interface{}) (bool, error) {
 	} else {
 		if hasNext {
 			err := this.datum.Read(v, this.blockDecoder)
-            if err != nil {
-                return false, err
-            }
+			if err != nil {
+				return false, err
+			}
 			this.block.BlockRemaining--
 			return true, nil
 		} else {

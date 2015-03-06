@@ -6,20 +6,20 @@ import (
 )
 
 const (
-    Record int = iota
-    Enum
-    Array
-    Map
-    Union
-    Fixed
-    String
-    Bytes
-    Int
-    Long
-    Float
-    Double
-    Boolean
-    Null
+	Record int = iota
+	Enum
+	Array
+	Map
+	Union
+	Fixed
+	String
+	Bytes
+	Int
+	Long
+	Float
+	Double
+	Boolean
+	Null
 )
 
 const (

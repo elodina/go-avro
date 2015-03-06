@@ -1,10 +1,10 @@
 package avro
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"strings"
-    "errors"
 )
 
 type DatumReader interface {
@@ -65,12 +65,12 @@ func findAndSet(v interface{}, field *SchemaField, dec Decoder) error {
 	}
 
 	value, err := readValue(field.Type, f, dec)
-    if err != nil {
-        return err
-    }
+	if err != nil {
+		return err
+	}
 	setValue(field, f, value)
 
-    return nil
+	return nil
 }
 
 func readValue(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
@@ -106,7 +106,7 @@ func readValue(field Schema, reflectField reflect.Value, dec Decoder) (reflect.V
 		//TODO recursive types
 	}
 
-    return reflect.ValueOf(nil), fmt.Errorf("Unknown field type: %s", field.Type())
+	return reflect.ValueOf(nil), fmt.Errorf("Unknown field type: %s", field.Type())
 }
 
 func setValue(field *SchemaField, where reflect.Value, what reflect.Value) {
@@ -134,9 +134,9 @@ func mapArray(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Va
 			var i int64 = 0
 			for ; i < arrayLength; i++ {
 				val, err := readValue(field.(*ArraySchema).Items, arrayPart.Index(int(i)), dec)
-                if err != nil {
-                    return reflect.ValueOf(arrayLength), err
-                }
+				if err != nil {
+					return reflect.ValueOf(arrayLength), err
+				}
 				if val.Kind() == reflect.Ptr {
 					arrayPart.Index(int(i)).Set(val.Elem())
 				} else {
@@ -168,13 +168,13 @@ func mapMap(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Valu
 			var i int64 = 0
 			for ; i < mapLength; i++ {
 				key, err := readValue(&StringSchema{}, reflectField, dec)
-                if err != nil {
-                    return reflect.ValueOf(mapLength), err
-                }
+				if err != nil {
+					return reflect.ValueOf(mapLength), err
+				}
 				val, err := readValue(field.(*MapSchema).Values, reflectField, dec)
-                if err != nil {
-                    return reflect.ValueOf(mapLength), nil
-                }
+				if err != nil {
+					return reflect.ValueOf(mapLength), nil
+				}
 				if val.Kind() == reflect.Ptr {
 					resultMap.SetMapIndex(key, val.Elem())
 				} else {
@@ -184,7 +184,7 @@ func mapMap(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Valu
 
 			mapLength, err = dec.MapNext()
 			if err != nil {
-                return reflect.ValueOf(mapLength), err
+				return reflect.ValueOf(mapLength), err
 			} else if mapLength == 0 {
 				break
 			}
@@ -213,8 +213,8 @@ func mapUnion(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Va
 func mapFixed(field Schema, dec Decoder) (reflect.Value, error) {
 	fixed := make([]byte, field.(*FixedSchema).Size)
 	if err := dec.ReadFixed(fixed); err != nil {
-        return reflect.ValueOf(fixed), err
-    }
+		return reflect.ValueOf(fixed), err
+	}
 	return reflect.ValueOf(fixed), nil
 }
 
