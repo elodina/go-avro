@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+    "errors"
 )
 
 type DatumReader interface {
-	Read(interface{}, Decoder) bool
+	Read(interface{}, Decoder) error
 	SetSchema(Schema)
 }
 
@@ -33,13 +34,13 @@ func (this *GenericDatumReader) SetSchema(schema Schema) {
 	this.schema = schema
 }
 
-func (this *GenericDatumReader) Read(v interface{}, dec Decoder) bool {
+func (this *GenericDatumReader) Read(v interface{}, dec Decoder) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		panic("Not applicable for non-pointer types or nil")
+		return errors.New("Not applicable for non-pointer types or nil")
 	}
 	if this.schema == nil {
-		panic(SchemaNotSet)
+		return SchemaNotSet
 	}
 
 	sch := this.schema.(*RecordSchema)
@@ -48,10 +49,10 @@ func (this *GenericDatumReader) Read(v interface{}, dec Decoder) bool {
 		findAndSet(v, field, dec)
 	}
 
-	return true
+	return nil
 }
 
-func findAndSet(v interface{}, field *SchemaField, dec Decoder) {
+func findAndSet(v interface{}, field *SchemaField, dec Decoder) error {
 	fieldName := field.Name
 	elem := reflect.ValueOf(v).Elem()
 	f := elem.FieldByName(strings.ToUpper(fieldName[0:1]) + fieldName[1:])
@@ -60,17 +61,22 @@ func findAndSet(v interface{}, field *SchemaField, dec Decoder) {
 	}
 
 	if !f.IsValid() {
-		panic(fmt.Sprintf("Field %s does not exist!\n", fieldName))
+		return fmt.Errorf("Field %s does not exist", fieldName)
 	}
 
-	value := readValue(field.Type, f, dec)
+	value, err := readValue(field.Type, f, dec)
+    if err != nil {
+        return err
+    }
 	setValue(field, f, value)
+
+    return nil
 }
 
-func readValue(field Schema, reflectField reflect.Value, dec Decoder) reflect.Value {
+func readValue(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	switch field.Type() {
 	case NULL:
-		return reflect.ValueOf(nil)
+		return reflect.ValueOf(nil), nil
 	case BOOLEAN:
 		return mapPrimitive(func() (interface{}, error) { return dec.ReadBoolean() })
 	case INT:
@@ -99,7 +105,8 @@ func readValue(field Schema, reflectField reflect.Value, dec Decoder) reflect.Va
 		return mapRecord(field, reflectField, dec)
 		//TODO recursive types
 	}
-	panic("weird field")
+
+    return reflect.ValueOf(nil), fmt.Errorf("Unknown field type: %s", field.Type())
 }
 
 func setValue(field *SchemaField, where reflect.Value, what reflect.Value) {
@@ -109,24 +116,27 @@ func setValue(field *SchemaField, where reflect.Value, what reflect.Value) {
 	}
 }
 
-func mapPrimitive(reader func() (interface{}, error)) reflect.Value {
+func mapPrimitive(reader func() (interface{}, error)) (reflect.Value, error) {
 	if value, err := reader(); err != nil {
-		panic(err)
+		return reflect.ValueOf(value), err
 	} else {
-		return reflect.ValueOf(value)
+		return reflect.ValueOf(value), nil
 	}
 }
 
-func mapArray(field Schema, reflectField reflect.Value, dec Decoder) reflect.Value {
+func mapArray(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	if arrayLength, err := dec.ReadArrayStart(); err != nil {
-		panic(err)
+		return reflect.ValueOf(arrayLength), err
 	} else {
 		array := reflect.MakeSlice(reflectField.Type(), 0, 0)
 		for {
 			arrayPart := reflect.MakeSlice(reflectField.Type(), int(arrayLength), int(arrayLength))
 			var i int64 = 0
 			for ; i < arrayLength; i++ {
-				val := readValue(field.(*ArraySchema).Items, arrayPart.Index(int(i)), dec)
+				val, err := readValue(field.(*ArraySchema).Items, arrayPart.Index(int(i)), dec)
+                if err != nil {
+                    return reflect.ValueOf(arrayLength), err
+                }
 				if val.Kind() == reflect.Ptr {
 					arrayPart.Index(int(i)).Set(val.Elem())
 				} else {
@@ -140,25 +150,31 @@ func mapArray(field Schema, reflectField reflect.Value, dec Decoder) reflect.Val
 			array = concatArray
 			arrayLength, err = dec.ArrayNext()
 			if err != nil {
-				panic(err)
+				return reflect.ValueOf(arrayLength), err
 			} else if arrayLength == 0 {
 				break
 			}
 		}
-		return array
+		return array, nil
 	}
 }
 
-func mapMap(field Schema, reflectField reflect.Value, dec Decoder) reflect.Value {
+func mapMap(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	if mapLength, err := dec.ReadMapStart(); err != nil {
-		panic(err)
+		return reflect.ValueOf(mapLength), err
 	} else {
 		resultMap := reflect.MakeMap(reflectField.Type())
 		for {
 			var i int64 = 0
 			for ; i < mapLength; i++ {
-				key := readValue(&StringSchema{}, reflectField, dec)
-				val := readValue(field.(*MapSchema).Values, reflectField, dec)
+				key, err := readValue(&StringSchema{}, reflectField, dec)
+                if err != nil {
+                    return reflect.ValueOf(mapLength), err
+                }
+				val, err := readValue(field.(*MapSchema).Values, reflectField, dec)
+                if err != nil {
+                    return reflect.ValueOf(mapLength), nil
+                }
 				if val.Kind() == reflect.Ptr {
 					resultMap.SetMapIndex(key, val.Elem())
 				} else {
@@ -168,39 +184,41 @@ func mapMap(field Schema, reflectField reflect.Value, dec Decoder) reflect.Value
 
 			mapLength, err = dec.MapNext()
 			if err != nil {
-				panic(err)
+                return reflect.ValueOf(mapLength), err
 			} else if mapLength == 0 {
 				break
 			}
 		}
-		return resultMap
+		return resultMap, nil
 	}
 }
 
-func mapEnum(field Schema, dec Decoder) reflect.Value {
+func mapEnum(field Schema, dec Decoder) (reflect.Value, error) {
 	if enum, err := dec.ReadEnum(); err != nil {
-		panic(err)
+		return reflect.ValueOf(enum), err
 	} else {
-		return reflect.ValueOf(GenericEnum{field.(*EnumSchema).Symbols, enum})
+		return reflect.ValueOf(GenericEnum{field.(*EnumSchema).Symbols, enum}), nil
 	}
 }
 
-func mapUnion(field Schema, reflectField reflect.Value, dec Decoder) reflect.Value {
+func mapUnion(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	if unionType, err := dec.ReadInt(); err != nil {
-		panic(err)
+		return reflect.ValueOf(unionType), err
 	} else {
 		union := field.(*UnionSchema).Types[unionType]
 		return readValue(union, reflectField, dec)
 	}
 }
 
-func mapFixed(field Schema, dec Decoder) reflect.Value {
+func mapFixed(field Schema, dec Decoder) (reflect.Value, error) {
 	fixed := make([]byte, field.(*FixedSchema).Size)
-	dec.ReadFixed(fixed)
-	return reflect.ValueOf(fixed)
+	if err := dec.ReadFixed(fixed); err != nil {
+        return reflect.ValueOf(fixed), err
+    }
+	return reflect.ValueOf(fixed), nil
 }
 
-func mapRecord(field Schema, reflectField reflect.Value, dec Decoder) reflect.Value {
+func mapRecord(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	var t reflect.Type
 	switch reflectField.Kind() {
 	case reflect.Ptr, reflect.Array, reflect.Map, reflect.Slice, reflect.Chan:
@@ -215,5 +233,5 @@ func mapRecord(field Schema, reflectField reflect.Value, dec Decoder) reflect.Va
 		findAndSet(record, recordSchema.Fields[i], dec)
 	}
 
-	return reflect.ValueOf(record)
+	return reflect.ValueOf(record), nil
 }

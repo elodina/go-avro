@@ -19,24 +19,23 @@ func NewGenericDatumWriter() *GenericDatumWriter {
 	return &GenericDatumWriter{}
 }
 
-func (this *GenericDatumWriter) SetSchema(s Schema) {
-	this.schema = s
+func (this *GenericDatumWriter) SetSchema(schema Schema) {
+	this.schema = schema
 }
 
-func (this *GenericDatumWriter) Write(obj interface{}, enc Encoder) {
+func (this *GenericDatumWriter) Write(obj interface{}, enc Encoder) error {
 	rv := reflect.ValueOf(obj)
 
 	if this.schema == nil {
-		panic(SchemaNotSet)
+		return SchemaNotSet
 	}
 
-	write(rv, enc, this.schema)
+	return write(rv, enc, this.schema)
 }
 
-func write(v reflect.Value, enc Encoder, s Schema) {
+func write(v reflect.Value, enc Encoder, s Schema) error {
 	switch s.Type() {
 	case NULL:
-		return
 	case BOOLEAN:
 		writeBoolean(v, enc)
 	case INT:
@@ -52,8 +51,10 @@ func write(v reflect.Value, enc Encoder, s Schema) {
 	case STRING:
 		writeString(v, enc)
 	case RECORD:
-		writeRecord(v, enc, s)
+		return writeRecord(v, enc, s)
 	}
+
+    return nil
 }
 
 func writeBoolean(v reflect.Value, enc Encoder) {
@@ -84,15 +85,21 @@ func writeString(v reflect.Value, enc Encoder) {
 	enc.WriteString(v.Interface().(string))
 }
 
-func writeRecord(v reflect.Value, enc Encoder, s Schema) {
+func writeRecord(v reflect.Value, enc Encoder, s Schema) error {
 	rs := s.(*RecordSchema)
 	for i := range rs.Fields {
 		schemaField := rs.Fields[i]
-		write(findField(v, schemaField.Name), enc, schemaField.Type)
+        field, err := findField(v, schemaField.Name)
+        if err != nil {
+            return err
+        }
+		write(field, enc, schemaField.Type)
 	}
+
+    return nil
 }
 
-func findField(where reflect.Value, name string) reflect.Value {
+func findField(where reflect.Value, name string) (reflect.Value, error) {
 	elem := where.Elem() //TODO maybe check first?
 	field := elem.FieldByName(strings.ToUpper(name[0:1]) + name[1:])
 	if !field.IsValid() {
@@ -100,8 +107,8 @@ func findField(where reflect.Value, name string) reflect.Value {
 	}
 
 	if !field.IsValid() {
-		panic(fmt.Sprintf("Field %s does not exist!\n", name))
+		return reflect.Zero(nil), fmt.Errorf("Field %s does not exist", name)
 	}
 
-	return field
+	return field, nil
 }

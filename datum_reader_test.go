@@ -38,8 +38,11 @@ func TestPrimitiveBinding(t *testing.T) {
 	}
 	for {
 		p := &Primitive{}
-		ok := reader.Next(p)
+		ok, err := reader.Next(p)
 		if !ok {
+            if err != nil {
+                t.Fatal(err)
+            }
 			break
 		} else {
 			assert(t, p.BooleanField, primitive_bool)
@@ -91,8 +94,11 @@ func TestComplexBinding(t *testing.T) {
 	}
 	for {
 		c := &complex{}
-		ok := reader.Next(c)
+		ok, err := reader.Next(c)
 		if !ok {
+            if err != nil {
+                t.Fatal(err)
+            }
 			break
 		} else {
 			arrayLength := 5
@@ -176,8 +182,11 @@ func TestComplexOfComplexBinding(t *testing.T) {
 	}
 	for {
 		c := &complexOfComplex{}
-		ok := reader.Next(c)
+		ok, err := reader.Next(c)
 		if !ok {
+            if err != nil {
+                t.Fatal(err)
+            }
 			break
 		} else {
 			arrayLength := 5
