@@ -5,4 +5,4 @@ go-avro
 
 Apache Avro for Golang
 
-re #9
+
