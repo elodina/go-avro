@@ -2,6 +2,7 @@ package avro
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 const (
@@ -39,16 +40,17 @@ const (
 
 //TODO optional fields!
 const (
-	aliasesField   = "aliases"
-	docField       = "doc"
-	fieldsField    = "fields"
-	itemsField     = "items"
-	nameField      = "name"
-	namespaceField = "namespace"
-	sizeField      = "size"
-	symbolsField   = "symbols"
-	typeField      = "type"
-	valuesField    = "values"
+	schema_aliasesField   = "aliases"
+	schema_defaultField   = "default"
+	schema_docField       = "doc"
+	schema_fieldsField    = "fields"
+	schema_itemsField     = "items"
+	schema_nameField      = "name"
+	schema_namespaceField = "namespace"
+	schema_sizeField      = "size"
+	schema_symbolsField   = "symbols"
+	schema_typeField      = "type"
+	schema_valuesField    = "values"
 )
 
 type Schema interface {
@@ -58,11 +60,19 @@ type Schema interface {
 // PRIMITIVES
 type StringSchema struct{}
 
+func (*StringSchema) String() string {
+	return "string"
+}
+
 func (*StringSchema) Type() int {
 	return STRING
 }
 
 type BytesSchema struct{}
+
+func (*BytesSchema) String() string {
+	return "bytes"
+}
 
 func (*BytesSchema) Type() int {
 	return BYTES
@@ -70,11 +80,19 @@ func (*BytesSchema) Type() int {
 
 type IntSchema struct{}
 
+func (*IntSchema) String() string {
+	return "int"
+}
+
 func (*IntSchema) Type() int {
 	return INT
 }
 
 type LongSchema struct{}
+
+func (*LongSchema) String() string {
+	return "long"
+}
 
 func (*LongSchema) Type() int {
 	return LONG
@@ -82,11 +100,19 @@ func (*LongSchema) Type() int {
 
 type FloatSchema struct{}
 
+func (*FloatSchema) String() string {
+	return "float"
+}
+
 func (*FloatSchema) Type() int {
 	return FLOAT
 }
 
 type DoubleSchema struct{}
+
+func (*DoubleSchema) String() string {
+	return "double"
+}
 
 func (*DoubleSchema) Type() int {
 	return DOUBLE
@@ -94,11 +120,19 @@ func (*DoubleSchema) Type() int {
 
 type BooleanSchema struct{}
 
+func (*BooleanSchema) String() string {
+	return "boolean"
+}
+
 func (*BooleanSchema) Type() int {
 	return BOOLEAN
 }
 
 type NullSchema struct{}
+
+func (*NullSchema) String() string {
+	return "null"
+}
 
 func (*NullSchema) Type() int {
 	return NULL
@@ -113,10 +147,19 @@ type RecordSchema struct {
 	Fields    []*SchemaField
 }
 
+func (this *RecordSchema) String() string {
+	return fmt.Sprintf("Record: Name: %s, Namespace: %s, Doc: %s, Aliases: %s, Fields: %s", this.Name, this.Namespace, this.Doc, this.Aliases, this.Fields)
+}
+
 type SchemaField struct {
-	Name string
-	Doc  string
-	Type Schema
+	Name    string
+	Doc     string
+	Default interface{}
+	Type    Schema
+}
+
+func (this *SchemaField) String() string {
+	return fmt.Sprintf("[SchemaField: Name: %s, Doc: %s, Default: %v, Type: %s]", this.Name, this.Doc, this.Default, this.Type)
 }
 
 func (*RecordSchema) Type() int {
@@ -131,12 +174,20 @@ type EnumSchema struct {
 	Symbols   []string
 }
 
+func (this *EnumSchema) String() string {
+	return fmt.Sprintf("Enum: Name: %s, Namespace: %s, Aliases: %s, Doc: %s, Symbols: %s", this.Name, this.Namespace, this.Aliases, this.Doc, this.Symbols)
+}
+
 func (*EnumSchema) Type() int {
 	return ENUM
 }
 
 type ArraySchema struct {
 	Items Schema
+}
+
+func (this *ArraySchema) String() string {
+	return fmt.Sprintf("Array: Items: %s", this.Items)
 }
 
 func (*ArraySchema) Type() int {
@@ -147,12 +198,20 @@ type MapSchema struct {
 	Values Schema
 }
 
+func (this *MapSchema) String() string {
+	return fmt.Sprintf("Map: Values: %s", this.Values)
+}
+
 func (*MapSchema) Type() int {
 	return MAP
 }
 
 type UnionSchema struct {
 	Types []Schema
+}
+
+func (this *UnionSchema) String() string {
+	return fmt.Sprintf("Union: %s", this.Types)
 }
 
 func (*UnionSchema) Type() int {
@@ -164,58 +223,62 @@ type FixedSchema struct {
 	Size int
 }
 
+func (this *FixedSchema) String() string {
+	return fmt.Sprintf("Fixed: Name: %s, Size: %d", this.Name, this.Size)
+}
+
 func (*FixedSchema) Type() int {
 	return FIXED
 }
 
-//OTHER
-func ParseSchema(jsn []byte) Schema {
-	var f interface{}
-	if err := json.Unmarshal(jsn, &f); err != nil {
-		panic(err)
+func ParseSchema(rawSchema string) (Schema, error) {
+	var schema interface{}
+	if err := json.Unmarshal([]byte(rawSchema), &schema); err != nil {
+		schema = rawSchema
 	}
 
-	switch v := f.(type) {
-	case map[string]interface{}:
-		if v[typeField] == type_record {
-			return schemaByType(v)
-		} else {
-			return schemaByType(v[typeField])
-		}
-	default:
-		panic(InvalidSchema)
-	}
+	return schemaByType(schema)
 }
 
-func schemaByType(i interface{}) Schema {
+func schemaByType(i interface{}) (Schema, error) {
 	switch v := i.(type) {
+	case nil:
+		return new(NullSchema), nil
 	case string:
 		switch v {
 		case type_null:
-			return &NullSchema{}
+			return new(NullSchema), nil
 		case type_boolean:
-			return &BooleanSchema{}
+			return new(BooleanSchema), nil
 		case type_int:
-			return &IntSchema{}
+			return new(IntSchema), nil
 		case type_long:
-			return &LongSchema{}
+			return new(LongSchema), nil
 		case type_float:
-			return &FloatSchema{}
+			return new(FloatSchema), nil
 		case type_double:
-			return &DoubleSchema{}
+			return new(DoubleSchema), nil
 		case type_bytes:
-			return &BytesSchema{}
+			return new(BytesSchema), nil
 		case type_string:
-			return &StringSchema{}
+			return new(StringSchema), nil
 		}
 	case map[string]interface{}:
-		switch v[typeField] {
+		switch v[schema_typeField] {
 		case type_array:
-			return &ArraySchema{Items: schemaByType(v[itemsField])}
+			items, err := schemaByType(v[schema_itemsField])
+			if err != nil {
+				return nil, err
+			}
+			return &ArraySchema{Items: items}, nil
 		case type_map:
-			return &MapSchema{Values: schemaByType(v[valuesField])}
+			values, err := schemaByType(v[schema_valuesField])
+			if err != nil {
+				return nil, err
+			}
+			return &MapSchema{Values: values}, nil
 		case type_enum:
-			return parseEnumSchema(v)
+			return parseEnumSchema(v), nil
 		case type_fixed:
 			return parseFixedSchema(v)
 		case type_record:
@@ -223,49 +286,82 @@ func schemaByType(i interface{}) Schema {
 		}
 	case []interface{}:
 		return parseUnionSchema(v)
+	case map[string][]interface{}:
+		return parseUnionSchema(v[schema_typeField])
 	}
-	panic(InvalidSchema)
+
+	return nil, InvalidSchema
 }
 
 func parseEnumSchema(v map[string]interface{}) Schema {
-	symbols := make([]string, len(v[symbolsField].([]interface{})))
-	for i, symbol := range v[symbolsField].([]interface{}) {
+	symbols := make([]string, len(v[schema_symbolsField].([]interface{})))
+	for i, symbol := range v[schema_symbolsField].([]interface{}) {
 		symbols[i] = symbol.(string)
 	}
 
-	return &EnumSchema{Name: v[nameField].(string), Symbols: symbols}
+	schema := &EnumSchema{Name: v[schema_nameField].(string), Symbols: symbols}
+	setOptionalField(&schema.Namespace, v, schema_namespaceField)
+	setOptionalField(&schema.Doc, v, schema_docField)
+
+	return schema
 }
 
-func parseFixedSchema(v map[string]interface{}) Schema {
-	if size, ok := v[sizeField].(float64); !ok {
-		panic(InvalidFixedSize)
+func parseFixedSchema(v map[string]interface{}) (Schema, error) {
+	if size, ok := v[schema_sizeField].(float64); !ok {
+		return nil, InvalidFixedSize
 	} else {
-		return &FixedSchema{Name: v[nameField].(string), Size: int(size)}
+		return &FixedSchema{Name: v[schema_nameField].(string), Size: int(size)}, nil
 	}
 }
 
-func parseUnionSchema(v []interface{}) Schema {
+func parseUnionSchema(v []interface{}) (Schema, error) {
 	types := make([]Schema, 2)
 	for i := range types {
-		types[i] = schemaByType(v[i])
+		unionType, err := schemaByType(v[i])
+		if err != nil {
+			return nil, err
+		}
+		types[i] = unionType
 	}
-	return &UnionSchema{Types: types}
+	return &UnionSchema{Types: types}, nil
 }
 
-func parseRecordSchema(v map[string]interface{}) Schema {
-	fields := make([]*SchemaField, len(v[fieldsField].([]interface{})))
+func parseRecordSchema(v map[string]interface{}) (Schema, error) {
+	fields := make([]*SchemaField, len(v[schema_fieldsField].([]interface{})))
 	for i := range fields {
-		fields[i] = parseSchemaField(v[fieldsField].([]interface{})[i])
+		field, err := parseSchemaField(v[schema_fieldsField].([]interface{})[i])
+		if err != nil {
+			return nil, err
+		}
+		fields[i] = field
 	}
-	return &RecordSchema{Name: v[nameField].(string), Fields: fields}
+	schema := &RecordSchema{Name: v[schema_nameField].(string), Fields: fields}
+	setOptionalField(&schema.Namespace, v, schema_namespaceField)
+
+	return schema, nil
 }
 
-func parseSchemaField(i interface{}) *SchemaField {
+func parseSchemaField(i interface{}) (*SchemaField, error) {
 	switch v := i.(type) {
 	case map[string]interface{}:
-		schemaField := &SchemaField{Name: v[nameField].(string)}
-		schemaField.Type = schemaByType(v[typeField])
-		return schemaField
+		schemaField := &SchemaField{Name: v[schema_nameField].(string)}
+		setOptionalField(&schemaField.Doc, v, schema_docField)
+		fieldType, err := schemaByType(v[schema_typeField])
+		if err != nil {
+			return nil, err
+		}
+		schemaField.Type = fieldType
+		if def, exists := v[schema_defaultField]; exists {
+			schemaField.Default = def
+		}
+		return schemaField, nil
 	}
-	panic(InvalidSchema)
+
+	return nil, InvalidSchema
+}
+
+func setOptionalField(where *string, v map[string]interface{}, fieldName string) {
+	if field, exists := v[fieldName]; exists {
+		*where = field.(string)
+	}
 }

@@ -7,7 +7,8 @@ import (
 )
 
 func TestDatumWriterPrimitives(t *testing.T) {
-	sch := ParseSchema([]byte(`{"type":"record","name":"Primitive","namespace":"example.avro","fields":[{"name":"booleanField","type":"boolean"},{"name":"intField","type":"int"},{"name":"longField","type":"long"},{"name":"floatField","type":"float"},{"name":"doubleField","type":"double"},{"name":"bytesField","type":"bytes"},{"name":"stringField","type":"string"},{"name":"nullField","type":"null"}]}`))
+	sch, err := ParseSchema(`{"type":"record","name":"Primitive","namespace":"example.avro","fields":[{"name":"booleanField","type":"boolean"},{"name":"intField","type":"int"},{"name":"longField","type":"long"},{"name":"floatField","type":"float"},{"name":"doubleField","type":"double"},{"name":"bytesField","type":"bytes"},{"name":"stringField","type":"string"},{"name":"nullField","type":"null"}]}`)
+	assert(t, err, nil)
 
 	buffer := &bytes.Buffer{}
 	enc := NewBinaryEncoder(buffer)

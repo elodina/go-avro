@@ -87,7 +87,11 @@ func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReade
 		dec.ReadFixed(reader.header.sync)
 		//TODO codec?
 
-		reader.datum.SetSchema(ParseSchema(reader.header.meta[SCHEMA_KEY]))
+		schema, err := ParseSchema(string(reader.header.meta[SCHEMA_KEY]))
+		if err != nil {
+			return nil, err
+		}
+		reader.datum.SetSchema(schema)
 		reader.block = &DataBlock{}
 
 		if reader.hasNextBlock() {

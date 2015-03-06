@@ -5,18 +5,19 @@ import (
 )
 
 func TestPrimitiveSchema(t *testing.T) {
-	primitiveSchemaAssert(t, "{\"name\": \"name\", \"type\": \"string\"}", STRING, "STRING")
-	primitiveSchemaAssert(t, "{\"name\": \"name\", \"type\": \"int\"}", INT, "INT")
-	primitiveSchemaAssert(t, "{\"name\": \"name\", \"type\": \"long\"}", LONG, "LONG")
-	primitiveSchemaAssert(t, "{\"name\": \"name\", \"type\": \"boolean\"}", BOOLEAN, "BOOLEAN")
-	primitiveSchemaAssert(t, "{\"name\": \"name\", \"type\": \"float\"}", FLOAT, "FLOAT")
-	primitiveSchemaAssert(t, "{\"name\": \"name\", \"type\": \"double\"}", DOUBLE, "DOUBLE")
-	primitiveSchemaAssert(t, "{\"name\": \"name\", \"type\": \"bytes\"}", BYTES, "BYTES")
-	primitiveSchemaAssert(t, "{\"name\": \"name\", \"type\": \"null\"}", NULL, "NULL")
+	primitiveSchemaAssert(t, "string", STRING, "STRING")
+	primitiveSchemaAssert(t, "int", INT, "INT")
+	primitiveSchemaAssert(t, "long", LONG, "LONG")
+	primitiveSchemaAssert(t, "boolean", BOOLEAN, "BOOLEAN")
+	primitiveSchemaAssert(t, "float", FLOAT, "FLOAT")
+	primitiveSchemaAssert(t, "double", DOUBLE, "DOUBLE")
+	primitiveSchemaAssert(t, "bytes", BYTES, "BYTES")
+	primitiveSchemaAssert(t, "null", NULL, "NULL")
 }
 
 func primitiveSchemaAssert(t *testing.T, raw string, expected int, typeName string) {
-	s := ParseSchema([]byte(raw))
+	s, err := ParseSchema(raw)
+	assert(t, err, nil)
 
 	if s.Type() != expected {
 		t.Errorf("\n%s \n===\n Should parse into Type() = %s", raw, typeName)
@@ -25,8 +26,9 @@ func primitiveSchemaAssert(t *testing.T, raw string, expected int, typeName stri
 
 func TestArraySchema(t *testing.T) {
 	//array of strings
-	raw := `{"name": "stringArray", "type": {"type":"array", "items": "string"}}`
-	s := ParseSchema([]byte(raw))
+	raw := `{"type":"array", "items": "string"}`
+	s, err := ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != ARRAY {
 		t.Errorf("\n%s \n===\n Should parse into Type() = %s", raw, "ARRAY")
 	}
@@ -35,8 +37,9 @@ func TestArraySchema(t *testing.T) {
 	}
 
 	//array of longs
-	raw = `{"name": "longArray", "type": {"type":"array", "items": "long"}}`
-	s = ParseSchema([]byte(raw))
+	raw = `{"type":"array", "items": "long"}`
+	s, err = ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != ARRAY {
 		t.Errorf("\n%s \n===\n Should parse into Type() = %s", raw, "ARRAY")
 	}
@@ -45,8 +48,9 @@ func TestArraySchema(t *testing.T) {
 	}
 
 	//array of arrays of strings
-	raw = `{"name": "arrayStringArray", "type": {"type":"array", "items": {"type":"array", "items": "string"}}}`
-	s = ParseSchema([]byte(raw))
+	raw = `{"type":"array", "items": {"type":"array", "items": "string"}}`
+	s, err = ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != ARRAY {
 		t.Errorf("\n%s \n===\n Should parse into Type() = %s", raw, "ARRAY")
 	}
@@ -57,11 +61,12 @@ func TestArraySchema(t *testing.T) {
 		t.Errorf("\n%s \n===\n Array's nested item type should be STRING", raw)
 	}
 
-	raw = `{"name": "recordArray", "type": {"type":"array", "items": {"type": "record", "name": "TestRecord", "fields": [
+	raw = `{"type":"array", "items": {"type": "record", "name": "TestRecord", "fields": [
 	{"name": "longRecordField", "type": "long"},
 	{"name": "floatRecordField", "type": "float"}
-	]}}}`
-	s = ParseSchema([]byte(raw))
+	]}}`
+	s, err = ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != ARRAY {
 		t.Errorf("\n%s \n===\n Should parse into Type() = %s", raw, "ARRAY")
 	}
@@ -78,8 +83,9 @@ func TestArraySchema(t *testing.T) {
 
 func TestMapSchema(t *testing.T) {
 	//map[string, int]
-	raw := `{"name": "mapOfInts", "type": {"type":"map", "values": "int"}}`
-	s := ParseSchema([]byte(raw))
+	raw := `{"type":"map", "values": "int"}`
+	s, err := ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != MAP {
 		t.Errorf("\n%s \n===\n Should parse into MapSchema. Actual %#v", raw, s)
 	}
@@ -88,8 +94,9 @@ func TestMapSchema(t *testing.T) {
 	}
 
 	//map[string, []string]
-	raw = `{"name": "mapOfArraysOfStrings", "type": {"type":"map", "values": {"type":"array", "items": "string"}}}`
-	s = ParseSchema([]byte(raw))
+	raw = `{"type":"map", "values": {"type":"array", "items": "string"}}`
+	s, err = ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != MAP {
 		t.Errorf("\n%s \n===\n Should parse into MapSchema. Actual %#v", raw, s)
 	}
@@ -101,8 +108,9 @@ func TestMapSchema(t *testing.T) {
 	}
 
 	//map[string, [int, string]]
-	raw = `{"name": "intOrStringMap", "type": {"type":"map", "values": ["int", "string"]}}`
-	s = ParseSchema([]byte(raw))
+	raw = `{"type":"map", "values": ["int", "string"]}`
+	s, err = ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != MAP {
 		t.Errorf("\n%s \n===\n Should parse into MapSchema. Actual %#v", raw, s)
 	}
@@ -117,11 +125,12 @@ func TestMapSchema(t *testing.T) {
 	}
 
 	//map[string, record]
-	raw = `{"name": "recordMap", "type": {"type":"map", "values": {"type": "record", "name": "TestRecord2", "fields": [
+	raw = `{"type":"map", "values": {"type": "record", "name": "TestRecord2", "fields": [
 	{"name": "doubleRecordField", "type": "double"},
 	{"name": "fixedRecordField", "type": {"type": "fixed", "size": 4, "name": "bytez"}}
-	]}}}`
-	s = ParseSchema([]byte(raw))
+	]}}`
+	s, err = ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != MAP {
 		t.Errorf("\n%s \n===\n Should parse into MapSchema. Actual %#v", raw, s)
 	}
@@ -137,13 +146,14 @@ func TestMapSchema(t *testing.T) {
 }
 
 func TestRecordSchema(t *testing.T) {
-	raw := `{"name": "recordField", "type": {"type": "record", "name": "TestRecord", "fields": [
+	raw := `{"type": "record", "name": "TestRecord", "fields": [
      	{"name": "longRecordField", "type": "long"},
      	{"name": "stringRecordField", "type": "string"},
      	{"name": "intRecordField", "type": "int"},
      	{"name": "floatRecordField", "type": "float"}
-     ]}}`
-	s := ParseSchema([]byte(raw))
+     ]}`
+	s, err := ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != RECORD {
 		t.Errorf("\n%s \n===\n Should parse into RecordSchema. Actual %#v", raw, s)
 	}
@@ -160,14 +170,15 @@ func TestRecordSchema(t *testing.T) {
 		t.Errorf("\n%s \n===\n Record's fourth field type should parse into FloatSchema. Actual %#v", raw, s.(*RecordSchema).Fields[3].Type)
 	}
 
-	raw = `{"name": "recordField", "type": {"namespace": "scalago",
+	raw = `{"namespace": "scalago",
 	"type": "record",
 	"name": "PingPong",
 	"fields": [
 	{"name": "counter", "type": "long"},
 	{"name": "name", "type": "string"}
-	]}}`
-	s = ParseSchema([]byte(raw))
+	]}`
+	s, err = ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != RECORD {
 		t.Errorf("\n%s \n===\n Should parse into RecordSchema. Actual %#v", raw, s)
 	}
@@ -191,8 +202,9 @@ func TestRecordSchema(t *testing.T) {
 }
 
 func TestEnumSchema(t *testing.T) {
-	raw := `{"name": "enumField", "type": {"type":"enum", "name":"foo", "symbols":["A", "B", "C", "D"]}}`
-	s := ParseSchema([]byte(raw))
+	raw := `{"type":"enum", "name":"foo", "symbols":["A", "B", "C", "D"]}`
+	s, err := ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != ENUM {
 		t.Errorf("\n%s \n===\n Should parse into EnumSchema. Actual %#v", raw, s)
 	}
@@ -205,8 +217,9 @@ func TestEnumSchema(t *testing.T) {
 }
 
 func TestUnionSchema(t *testing.T) {
-	raw := `{"name": "unionField", "type": ["null", "string"]}`
-	s := ParseSchema([]byte(raw))
+	raw := `["null", "string"]`
+	s, err := ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != UNION {
 		t.Errorf("\n%s \n===\n Should parse into UnionSchema. Actual %#v", raw, s)
 	}
@@ -217,8 +230,9 @@ func TestUnionSchema(t *testing.T) {
 		t.Errorf("\n%s \n===\n Union's second type should be String. Actual %#v", raw, s.(*UnionSchema).Types[1])
 	}
 
-	raw = `{"name": "favorite_color", "type": ["string", "null"]}`
-	s = ParseSchema([]byte(raw))
+	raw = `["string", "null"]`
+	s, err = ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != UNION {
 		t.Errorf("\n%s \n===\n Should parse into UnionSchema. Actual %#v", raw, s)
 	}
@@ -231,8 +245,9 @@ func TestUnionSchema(t *testing.T) {
 }
 
 func TestFixedSchema(t *testing.T) {
-	raw := `{"name": "fixedField", "type": {"type": "fixed", "size": 16, "name": "md5"}}`
-	s := ParseSchema([]byte(raw))
+	raw := `{"type": "fixed", "size": 16, "name": "md5"}`
+	s, err := ParseSchema(raw)
+	assert(t, err, nil)
 	if s.Type() != FIXED {
 		t.Errorf("\n%s \n===\n Should parse into FixedSchema. Actual %#v", raw, s)
 	}
