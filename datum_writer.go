@@ -35,22 +35,22 @@ func (this *GenericDatumWriter) Write(obj interface{}, enc Encoder) error {
 
 func write(v reflect.Value, enc Encoder, s Schema) error {
 	switch s.Type() {
-	case NULL:
-	case BOOLEAN:
+	case Null:
+	case Boolean:
 		writeBoolean(v, enc)
-	case INT:
+	case Int:
 		writeInt(v, enc)
-	case LONG:
+	case Long:
 		writeLong(v, enc)
-	case FLOAT:
+	case Float:
 		writeFloat(v, enc)
-	case DOUBLE:
+	case Double:
 		writeDouble(v, enc)
-	case BYTES:
+	case Bytes:
 		writeBytes(v, enc)
-	case STRING:
+	case String:
 		writeString(v, enc)
-	case RECORD:
+	case Record:
 		return writeRecord(v, enc, s)
 	}
 

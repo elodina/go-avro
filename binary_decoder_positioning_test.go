@@ -9,16 +9,7 @@ import (
 )
 
 //this tests whether the decoder is able to sequentially read values and keep track of his position normally
-
-var TYPE_BOOLEAN = "boolean"
-var TYPE_INT = "int"
-var TYPE_LONG = "long"
-var TYPE_FLOAT = "float"
-var TYPE_DOUBLE = "double"
-var TYPE_BYTES = "bytes"
-var TYPE_STRING = "string"
-
-var PRIMITIVES = []string{TYPE_BOOLEAN, TYPE_INT, TYPE_LONG, TYPE_FLOAT, TYPE_DOUBLE, TYPE_BYTES, TYPE_STRING}
+var primitives = []string{type_boolean, type_int, type_long, type_float, type_double, type_bytes, type_string}
 
 func TestPositioning(t *testing.T) {
 	bytes, types, expected := getTestData()
@@ -28,42 +19,42 @@ func TestPositioning(t *testing.T) {
 		currentExpected := expected[i]
 
 		switch currentType {
-		case TYPE_BOOLEAN:
+		case type_boolean:
 			{
 				value, _ := bd.ReadBoolean()
 				if value != currentExpected.(bool) {
 					t.Fatalf("Unexpected boolean: expected %v, actual %v\n", currentExpected, value)
 				}
 			}
-		case TYPE_INT:
+		case type_int:
 			{
 				value, _ := bd.ReadInt()
 				if value != currentExpected.(int32) {
 					t.Fatalf("Unexpected int: expected %v, actual %v\n", currentExpected, value)
 				}
 			}
-		case TYPE_LONG:
+		case type_long:
 			{
 				value, _ := bd.ReadLong()
 				if value != currentExpected.(int64) {
 					t.Fatalf("Unexpected long: expected %v, actual %v\n", currentExpected, value)
 				}
 			}
-		case TYPE_FLOAT:
+		case type_float:
 			{
 				value, _ := bd.ReadFloat()
 				if value != currentExpected.(float32) {
 					t.Fatalf("Unexpected float: expected %v, actual %v\n", currentExpected, value)
 				}
 			}
-		case TYPE_DOUBLE:
+		case type_double:
 			{
 				value, _ := bd.ReadDouble()
 				if value != currentExpected.(float64) {
 					t.Fatalf("Unexpected double: expected %v, actual %v\n", currentExpected, value)
 				}
 			}
-		case TYPE_BYTES:
+		case type_bytes:
 			{
 				position := bd.Tell()
 				value, err := bd.ReadBytes()
@@ -76,7 +67,7 @@ func TestPositioning(t *testing.T) {
 					}
 				}
 			}
-		case TYPE_STRING:
+		case type_string:
 			{
 				value, _ := bd.ReadString()
 				if value != currentExpected.(string) {
@@ -97,7 +88,7 @@ func getTestData() ([]byte, []string, []interface{}) {
 	var expected []interface{}
 
 	for i := 0; i < testSize; i++ {
-		currentType := PRIMITIVES[rand.Intn(len(PRIMITIVES))]
+		currentType := primitives[rand.Intn(len(primitives))]
 		types = append(types, currentType)
 		k, v := getRandomFromMap(currentType)
 		bytes = append(bytes, k...)
@@ -110,7 +101,7 @@ func getTestData() ([]byte, []string, []interface{}) {
 func getRandomFromMap(mapType string) ([]byte, interface{}) {
 	i := 0
 	switch mapType {
-	case TYPE_BOOLEAN:
+	case type_boolean:
 		{
 			random := rand.Intn(len(goodBooleans))
 			for value, bytes := range goodBooleans {
@@ -120,7 +111,7 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 				i++
 			}
 		}
-	case TYPE_INT:
+	case type_int:
 		{
 			random := rand.Intn(len(goodInts))
 			for value, bytes := range goodInts {
@@ -130,7 +121,7 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 				i++
 			}
 		}
-	case TYPE_LONG:
+	case type_long:
 		{
 			random := rand.Intn(len(goodLongs))
 			for value, bytes := range goodLongs {
@@ -140,7 +131,7 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 				i++
 			}
 		}
-	case TYPE_FLOAT:
+	case type_float:
 		{
 			random := rand.Intn(len(goodFloats))
 			for value, bytes := range goodFloats {
@@ -150,7 +141,7 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 				i++
 			}
 		}
-	case TYPE_DOUBLE:
+	case type_double:
 		{
 			random := rand.Intn(len(goodDoubles))
 			for value, bytes := range goodDoubles {
@@ -160,11 +151,11 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 				i++
 			}
 		}
-	case TYPE_BYTES:
+	case type_bytes:
 		{
 			return goodBytes[rand.Intn(len(goodBytes))], "1"
 		}
-	case TYPE_STRING:
+	case type_string:
 		{
 			random := rand.Intn(len(goodStrings))
 			for value, bytes := range goodStrings {

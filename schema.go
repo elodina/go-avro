@@ -6,6 +6,23 @@ import (
 )
 
 const (
+    Record int = iota
+    Enum
+    Array
+    Map
+    Union
+    Fixed
+    String
+    Bytes
+    Int
+    Long
+    Float
+    Double
+    Boolean
+    Null
+)
+
+const (
 	type_record  = "record"
 	type_enum    = "enum"
 	type_array   = "array"
@@ -19,23 +36,6 @@ const (
 	type_double  = "double"
 	type_boolean = "boolean"
 	type_null    = "null"
-)
-
-const (
-	RECORD int = iota
-	ENUM
-	ARRAY
-	MAP
-	UNION
-	FIXED
-	STRING
-	BYTES
-	INT
-	LONG
-	FLOAT
-	DOUBLE
-	BOOLEAN
-	NULL
 )
 
 //TODO optional fields!
@@ -65,7 +65,7 @@ func (*StringSchema) String() string {
 }
 
 func (*StringSchema) Type() int {
-	return STRING
+	return String
 }
 
 type BytesSchema struct{}
@@ -75,7 +75,7 @@ func (*BytesSchema) String() string {
 }
 
 func (*BytesSchema) Type() int {
-	return BYTES
+	return Bytes
 }
 
 type IntSchema struct{}
@@ -85,7 +85,7 @@ func (*IntSchema) String() string {
 }
 
 func (*IntSchema) Type() int {
-	return INT
+	return Int
 }
 
 type LongSchema struct{}
@@ -95,7 +95,7 @@ func (*LongSchema) String() string {
 }
 
 func (*LongSchema) Type() int {
-	return LONG
+	return Long
 }
 
 type FloatSchema struct{}
@@ -105,7 +105,7 @@ func (*FloatSchema) String() string {
 }
 
 func (*FloatSchema) Type() int {
-	return FLOAT
+	return Float
 }
 
 type DoubleSchema struct{}
@@ -115,7 +115,7 @@ func (*DoubleSchema) String() string {
 }
 
 func (*DoubleSchema) Type() int {
-	return DOUBLE
+	return Double
 }
 
 type BooleanSchema struct{}
@@ -125,7 +125,7 @@ func (*BooleanSchema) String() string {
 }
 
 func (*BooleanSchema) Type() int {
-	return BOOLEAN
+	return Boolean
 }
 
 type NullSchema struct{}
@@ -135,7 +135,7 @@ func (*NullSchema) String() string {
 }
 
 func (*NullSchema) Type() int {
-	return NULL
+	return Null
 }
 
 //COMPLEX
@@ -163,7 +163,7 @@ func (this *SchemaField) String() string {
 }
 
 func (*RecordSchema) Type() int {
-	return RECORD
+	return Record
 }
 
 type EnumSchema struct {
@@ -179,7 +179,7 @@ func (this *EnumSchema) String() string {
 }
 
 func (*EnumSchema) Type() int {
-	return ENUM
+	return Enum
 }
 
 type ArraySchema struct {
@@ -191,7 +191,7 @@ func (this *ArraySchema) String() string {
 }
 
 func (*ArraySchema) Type() int {
-	return ARRAY
+	return Array
 }
 
 type MapSchema struct {
@@ -203,7 +203,7 @@ func (this *MapSchema) String() string {
 }
 
 func (*MapSchema) Type() int {
-	return MAP
+	return Map
 }
 
 type UnionSchema struct {
@@ -215,7 +215,7 @@ func (this *UnionSchema) String() string {
 }
 
 func (*UnionSchema) Type() int {
-	return UNION
+	return Union
 }
 
 type FixedSchema struct {
@@ -228,7 +228,7 @@ func (this *FixedSchema) String() string {
 }
 
 func (*FixedSchema) Type() int {
-	return FIXED
+	return Fixed
 }
 
 func ParseSchema(rawSchema string) (Schema, error) {

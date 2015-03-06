@@ -33,8 +33,8 @@ type DataBlock struct {
 	BlockRemaining int64
 }
 
-var MAX_INT_BUF_SIZE = 5
-var MAX_LONG_BUF_SIZE = 10
+var max_int_buf_size = 5
+var max_long_buf_size = 10
 
 type BinaryDecoder struct {
 	buf []byte
@@ -57,7 +57,7 @@ func (this *BinaryDecoder) ReadInt() (int32, error) {
 	var b uint8
 	var offset int
 	for {
-		if offset == MAX_INT_BUF_SIZE {
+		if offset == max_int_buf_size {
 			return 0, IntOverflow
 		}
 		b = this.buf[this.pos]
@@ -76,7 +76,7 @@ func (this *BinaryDecoder) ReadLong() (int64, error) {
 	var b uint8
 	var offset int
 	for {
-		if offset == MAX_LONG_BUF_SIZE {
+		if offset == max_long_buf_size {
 			return 0, LongOverflow
 		}
 		b = this.buf[this.pos]

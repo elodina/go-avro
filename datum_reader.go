@@ -75,33 +75,33 @@ func findAndSet(v interface{}, field *SchemaField, dec Decoder) error {
 
 func readValue(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	switch field.Type() {
-	case NULL:
+	case Null:
 		return reflect.ValueOf(nil), nil
-	case BOOLEAN:
+	case Boolean:
 		return mapPrimitive(func() (interface{}, error) { return dec.ReadBoolean() })
-	case INT:
+	case Int:
 		return mapPrimitive(func() (interface{}, error) { return dec.ReadInt() })
-	case LONG:
+	case Long:
 		return mapPrimitive(func() (interface{}, error) { return dec.ReadLong() })
-	case FLOAT:
+	case Float:
 		return mapPrimitive(func() (interface{}, error) { return dec.ReadFloat() })
-	case DOUBLE:
+	case Double:
 		return mapPrimitive(func() (interface{}, error) { return dec.ReadDouble() })
-	case BYTES:
+	case Bytes:
 		return mapPrimitive(func() (interface{}, error) { return dec.ReadBytes() })
-	case STRING:
+	case String:
 		return mapPrimitive(func() (interface{}, error) { return dec.ReadString() })
-	case ARRAY:
+	case Array:
 		return mapArray(field, reflectField, dec)
-	case ENUM:
+	case Enum:
 		return mapEnum(field, dec)
-	case MAP:
+	case Map:
 		return mapMap(field, reflectField, dec)
-	case UNION:
+	case Union:
 		return mapUnion(field, reflectField, dec)
-	case FIXED:
+	case Fixed:
 		return mapFixed(field, dec)
-	case RECORD:
+	case Record:
 		return mapRecord(field, reflectField, dec)
 		//TODO recursive types
 	}
