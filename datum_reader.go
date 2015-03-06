@@ -6,13 +6,18 @@ import (
 	"strings"
 )
 
+type DatumReader interface {
+	Read(interface{}, Decoder) bool
+	SetSchema(Schema)
+}
+
 type GenericEnum struct {
 	Symbols []string
 	index   int32
 }
 
-func (ge *GenericEnum) Get() string {
-	return ge.Symbols[ge.index]
+func (this *GenericEnum) Get() string {
+	return this.Symbols[this.index]
 }
 
 type GenericDatumReader struct {
@@ -24,20 +29,20 @@ func NewGenericDatumReader() *GenericDatumReader {
 	return &GenericDatumReader{}
 }
 
-func (gdr *GenericDatumReader) SetSchema(schema Schema) {
-	gdr.schema = schema
+func (this *GenericDatumReader) SetSchema(schema Schema) {
+	this.schema = schema
 }
 
-func (gdr *GenericDatumReader) Read(v interface{}, dec Decoder) bool {
+func (this *GenericDatumReader) Read(v interface{}, dec Decoder) bool {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		panic("Not applicable for non-pointer types or nil")
 	}
-	if gdr.schema == nil {
+	if this.schema == nil {
 		panic(SchemaNotSet)
 	}
 
-	sch := gdr.schema.(*RecordSchema)
+	sch := this.schema.(*RecordSchema)
 	for i := 0; i < len(sch.Fields); i++ {
 		field := sch.Fields[i]
 		findAndSet(v, field, dec)

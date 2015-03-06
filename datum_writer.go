@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+type DatumWriter interface {
+	SetSchema(Schema)
+	Write(interface{}, Encoder)
+}
+
 type GenericDatumWriter struct {
 	schema Schema
 }
@@ -14,18 +19,18 @@ func NewGenericDatumWriter() *GenericDatumWriter {
 	return &GenericDatumWriter{}
 }
 
-func (gdw *GenericDatumWriter) SetSchema(s Schema) {
-	gdw.schema = s
+func (this *GenericDatumWriter) SetSchema(s Schema) {
+	this.schema = s
 }
 
-func (gdw *GenericDatumWriter) Write(obj interface{}, enc Encoder) {
+func (this *GenericDatumWriter) Write(obj interface{}, enc Encoder) {
 	rv := reflect.ValueOf(obj)
 
-	if gdw.schema == nil {
+	if this.schema == nil {
 		panic(SchemaNotSet)
 	}
 
-	write(rv, enc, gdw.schema)
+	write(rv, enc, this.schema)
 }
 
 func write(v reflect.Value, enc Encoder, s Schema) {

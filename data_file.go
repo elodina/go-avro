@@ -9,7 +9,7 @@ import (
 )
 
 var VERSION byte = 1
-var MAGIC []byte = []byte{byte('O'), byte('b'), byte('j'), VERSION}
+var MAGIC []byte = []byte{'O', 'b', 'j', VERSION}
 
 var SYNC_SIZE = 16
 var SCHEMA_KEY = "avro.schema"
@@ -49,15 +49,15 @@ func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReade
 
 		dec := NewBinaryDecoder(buf)
 		blockDecoder := NewBinaryDecoder(nil)
-		dfr := &DataFileReader{
+		reader := &DataFileReader{
 			data:         buf,
 			dec:          dec,
 			blockDecoder: blockDecoder,
 			datum:        datumReader,
 		}
-		dfr.Seek(4) //skip the magic bytes
+		reader.Seek(4) //skip the magic bytes
 
-		dfr.header = newHeader()
+		reader.header = newHeader()
 		if metaLength, err := dec.ReadMapStart(); err != nil {
 			return nil, err
 		} else {
@@ -73,7 +73,7 @@ func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReade
 					if err != nil {
 						return nil, err
 					}
-					dfr.header.meta[key] = value
+					reader.header.meta[key] = value
 					i++
 				}
 				metaLength, err = dec.MapNext()
@@ -84,33 +84,33 @@ func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReade
 				}
 			}
 		}
-		dec.ReadFixed(dfr.header.sync)
+		dec.ReadFixed(reader.header.sync)
 		//TODO codec?
 
-		dfr.datum.SetSchema(Parse(dfr.header.meta[SCHEMA_KEY]))
-		dfr.block = &DataBlock{}
+		reader.datum.SetSchema(ParseSchema(reader.header.meta[SCHEMA_KEY]))
+		reader.block = &DataBlock{}
 
-		if dfr.hasNextBlock() {
-			if err := dfr.NextBlock(); err != nil {
+		if reader.hasNextBlock() {
+			if err := reader.NextBlock(); err != nil {
 				return nil, err
 			}
 		}
 
-		return dfr, nil
+		return reader, nil
 	}
 }
 
-func (dfr *DataFileReader) Seek(pos int64) {
-	dfr.dec.Seek(pos)
+func (this *DataFileReader) Seek(pos int64) {
+	this.dec.Seek(pos)
 }
 
-func (dfr *DataFileReader) hasNext() (bool, error) {
-	if dfr.block.BlockRemaining == 0 {
-		if int64(dfr.block.BlockSize) != dfr.blockDecoder.Tell() {
+func (this *DataFileReader) hasNext() (bool, error) {
+	if this.block.BlockRemaining == 0 {
+		if int64(this.block.BlockSize) != this.blockDecoder.Tell() {
 			return false, BlockNotFinished
 		}
-		if dfr.hasNextBlock() {
-			if err := dfr.NextBlock(); err != nil {
+		if this.hasNextBlock() {
+			if err := this.NextBlock(); err != nil {
 				return false, err
 			}
 		} else {
@@ -120,17 +120,17 @@ func (dfr *DataFileReader) hasNext() (bool, error) {
 	return true, nil
 }
 
-func (dfr *DataFileReader) hasNextBlock() bool {
-	return int64(len(dfr.data)) > dfr.dec.Tell()
+func (this *DataFileReader) hasNextBlock() bool {
+	return int64(len(this.data)) > this.dec.Tell()
 }
 
-func (dfr *DataFileReader) Next(v interface{}) bool {
-	if hasNext, err := dfr.hasNext(); err != nil {
+func (this *DataFileReader) Next(v interface{}) bool {
+	if hasNext, err := this.hasNext(); err != nil {
 		panic(err)
 	} else {
 		if hasNext {
-			readStatus := dfr.datum.Read(v, dfr.blockDecoder)
-			dfr.block.BlockRemaining--
+			readStatus := this.datum.Read(v, this.blockDecoder)
+			this.block.BlockRemaining--
 			return readStatus
 		} else {
 			return false
@@ -139,30 +139,30 @@ func (dfr *DataFileReader) Next(v interface{}) bool {
 	return false
 }
 
-func (dfr *DataFileReader) NextBlock() error {
-	if blockCount, err := dfr.dec.ReadLong(); err != nil {
+func (this *DataFileReader) NextBlock() error {
+	if blockCount, err := this.dec.ReadLong(); err != nil {
 		return err
 	} else {
-		if blockSize, err := dfr.dec.ReadLong(); err != nil {
+		if blockSize, err := this.dec.ReadLong(); err != nil {
 			return err
 		} else {
 			if blockSize > math.MaxInt32 || blockSize < 0 {
 				return errors.New(fmt.Sprintf("Block size invalid or too large: %d", blockSize))
 			}
 
-			block := dfr.block
+			block := this.block
 			if block.Data == nil || int64(len(block.Data)) < blockSize {
 				block.Data = make([]byte, blockSize)
 			}
 			block.BlockRemaining = blockCount
 			block.NumEntries = blockCount
 			block.BlockSize = int(blockSize)
-			dfr.dec.ReadFixedWithBounds(block.Data, 0, int(block.BlockSize))
-			dfr.dec.ReadFixed(syncBuffer)
-			if !bytes.Equal(syncBuffer, dfr.header.sync) {
+			this.dec.ReadFixedWithBounds(block.Data, 0, int(block.BlockSize))
+			this.dec.ReadFixed(syncBuffer)
+			if !bytes.Equal(syncBuffer, this.header.sync) {
 				return InvalidSync
 			}
-			dfr.blockDecoder.SetBlock(dfr.block)
+			this.blockDecoder.SetBlock(this.block)
 		}
 	}
 	return nil

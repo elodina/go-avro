@@ -16,7 +16,7 @@ func TestPrimitiveSchema(t *testing.T) {
 }
 
 func primitiveSchemaAssert(t *testing.T, raw string, expected int, typeName string) {
-	s := Parse([]byte(raw))
+	s := ParseSchema([]byte(raw))
 
 	if s.Type() != expected {
 		t.Errorf("\n%s \n===\n Should parse into Type() = %s", raw, typeName)
@@ -26,7 +26,7 @@ func primitiveSchemaAssert(t *testing.T, raw string, expected int, typeName stri
 func TestArraySchema(t *testing.T) {
 	//array of strings
 	raw := `{"name": "stringArray", "type": {"type":"array", "items": "string"}}`
-	s := Parse([]byte(raw))
+	s := ParseSchema([]byte(raw))
 	if s.Type() != ARRAY {
 		t.Errorf("\n%s \n===\n Should parse into Type() = %s", raw, "ARRAY")
 	}
@@ -36,7 +36,7 @@ func TestArraySchema(t *testing.T) {
 
 	//array of longs
 	raw = `{"name": "longArray", "type": {"type":"array", "items": "long"}}`
-	s = Parse([]byte(raw))
+	s = ParseSchema([]byte(raw))
 	if s.Type() != ARRAY {
 		t.Errorf("\n%s \n===\n Should parse into Type() = %s", raw, "ARRAY")
 	}
@@ -46,7 +46,7 @@ func TestArraySchema(t *testing.T) {
 
 	//array of arrays of strings
 	raw = `{"name": "arrayStringArray", "type": {"type":"array", "items": {"type":"array", "items": "string"}}}`
-	s = Parse([]byte(raw))
+	s = ParseSchema([]byte(raw))
 	if s.Type() != ARRAY {
 		t.Errorf("\n%s \n===\n Should parse into Type() = %s", raw, "ARRAY")
 	}
@@ -61,7 +61,7 @@ func TestArraySchema(t *testing.T) {
 	{"name": "longRecordField", "type": "long"},
 	{"name": "floatRecordField", "type": "float"}
 	]}}}`
-	s = Parse([]byte(raw))
+	s = ParseSchema([]byte(raw))
 	if s.Type() != ARRAY {
 		t.Errorf("\n%s \n===\n Should parse into Type() = %s", raw, "ARRAY")
 	}
@@ -79,7 +79,7 @@ func TestArraySchema(t *testing.T) {
 func TestMapSchema(t *testing.T) {
 	//map[string, int]
 	raw := `{"name": "mapOfInts", "type": {"type":"map", "values": "int"}}`
-	s := Parse([]byte(raw))
+	s := ParseSchema([]byte(raw))
 	if s.Type() != MAP {
 		t.Errorf("\n%s \n===\n Should parse into MapSchema. Actual %#v", raw, s)
 	}
@@ -89,7 +89,7 @@ func TestMapSchema(t *testing.T) {
 
 	//map[string, []string]
 	raw = `{"name": "mapOfArraysOfStrings", "type": {"type":"map", "values": {"type":"array", "items": "string"}}}`
-	s = Parse([]byte(raw))
+	s = ParseSchema([]byte(raw))
 	if s.Type() != MAP {
 		t.Errorf("\n%s \n===\n Should parse into MapSchema. Actual %#v", raw, s)
 	}
@@ -102,7 +102,7 @@ func TestMapSchema(t *testing.T) {
 
 	//map[string, [int, string]]
 	raw = `{"name": "intOrStringMap", "type": {"type":"map", "values": ["int", "string"]}}`
-	s = Parse([]byte(raw))
+	s = ParseSchema([]byte(raw))
 	if s.Type() != MAP {
 		t.Errorf("\n%s \n===\n Should parse into MapSchema. Actual %#v", raw, s)
 	}
@@ -121,7 +121,7 @@ func TestMapSchema(t *testing.T) {
 	{"name": "doubleRecordField", "type": "double"},
 	{"name": "fixedRecordField", "type": {"type": "fixed", "size": 4, "name": "bytez"}}
 	]}}}`
-	s = Parse([]byte(raw))
+	s = ParseSchema([]byte(raw))
 	if s.Type() != MAP {
 		t.Errorf("\n%s \n===\n Should parse into MapSchema. Actual %#v", raw, s)
 	}
@@ -143,7 +143,7 @@ func TestRecordSchema(t *testing.T) {
      	{"name": "intRecordField", "type": "int"},
      	{"name": "floatRecordField", "type": "float"}
      ]}}`
-	s := Parse([]byte(raw))
+	s := ParseSchema([]byte(raw))
 	if s.Type() != RECORD {
 		t.Errorf("\n%s \n===\n Should parse into RecordSchema. Actual %#v", raw, s)
 	}
@@ -167,7 +167,7 @@ func TestRecordSchema(t *testing.T) {
 	{"name": "counter", "type": "long"},
 	{"name": "name", "type": "string"}
 	]}}`
-	s = Parse([]byte(raw))
+	s = ParseSchema([]byte(raw))
 	if s.Type() != RECORD {
 		t.Errorf("\n%s \n===\n Should parse into RecordSchema. Actual %#v", raw, s)
 	}
@@ -192,7 +192,7 @@ func TestRecordSchema(t *testing.T) {
 
 func TestEnumSchema(t *testing.T) {
 	raw := `{"name": "enumField", "type": {"type":"enum", "name":"foo", "symbols":["A", "B", "C", "D"]}}`
-	s := Parse([]byte(raw))
+	s := ParseSchema([]byte(raw))
 	if s.Type() != ENUM {
 		t.Errorf("\n%s \n===\n Should parse into EnumSchema. Actual %#v", raw, s)
 	}
@@ -206,7 +206,7 @@ func TestEnumSchema(t *testing.T) {
 
 func TestUnionSchema(t *testing.T) {
 	raw := `{"name": "unionField", "type": ["null", "string"]}`
-	s := Parse([]byte(raw))
+	s := ParseSchema([]byte(raw))
 	if s.Type() != UNION {
 		t.Errorf("\n%s \n===\n Should parse into UnionSchema. Actual %#v", raw, s)
 	}
@@ -218,7 +218,7 @@ func TestUnionSchema(t *testing.T) {
 	}
 
 	raw = `{"name": "favorite_color", "type": ["string", "null"]}`
-	s = Parse([]byte(raw))
+	s = ParseSchema([]byte(raw))
 	if s.Type() != UNION {
 		t.Errorf("\n%s \n===\n Should parse into UnionSchema. Actual %#v", raw, s)
 	}
@@ -232,7 +232,7 @@ func TestUnionSchema(t *testing.T) {
 
 func TestFixedSchema(t *testing.T) {
 	raw := `{"name": "fixedField", "type": {"type": "fixed", "size": 16, "name": "md5"}}`
-	s := Parse([]byte(raw))
+	s := ParseSchema([]byte(raw))
 	if s.Type() != FIXED {
 		t.Errorf("\n%s \n===\n Should parse into FixedSchema. Actual %#v", raw, s)
 	}

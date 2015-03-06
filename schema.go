@@ -58,49 +58,49 @@ type Schema interface {
 // PRIMITIVES
 type StringSchema struct{}
 
-func (ss *StringSchema) Type() int {
+func (*StringSchema) Type() int {
 	return STRING
 }
 
 type BytesSchema struct{}
 
-func (bs *BytesSchema) Type() int {
+func (*BytesSchema) Type() int {
 	return BYTES
 }
 
 type IntSchema struct{}
 
-func (is *IntSchema) Type() int {
+func (*IntSchema) Type() int {
 	return INT
 }
 
 type LongSchema struct{}
 
-func (ls *LongSchema) Type() int {
+func (*LongSchema) Type() int {
 	return LONG
 }
 
 type FloatSchema struct{}
 
-func (fs *FloatSchema) Type() int {
+func (*FloatSchema) Type() int {
 	return FLOAT
 }
 
 type DoubleSchema struct{}
 
-func (ds *DoubleSchema) Type() int {
+func (*DoubleSchema) Type() int {
 	return DOUBLE
 }
 
 type BooleanSchema struct{}
 
-func (bs *BooleanSchema) Type() int {
+func (*BooleanSchema) Type() int {
 	return BOOLEAN
 }
 
 type NullSchema struct{}
 
-func (ns *NullSchema) Type() int {
+func (*NullSchema) Type() int {
 	return NULL
 }
 
@@ -119,7 +119,7 @@ type SchemaField struct {
 	Type Schema
 }
 
-func (rs *RecordSchema) Type() int {
+func (*RecordSchema) Type() int {
 	return RECORD
 }
 
@@ -131,7 +131,7 @@ type EnumSchema struct {
 	Symbols   []string
 }
 
-func (es *EnumSchema) Type() int {
+func (*EnumSchema) Type() int {
 	return ENUM
 }
 
@@ -139,7 +139,7 @@ type ArraySchema struct {
 	Items Schema
 }
 
-func (as *ArraySchema) Type() int {
+func (*ArraySchema) Type() int {
 	return ARRAY
 }
 
@@ -147,7 +147,7 @@ type MapSchema struct {
 	Values Schema
 }
 
-func (ms *MapSchema) Type() int {
+func (*MapSchema) Type() int {
 	return MAP
 }
 
@@ -155,7 +155,7 @@ type UnionSchema struct {
 	Types []Schema
 }
 
-func (us *UnionSchema) Type() int {
+func (*UnionSchema) Type() int {
 	return UNION
 }
 
@@ -164,12 +164,12 @@ type FixedSchema struct {
 	Size int
 }
 
-func (fs *FixedSchema) Type() int {
+func (*FixedSchema) Type() int {
 	return FIXED
 }
 
 //OTHER
-func Parse(jsn []byte) Schema {
+func ParseSchema(jsn []byte) Schema {
 	var f interface{}
 	if err := json.Unmarshal(jsn, &f); err != nil {
 		panic(err)
