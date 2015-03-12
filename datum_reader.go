@@ -21,20 +21,20 @@ func (this *GenericEnum) Get() string {
 	return this.Symbols[this.index]
 }
 
-type GenericDatumReader struct {
+type SpecificDatumReader struct {
 	dataType reflect.Type
 	schema   Schema
 }
 
-func NewGenericDatumReader() *GenericDatumReader {
-	return &GenericDatumReader{}
+func NewSpecificDatumReader() *SpecificDatumReader {
+	return &SpecificDatumReader{}
 }
 
-func (this *GenericDatumReader) SetSchema(schema Schema) {
+func (this *SpecificDatumReader) SetSchema(schema Schema) {
 	this.schema = schema
 }
 
-func (this *GenericDatumReader) Read(v interface{}, dec Decoder) error {
+func (this *SpecificDatumReader) Read(v interface{}, dec Decoder) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return errors.New("Not applicable for non-pointer types or nil")
@@ -46,13 +46,13 @@ func (this *GenericDatumReader) Read(v interface{}, dec Decoder) error {
 	sch := this.schema.(*RecordSchema)
 	for i := 0; i < len(sch.Fields); i++ {
 		field := sch.Fields[i]
-		findAndSet(v, field, dec)
+		this.findAndSet(v, field, dec)
 	}
 
 	return nil
 }
 
-func findAndSet(v interface{}, field *SchemaField, dec Decoder) error {
+func (this *SpecificDatumReader) findAndSet(v interface{}, field *SchemaField, dec Decoder) error {
 	fieldName := field.Name
 	elem := reflect.ValueOf(v).Elem()
 	f := elem.FieldByName(strings.ToUpper(fieldName[0:1]) + fieldName[1:])
@@ -64,59 +64,59 @@ func findAndSet(v interface{}, field *SchemaField, dec Decoder) error {
 		return fmt.Errorf("Field %s does not exist", fieldName)
 	}
 
-	value, err := readValue(field.Type, f, dec)
+	value, err := this.readValue(field.Type, f, dec)
 	if err != nil {
 		return err
 	}
-	setValue(field, f, value)
+	this.setValue(field, f, value)
 
 	return nil
 }
 
-func readValue(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
+func (this *SpecificDatumReader) readValue(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	switch field.Type() {
 	case Null:
 		return reflect.ValueOf(nil), nil
 	case Boolean:
-		return mapPrimitive(func() (interface{}, error) { return dec.ReadBoolean() })
+		return this.mapPrimitive(func() (interface{}, error) { return dec.ReadBoolean() })
 	case Int:
-		return mapPrimitive(func() (interface{}, error) { return dec.ReadInt() })
+		return this.mapPrimitive(func() (interface{}, error) { return dec.ReadInt() })
 	case Long:
-		return mapPrimitive(func() (interface{}, error) { return dec.ReadLong() })
+		return this.mapPrimitive(func() (interface{}, error) { return dec.ReadLong() })
 	case Float:
-		return mapPrimitive(func() (interface{}, error) { return dec.ReadFloat() })
+		return this.mapPrimitive(func() (interface{}, error) { return dec.ReadFloat() })
 	case Double:
-		return mapPrimitive(func() (interface{}, error) { return dec.ReadDouble() })
+		return this.mapPrimitive(func() (interface{}, error) { return dec.ReadDouble() })
 	case Bytes:
-		return mapPrimitive(func() (interface{}, error) { return dec.ReadBytes() })
+		return this.mapPrimitive(func() (interface{}, error) { return dec.ReadBytes() })
 	case String:
-		return mapPrimitive(func() (interface{}, error) { return dec.ReadString() })
+		return this.mapPrimitive(func() (interface{}, error) { return dec.ReadString() })
 	case Array:
-		return mapArray(field, reflectField, dec)
+		return this.mapArray(field, reflectField, dec)
 	case Enum:
-		return mapEnum(field, dec)
+		return this.mapEnum(field, dec)
 	case Map:
-		return mapMap(field, reflectField, dec)
+		return this.mapMap(field, reflectField, dec)
 	case Union:
-		return mapUnion(field, reflectField, dec)
+		return this.mapUnion(field, reflectField, dec)
 	case Fixed:
-		return mapFixed(field, dec)
+		return this.mapFixed(field, dec)
 	case Record:
-		return mapRecord(field, reflectField, dec)
+		return this.mapRecord(field, reflectField, dec)
 		//TODO recursive types
 	}
 
 	return reflect.ValueOf(nil), fmt.Errorf("Unknown field type: %s", field.Type())
 }
 
-func setValue(field *SchemaField, where reflect.Value, what reflect.Value) {
+func (this *SpecificDatumReader) setValue(field *SchemaField, where reflect.Value, what reflect.Value) {
 	zero := reflect.Value{}
 	if zero != what {
 		where.Set(what)
 	}
 }
 
-func mapPrimitive(reader func() (interface{}, error)) (reflect.Value, error) {
+func (this *SpecificDatumReader) mapPrimitive(reader func() (interface{}, error)) (reflect.Value, error) {
 	if value, err := reader(); err != nil {
 		return reflect.ValueOf(value), err
 	} else {
@@ -124,7 +124,7 @@ func mapPrimitive(reader func() (interface{}, error)) (reflect.Value, error) {
 	}
 }
 
-func mapArray(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
+func (this *SpecificDatumReader) mapArray(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	if arrayLength, err := dec.ReadArrayStart(); err != nil {
 		return reflect.ValueOf(arrayLength), err
 	} else {
@@ -133,7 +133,7 @@ func mapArray(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Va
 			arrayPart := reflect.MakeSlice(reflectField.Type(), int(arrayLength), int(arrayLength))
 			var i int64 = 0
 			for ; i < arrayLength; i++ {
-				val, err := readValue(field.(*ArraySchema).Items, arrayPart.Index(int(i)), dec)
+				val, err := this.readValue(field.(*ArraySchema).Items, arrayPart.Index(int(i)), dec)
 				if err != nil {
 					return reflect.ValueOf(arrayLength), err
 				}
@@ -159,7 +159,7 @@ func mapArray(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Va
 	}
 }
 
-func mapMap(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
+func (this *SpecificDatumReader) mapMap(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	if mapLength, err := dec.ReadMapStart(); err != nil {
 		return reflect.ValueOf(mapLength), err
 	} else {
@@ -167,11 +167,11 @@ func mapMap(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Valu
 		for {
 			var i int64 = 0
 			for ; i < mapLength; i++ {
-				key, err := readValue(&StringSchema{}, reflectField, dec)
+				key, err := this.readValue(&StringSchema{}, reflectField, dec)
 				if err != nil {
 					return reflect.ValueOf(mapLength), err
 				}
-				val, err := readValue(field.(*MapSchema).Values, reflectField, dec)
+				val, err := this.readValue(field.(*MapSchema).Values, reflectField, dec)
 				if err != nil {
 					return reflect.ValueOf(mapLength), nil
 				}
@@ -193,7 +193,7 @@ func mapMap(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Valu
 	}
 }
 
-func mapEnum(field Schema, dec Decoder) (reflect.Value, error) {
+func (this *SpecificDatumReader) mapEnum(field Schema, dec Decoder) (reflect.Value, error) {
 	if enum, err := dec.ReadEnum(); err != nil {
 		return reflect.ValueOf(enum), err
 	} else {
@@ -201,16 +201,16 @@ func mapEnum(field Schema, dec Decoder) (reflect.Value, error) {
 	}
 }
 
-func mapUnion(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
+func (this *SpecificDatumReader) mapUnion(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	if unionType, err := dec.ReadInt(); err != nil {
 		return reflect.ValueOf(unionType), err
 	} else {
 		union := field.(*UnionSchema).Types[unionType]
-		return readValue(union, reflectField, dec)
+		return this.readValue(union, reflectField, dec)
 	}
 }
 
-func mapFixed(field Schema, dec Decoder) (reflect.Value, error) {
+func (this *SpecificDatumReader) mapFixed(field Schema, dec Decoder) (reflect.Value, error) {
 	fixed := make([]byte, field.(*FixedSchema).Size)
 	if err := dec.ReadFixed(fixed); err != nil {
 		return reflect.ValueOf(fixed), err
@@ -218,7 +218,7 @@ func mapFixed(field Schema, dec Decoder) (reflect.Value, error) {
 	return reflect.ValueOf(fixed), nil
 }
 
-func mapRecord(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
+func (this *SpecificDatumReader) mapRecord(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	var t reflect.Type
 	switch reflectField.Kind() {
 	case reflect.Ptr, reflect.Array, reflect.Map, reflect.Slice, reflect.Chan:
@@ -230,8 +230,184 @@ func mapRecord(field Schema, reflectField reflect.Value, dec Decoder) (reflect.V
 
 	recordSchema := field.(*RecordSchema)
 	for i := 0; i < len(recordSchema.Fields); i++ {
-		findAndSet(record, recordSchema.Fields[i], dec)
+		this.findAndSet(record, recordSchema.Fields[i], dec)
 	}
 
 	return reflect.ValueOf(record), nil
+}
+
+type GenericDatumReader struct {
+	schema Schema
+}
+
+func NewGenericDatumReader() *GenericDatumReader {
+	return &GenericDatumReader{}
+}
+
+func (this *GenericDatumReader) SetSchema(schema Schema) {
+	this.schema = schema
+}
+
+func (this *GenericDatumReader) Read(v interface{}, dec Decoder) error {
+	switch record := v.(type) {
+	case *GenericRecord:
+		{
+			if this.schema == nil {
+				return SchemaNotSet
+			}
+
+			sch := this.schema.(*RecordSchema)
+			for i := 0; i < len(sch.Fields); i++ {
+				field := sch.Fields[i]
+				this.findAndSet(record, field, dec)
+			}
+
+			return nil
+		}
+	default:
+		return errors.New("GenericDatumReader expects a *GenericRecord to fill")
+	}
+}
+
+func (this *GenericDatumReader) findAndSet(record *GenericRecord, field *SchemaField, dec Decoder) error {
+	value, err := this.readValue(field.Type, dec)
+	if err != nil {
+		return err
+	}
+	record.Set(field.Name, value)
+
+	return nil
+}
+
+func (this *GenericDatumReader) readValue(field Schema, dec Decoder) (interface{}, error) {
+	switch field.Type() {
+	case Null:
+		return nil, nil
+	case Boolean:
+		return dec.ReadBoolean()
+	case Int:
+		return dec.ReadInt()
+	case Long:
+		return dec.ReadLong()
+	case Float:
+		return dec.ReadFloat()
+	case Double:
+		return dec.ReadDouble()
+	case Bytes:
+		return dec.ReadBytes()
+	case String:
+		return dec.ReadString()
+	case Array:
+		return this.mapArray(field, dec)
+	case Enum:
+		return this.mapEnum(field, dec)
+	case Map:
+		return this.mapMap(field, dec)
+	case Union:
+		return this.mapUnion(field, dec)
+	case Fixed:
+		return this.mapFixed(field, dec)
+	case Record:
+		return this.mapRecord(field, dec)
+		//TODO recursive types
+	}
+
+	return nil, fmt.Errorf("Unknown field type: %s", field.Type())
+}
+
+func (this *GenericDatumReader) mapArray(field Schema, dec Decoder) ([]interface{}, error) {
+	if arrayLength, err := dec.ReadArrayStart(); err != nil {
+		return nil, err
+	} else {
+		array := make([]interface{}, 0)
+		for {
+			arrayPart := make([]interface{}, arrayLength, arrayLength)
+			var i int64 = 0
+			for ; i < arrayLength; i++ {
+				val, err := this.readValue(field.(*ArraySchema).Items, dec)
+				if err != nil {
+					return nil, err
+				}
+				arrayPart[i] = val
+			}
+			//concatenate arrays
+			concatArray := make([]interface{}, len(array)+int(arrayLength), cap(array)+int(arrayLength))
+			copy(concatArray, array)
+			copy(concatArray, arrayPart)
+			array = concatArray
+			arrayLength, err = dec.ArrayNext()
+			if err != nil {
+				return nil, err
+			} else if arrayLength == 0 {
+				break
+			}
+		}
+		return array, nil
+	}
+}
+
+func (this *GenericDatumReader) mapEnum(field Schema, dec Decoder) (*GenericEnum, error) {
+	if enum, err := dec.ReadEnum(); err != nil {
+		return nil, err
+	} else {
+		return &GenericEnum{field.(*EnumSchema).Symbols, enum}, nil
+	}
+}
+
+func (this *GenericDatumReader) mapMap(field Schema, dec Decoder) (map[string]interface{}, error) {
+	if mapLength, err := dec.ReadMapStart(); err != nil {
+		return nil, err
+	} else {
+		resultMap := make(map[string]interface{})
+		for {
+			var i int64 = 0
+			for ; i < mapLength; i++ {
+				key, err := this.readValue(&StringSchema{}, dec)
+				if err != nil {
+					return nil, err
+				}
+				val, err := this.readValue(field.(*MapSchema).Values, dec)
+				if err != nil {
+					return nil, nil
+				}
+				resultMap[key.(string)] = val
+			}
+
+			mapLength, err = dec.MapNext()
+			if err != nil {
+				return nil, err
+			} else if mapLength == 0 {
+				break
+			}
+		}
+		return resultMap, nil
+	}
+}
+
+func (this *GenericDatumReader) mapUnion(field Schema, dec Decoder) (interface{}, error) {
+	if unionType, err := dec.ReadInt(); err != nil {
+		return nil, err
+	} else {
+		union := field.(*UnionSchema).Types[unionType]
+		return this.readValue(union, dec)
+	}
+}
+
+func (this *GenericDatumReader) mapFixed(field Schema, dec Decoder) ([]byte, error) {
+	fixed := make([]byte, field.(*FixedSchema).Size)
+	if err := dec.ReadFixed(fixed); err != nil {
+		return nil, err
+	}
+	return fixed, nil
+}
+
+func (this *GenericDatumReader) mapRecord(field Schema, dec Decoder) (*GenericRecord, error) {
+	record := NewGenericRecord()
+
+	recordSchema := field.(*RecordSchema)
+	for i := 0; i < len(recordSchema.Fields); i++ {
+		this.findAndSet(record, recordSchema.Fields[i], dec)
+	}
+
+	return record, nil
 }
