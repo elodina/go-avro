@@ -13,7 +13,7 @@ func TestDatumWriterPrimitives(t *testing.T) {
 	buffer := &bytes.Buffer{}
 	enc := NewBinaryEncoder(buffer)
 
-	w := NewGenericDatumWriter()
+	w := NewSpecificDatumWriter()
 	w.SetSchema(sch)
 
 	in := randomPrimitiveObject()
@@ -21,7 +21,7 @@ func TestDatumWriterPrimitives(t *testing.T) {
 	err = w.Write(in, enc)
 	assert(t, err, nil)
 	dec := NewBinaryDecoder(buffer.Bytes())
-	r := NewGenericDatumReader()
+	r := NewSpecificDatumReader()
 	r.SetSchema(sch)
 
 	out := &Primitive{}
