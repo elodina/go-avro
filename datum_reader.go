@@ -249,29 +249,11 @@ func (this *GenericDatumReader) SetSchema(schema Schema) {
 }
 
 func (this *GenericDatumReader) Read(v interface{}, dec Decoder) (interface{}, error) {
-    if this.schema == nil {
-        return nil, SchemaNotSet
-    }
+	if this.schema == nil {
+		return nil, SchemaNotSet
+	}
 
-    return this.readValue(this.schema, dec)
-//	switch record := v.(type) {
-//	case *GenericRecord:
-//		{
-//			if this.schema == nil {
-//				return SchemaNotSet
-//			}
-//
-//			sch := this.schema.(*RecordSchema)
-//			for i := 0; i < len(sch.Fields); i++ {
-//				field := sch.Fields[i]
-//				this.findAndSet(record, field, dec)
-//			}
-//
-//			return nil
-//		}
-//	default:
-//		return errors.New("GenericDatumReader expects a *GenericRecord to fill")
-//	}
+	return this.readValue(this.schema, dec)
 }
 
 func (this *GenericDatumReader) findAndSet(record *GenericRecord, field *SchemaField, dec Decoder) error {
@@ -407,7 +389,7 @@ func (this *GenericDatumReader) mapFixed(field Schema, dec Decoder) ([]byte, err
 }
 
 func (this *GenericDatumReader) mapRecord(field Schema, dec Decoder) (*GenericRecord, error) {
-	record := NewGenericRecord()
+	record := NewGenericRecord(field)
 
 	recordSchema := field.(*RecordSchema)
 	for i := 0; i < len(recordSchema.Fields); i++ {
