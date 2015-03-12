@@ -8,7 +8,7 @@ import (
 )
 
 type DatumReader interface {
-	Read(interface{}, Decoder) error
+	Read(interface{}, Decoder) (interface{}, error)
 	SetSchema(Schema)
 }
 
@@ -34,13 +34,13 @@ func (this *SpecificDatumReader) SetSchema(schema Schema) {
 	this.schema = schema
 }
 
-func (this *SpecificDatumReader) Read(v interface{}, dec Decoder) error {
+func (this *SpecificDatumReader) Read(v interface{}, dec Decoder) (interface{}, error) {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return errors.New("Not applicable for non-pointer types or nil")
+		return nil, errors.New("Not applicable for non-pointer types or nil")
 	}
 	if this.schema == nil {
-		return SchemaNotSet
+		return nil, SchemaNotSet
 	}
 
 	sch := this.schema.(*RecordSchema)
@@ -49,7 +49,7 @@ func (this *SpecificDatumReader) Read(v interface{}, dec Decoder) error {
 		this.findAndSet(v, field, dec)
 	}
 
-	return nil
+	return v, nil
 }
 
 func (this *SpecificDatumReader) findAndSet(v interface{}, field *SchemaField, dec Decoder) error {
@@ -248,25 +248,30 @@ func (this *GenericDatumReader) SetSchema(schema Schema) {
 	this.schema = schema
 }
 
-func (this *GenericDatumReader) Read(v interface{}, dec Decoder) error {
-	switch record := v.(type) {
-	case *GenericRecord:
-		{
-			if this.schema == nil {
-				return SchemaNotSet
-			}
+func (this *GenericDatumReader) Read(v interface{}, dec Decoder) (interface{}, error) {
+    if this.schema == nil {
+        return nil, SchemaNotSet
+    }
 
-			sch := this.schema.(*RecordSchema)
-			for i := 0; i < len(sch.Fields); i++ {
-				field := sch.Fields[i]
-				this.findAndSet(record, field, dec)
-			}
-
-			return nil
-		}
-	default:
-		return errors.New("GenericDatumReader expects a *GenericRecord to fill")
-	}
+    return this.readValue(this.schema, dec)
+//	switch record := v.(type) {
+//	case *GenericRecord:
+//		{
+//			if this.schema == nil {
+//				return SchemaNotSet
+//			}
+//
+//			sch := this.schema.(*RecordSchema)
+//			for i := 0; i < len(sch.Fields); i++ {
+//				field := sch.Fields[i]
+//				this.findAndSet(record, field, dec)
+//			}
+//
+//			return nil
+//		}
+//	default:
+//		return errors.New("GenericDatumReader expects a *GenericRecord to fill")
+//	}
 }
 
 func (this *GenericDatumReader) findAndSet(record *GenericRecord, field *SchemaField, dec Decoder) error {
