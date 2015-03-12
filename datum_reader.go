@@ -249,11 +249,11 @@ func (this *GenericDatumReader) SetSchema(schema Schema) {
 }
 
 func (this *GenericDatumReader) Read(v interface{}, dec Decoder) (interface{}, error) {
-    if this.schema == nil {
-        return nil, SchemaNotSet
-    }
+	if this.schema == nil {
+		return nil, SchemaNotSet
+	}
 
-    return this.readValue(this.schema, dec)
+	return this.readValue(this.schema, dec)
 }
 
 func (this *GenericDatumReader) findAndSet(record *GenericRecord, field *SchemaField, dec Decoder) error {

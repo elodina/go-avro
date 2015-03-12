@@ -24,7 +24,7 @@ const (
 
 const (
 	type_record  = "record"
-    type_union   = "union"
+	type_union   = "union"
 	type_enum    = "enum"
 	type_array   = "array"
 	type_map     = "map"
@@ -56,7 +56,7 @@ const (
 
 type Schema interface {
 	Type() int
-    GetName() string
+	GetName() string
 }
 
 // PRIMITIVES
@@ -71,7 +71,7 @@ func (*StringSchema) Type() int {
 }
 
 func (*StringSchema) GetName() string {
-    return type_string
+	return type_string
 }
 
 type BytesSchema struct{}
@@ -85,7 +85,7 @@ func (*BytesSchema) Type() int {
 }
 
 func (*BytesSchema) GetName() string {
-    return type_bytes
+	return type_bytes
 }
 
 type IntSchema struct{}
@@ -99,7 +99,7 @@ func (*IntSchema) Type() int {
 }
 
 func (*IntSchema) GetName() string {
-    return type_int
+	return type_int
 }
 
 type LongSchema struct{}
@@ -113,7 +113,7 @@ func (*LongSchema) Type() int {
 }
 
 func (*LongSchema) GetName() string {
-    return type_long
+	return type_long
 }
 
 type FloatSchema struct{}
@@ -127,7 +127,7 @@ func (*FloatSchema) Type() int {
 }
 
 func (*FloatSchema) GetName() string {
-    return type_float
+	return type_float
 }
 
 type DoubleSchema struct{}
@@ -141,7 +141,7 @@ func (*DoubleSchema) Type() int {
 }
 
 func (*DoubleSchema) GetName() string {
-    return type_double
+	return type_double
 }
 
 type BooleanSchema struct{}
@@ -155,7 +155,7 @@ func (*BooleanSchema) Type() int {
 }
 
 func (*BooleanSchema) GetName() string {
-    return type_boolean
+	return type_boolean
 }
 
 type NullSchema struct{}
@@ -169,7 +169,7 @@ func (*NullSchema) Type() int {
 }
 
 func (*NullSchema) GetName() string {
-    return type_null
+	return type_null
 }
 
 //COMPLEX
@@ -201,7 +201,7 @@ func (*RecordSchema) Type() int {
 }
 
 func (this *RecordSchema) GetName() string {
-    return this.Name
+	return this.Name
 }
 
 type EnumSchema struct {
@@ -221,7 +221,7 @@ func (*EnumSchema) Type() int {
 }
 
 func (this *EnumSchema) GetName() string {
-    return this.Name
+	return this.Name
 }
 
 type ArraySchema struct {
@@ -237,7 +237,7 @@ func (*ArraySchema) Type() int {
 }
 
 func (*ArraySchema) GetName() string {
-    return type_array
+	return type_array
 }
 
 type MapSchema struct {
@@ -253,7 +253,7 @@ func (*MapSchema) Type() int {
 }
 
 func (*MapSchema) GetName() string {
-    return type_map
+	return type_map
 }
 
 type UnionSchema struct {
@@ -269,7 +269,7 @@ func (*UnionSchema) Type() int {
 }
 
 func (*UnionSchema) GetName() string {
-    return type_union
+	return type_union
 }
 
 type FixedSchema struct {
@@ -286,7 +286,7 @@ func (*FixedSchema) Type() int {
 }
 
 func (this *FixedSchema) GetName() string {
-    return type_fixed
+	return type_fixed
 }
 
 func ParseSchema(rawSchema string) (Schema, error) {

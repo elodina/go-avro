@@ -17,13 +17,13 @@ package avro
 
 type GenericRecord struct {
 	fields map[string]interface{}
-    schema Schema
+	schema Schema
 }
 
 func NewGenericRecord(schema Schema) *GenericRecord {
 	return &GenericRecord{
 		fields: make(map[string]interface{}),
-        schema: schema,
+		schema: schema,
 	}
 }
 
@@ -36,5 +36,5 @@ func (this *GenericRecord) Set(name string, value interface{}) {
 }
 
 func (this *GenericRecord) Schema() Schema {
-    return this.schema
+	return this.schema
 }
