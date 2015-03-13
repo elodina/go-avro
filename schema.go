@@ -57,13 +57,14 @@ const (
 type Schema interface {
 	Type() int
 	GetName() string
+    String() string
 }
 
 // PRIMITIVES
 type StringSchema struct{}
 
 func (*StringSchema) String() string {
-	return "string"
+    return `{"type": "string"}`
 }
 
 func (*StringSchema) Type() int {
@@ -74,10 +75,14 @@ func (*StringSchema) GetName() string {
 	return type_string
 }
 
+func (this *StringSchema) MarshalJSON() ([]byte, error) {
+    return []byte(`"string"`), nil
+}
+
 type BytesSchema struct{}
 
 func (*BytesSchema) String() string {
-	return "bytes"
+    return `{"type": "bytes"}`
 }
 
 func (*BytesSchema) Type() int {
@@ -88,10 +93,14 @@ func (*BytesSchema) GetName() string {
 	return type_bytes
 }
 
+func (this *BytesSchema) MarshalJSON() ([]byte, error) {
+    return []byte(`"bytes"`), nil
+}
+
 type IntSchema struct{}
 
 func (*IntSchema) String() string {
-	return "int"
+    return `{"type": "int"}`
 }
 
 func (*IntSchema) Type() int {
@@ -102,10 +111,14 @@ func (*IntSchema) GetName() string {
 	return type_int
 }
 
+func (this *IntSchema) MarshalJSON() ([]byte, error) {
+    return []byte(`"int"`), nil
+}
+
 type LongSchema struct{}
 
 func (*LongSchema) String() string {
-	return "long"
+    return `{"type": "long"}`
 }
 
 func (*LongSchema) Type() int {
@@ -116,10 +129,14 @@ func (*LongSchema) GetName() string {
 	return type_long
 }
 
+func (this *LongSchema) MarshalJSON() ([]byte, error) {
+    return []byte(`"long"`), nil
+}
+
 type FloatSchema struct{}
 
 func (*FloatSchema) String() string {
-	return "float"
+    return `{"type": "float"}`
 }
 
 func (*FloatSchema) Type() int {
@@ -130,10 +147,14 @@ func (*FloatSchema) GetName() string {
 	return type_float
 }
 
+func (this *FloatSchema) MarshalJSON() ([]byte, error) {
+    return []byte(`"float"`), nil
+}
+
 type DoubleSchema struct{}
 
 func (*DoubleSchema) String() string {
-	return "double"
+    return `{"type": "double"}`
 }
 
 func (*DoubleSchema) Type() int {
@@ -144,10 +165,14 @@ func (*DoubleSchema) GetName() string {
 	return type_double
 }
 
+func (this *DoubleSchema) MarshalJSON() ([]byte, error) {
+    return []byte(`"double"`), nil
+}
+
 type BooleanSchema struct{}
 
 func (*BooleanSchema) String() string {
-	return "boolean"
+    return `{"type": "boolean"}`
 }
 
 func (*BooleanSchema) Type() int {
@@ -158,10 +183,14 @@ func (*BooleanSchema) GetName() string {
 	return type_boolean
 }
 
+func (this *BooleanSchema) MarshalJSON() ([]byte, error) {
+    return []byte(`"boolean"`), nil
+}
+
 type NullSchema struct{}
 
 func (*NullSchema) String() string {
-	return "null"
+    return `{"type": "null"}`
 }
 
 func (*NullSchema) Type() int {
@@ -172,28 +201,45 @@ func (*NullSchema) GetName() string {
 	return type_null
 }
 
+func (this *NullSchema) MarshalJSON() ([]byte, error) {
+    return []byte(`"null"`), nil
+}
+
 //COMPLEX
 type RecordSchema struct {
-	Name      string
-	Namespace string
-	Doc       string
-	Aliases   []string
-	Fields    []*SchemaField
+	Name      string `json:"name,omitempty"`
+	Namespace string `json:"namespace,omitempty"`
+	Doc       string `json:"doc,omitempty"`
+	Aliases   []string `json:"aliases,omitempty"`
+	Fields    []*SchemaField `json:"fields,omitempty"`
 }
 
 func (this *RecordSchema) String() string {
-	return fmt.Sprintf("Record: Name: %s, Namespace: %s, Doc: %s, Aliases: %s, Fields: %s", this.Name, this.Namespace, this.Doc, this.Aliases, this.Fields)
+    bytes, err := json.MarshalIndent(this, "", "    ")
+    if err != nil {
+        panic(err)
+    }
+
+    return string(bytes)
+//	return fmt.Sprintf("Record: Name: %s, Namespace: %s, Doc: %s, Aliases: %s, Fields: %s", this.Name, this.Namespace, this.Doc, this.Aliases, this.Fields)
 }
 
-type SchemaField struct {
-	Name    string
-	Doc     string
-	Default interface{}
-	Type    Schema
-}
-
-func (this *SchemaField) String() string {
-	return fmt.Sprintf("[SchemaField: Name: %s, Doc: %s, Default: %v, Type: %s]", this.Name, this.Doc, this.Default, this.Type)
+func (this *RecordSchema) MarshalJSON() ([]byte, error) {
+    return json.Marshal(struct{
+        Type string `json:"type,omitempty"`
+        Namespace string `json:"namespace,omitempty"`
+        Name string `json:"name,omitempty"`
+        Doc string `json:"doc,omitempty"`
+        Aliases []string `json:"aliases,omitempty"`
+        Fields []*SchemaField `json:"fields,omitempty"`
+    }{
+        Type: "record",
+        Namespace: this.Namespace,
+        Name: this.Name,
+        Doc: this.Doc,
+        Aliases: this.Aliases,
+        Fields: this.Fields,
+    })
 }
 
 func (*RecordSchema) Type() int {
@@ -202,6 +248,17 @@ func (*RecordSchema) Type() int {
 
 func (this *RecordSchema) GetName() string {
 	return this.Name
+}
+
+type SchemaField struct {
+    Name    string `json:"name,omitempty"`
+    Doc     string `json:"doc,omitempty"`
+    Default interface{} `json:"default,omitempty"`
+    Type    Schema `json:"type,omitempty"`
+}
+
+func (this *SchemaField) String() string {
+    return fmt.Sprintf("[SchemaField: Name: %s, Doc: %s, Default: %v, Type: %s]", this.Name, this.Doc, this.Default, this.Type)
 }
 
 type EnumSchema struct {
@@ -213,7 +270,12 @@ type EnumSchema struct {
 }
 
 func (this *EnumSchema) String() string {
-	return fmt.Sprintf("Enum: Name: %s, Namespace: %s, Aliases: %s, Doc: %s, Symbols: %s", this.Name, this.Namespace, this.Aliases, this.Doc, this.Symbols)
+    bytes, err := json.MarshalIndent(this, "", "    ")
+    if err != nil {
+        panic(err)
+    }
+
+    return string(bytes)
 }
 
 func (*EnumSchema) Type() int {
@@ -224,12 +286,33 @@ func (this *EnumSchema) GetName() string {
 	return this.Name
 }
 
+func (this *EnumSchema) MarshalJSON() ([]byte, error) {
+    return json.Marshal(struct{
+        Type string `json:"type,omitempty"`
+        Namespace string `json:"namespace,omitempty"`
+        Name string `json:"name,omitempty"`
+        Doc string `json:"doc,omitempty"`
+        Symbols []string `json:"symbols,omitempty"`
+    }{
+        Type: "enum",
+        Namespace: this.Namespace,
+        Name: this.Name,
+        Doc: this.Doc,
+        Symbols: this.Symbols,
+    })
+}
+
 type ArraySchema struct {
 	Items Schema
 }
 
 func (this *ArraySchema) String() string {
-	return fmt.Sprintf("Array: Items: %s", this.Items)
+    bytes, err := json.MarshalIndent(this, "", "    ")
+    if err != nil {
+        panic(err)
+    }
+
+    return string(bytes)
 }
 
 func (*ArraySchema) Type() int {
@@ -240,12 +323,27 @@ func (*ArraySchema) GetName() string {
 	return type_array
 }
 
+func (this *ArraySchema) MarshalJSON() ([]byte, error) {
+    return json.Marshal(struct{
+        Type string `json:"type,omitempty"`
+        Items Schema `json:"items,omitempty"`
+    }{
+        Type: "array",
+        Items: this.Items,
+    })
+}
+
 type MapSchema struct {
 	Values Schema
 }
 
 func (this *MapSchema) String() string {
-	return fmt.Sprintf("Map: Values: %s", this.Values)
+    bytes, err := json.MarshalIndent(this, "", "    ")
+    if err != nil {
+        panic(err)
+    }
+
+    return string(bytes)
 }
 
 func (*MapSchema) Type() int {
@@ -256,12 +354,27 @@ func (*MapSchema) GetName() string {
 	return type_map
 }
 
+func (this *MapSchema) MarshalJSON() ([]byte, error) {
+    return json.Marshal(struct{
+        Type string `json:"type,omitempty"`
+        Values Schema `json:"values,omitempty"`
+    }{
+        Type: "map",
+        Values: this.Values,
+    })
+}
+
 type UnionSchema struct {
 	Types []Schema
 }
 
 func (this *UnionSchema) String() string {
-	return fmt.Sprintf("Union: %s", this.Types)
+    bytes, err := json.MarshalIndent(this, "", "    ")
+    if err != nil {
+        panic(err)
+    }
+
+    return fmt.Sprintf(`{"type": %s}`, string(bytes))
 }
 
 func (*UnionSchema) Type() int {
@@ -272,13 +385,22 @@ func (*UnionSchema) GetName() string {
 	return type_union
 }
 
+func (this *UnionSchema) MarshalJSON() ([]byte, error) {
+    return json.Marshal(this.Types)
+}
+
 type FixedSchema struct {
 	Name string
 	Size int
 }
 
 func (this *FixedSchema) String() string {
-	return fmt.Sprintf("Fixed: Name: %s, Size: %d", this.Name, this.Size)
+    bytes, err := json.MarshalIndent(this, "", "    ")
+    if err != nil {
+        panic(err)
+    }
+
+    return string(bytes)
 }
 
 func (*FixedSchema) Type() int {
@@ -287,6 +409,18 @@ func (*FixedSchema) Type() int {
 
 func (this *FixedSchema) GetName() string {
 	return type_fixed
+}
+
+func (this *FixedSchema) MarshalJSON() ([]byte, error) {
+    return json.Marshal(struct{
+        Type string `json:"type,omitempty"`
+        Size int `json:"size,omitempty"`
+        Name string `json:"name,omitempty"`
+    }{
+        Type: "fixed",
+        Size: this.Size,
+        Name: this.Name,
+    })
 }
 
 func ParseSchema(rawSchema string) (Schema, error) {
