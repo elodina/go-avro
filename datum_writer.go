@@ -158,6 +158,8 @@ func (this *GenericDatumWriter) write(v interface{}, enc Encoder, s Schema) erro
 		return this.writeBytes(v, enc)
 	case String:
 		return this.writeString(v, enc)
+	case Array:
+		return this.writeArray(v, enc, s)
 	case Record:
 		return this.writeRecord(v, enc, s)
 	}
@@ -238,6 +240,21 @@ func (this *GenericDatumWriter) writeString(v interface{}, enc Encoder) error {
 	default:
 		return fmt.Errorf("%v is not a string", v)
 	}
+
+	return nil
+}
+
+func (this *GenericDatumWriter) writeArray(v interface{}, enc Encoder, s Schema) error {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Slice && rv.Kind() != reflect.Array {
+		return errors.New("Not a slice or array type")
+	}
+
+	enc.WriteArrayStart(int64(rv.Len()))
+	for i := 0; i < rv.Len(); i++ {
+		this.write(rv.Index(i).Interface(), enc, s.(*ArraySchema).Items)
+	}
+	enc.WriteArrayNext(0)
 
 	return nil
 }
