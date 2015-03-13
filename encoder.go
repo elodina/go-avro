@@ -15,6 +15,8 @@ type Encoder interface {
 	WriteDouble(float64)
 	WriteBytes([]byte)
 	WriteString(string)
+	WriteArrayStart(int64)
+	WriteArrayNext(int64)
 }
 
 type BinaryEncoder struct {
@@ -82,4 +84,16 @@ func (this *BinaryEncoder) encodeVarint(x int64) []byte {
 	buf[i] = byte(ux)
 
 	return buf[0 : i+1]
+}
+
+func (this *BinaryEncoder) WriteArrayStart(count int64) {
+	this.writeItemCount(count)
+}
+
+func (this *BinaryEncoder) WriteArrayNext(count int64) {
+	this.writeItemCount(count)
+}
+
+func (this *BinaryEncoder) writeItemCount(count int64) {
+	this.WriteLong(count)
 }
