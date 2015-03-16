@@ -9,8 +9,8 @@ Installation is as easy as follows:
 
 `go get github.com/stealthly/go-avro`
 
-Some usage examples are located in [examples folder](https://github.com/stealthly/go-avro/tree/examples):
+Some usage examples are located in [examples folder](https://github.com/stealthly/go-avro/tree/master/examples):
 
 * [DataFileReader](https://github.com/stealthly/go-avro/blob/master/examples/data_file/data_file.go)
-* [GenericDatumReader](https://github.com/stealthly/go-avro/blob/master/examples/generic_datum_reader/generic_datum_reader.go)
-* [SpecificDatumReader](https://github.com/stealthly/go-avro/blob/master/examples/specific_datum_reader/specific_datum_reader.go)
+* [GenericDatumReader/Writer](https://github.com/stealthly/go-avro/blob/master/examples/generic_datum/generic_datum.go)
+* [SpecificDatumReader/Writer](https://github.com/stealthly/go-avro/blob/master/examples/specific_datum/specific_datum.go)

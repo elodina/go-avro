@@ -16,14 +16,11 @@ limitations under the License. */
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stealthly/go-avro"
 )
 
-// Define our data to read
-var data = []byte{0x02}
-
-// Define the schema to read
 var rawSchema = `{
      "type": "record",
      "name": "TestRecord",
@@ -31,11 +28,6 @@ var rawSchema = `{
        { "name": "value", "type": "int" }
      ]
 }`
-
-// Define a struct that will match a schema definition. Some fields may be omitted, but all fields to map should be exported
-type TestRecord struct {
-	Value int32
-}
 
 func main() {
 	// Parse the schema first
@@ -45,22 +37,39 @@ func main() {
 		panic(err)
 	}
 
-	reader := avro.NewSpecificDatumReader()
+	// Create a record for a given schema
+	record := avro.NewGenericRecord(schema)
+	value := int32(3)
+	record.Set("value", value)
+
+	writer := avro.NewGenericDatumWriter()
+	// SetSchema must be called before calling Write
+	writer.SetSchema(schema)
+
+	// Create a new Buffer and Encoder to write to this Buffer
+	buffer := new(bytes.Buffer)
+	encoder := avro.NewBinaryEncoder(buffer)
+
+	// Write the record
+	writer.Write(record, encoder)
+
+	reader := avro.NewGenericDatumReader()
 	// SetSchema must be called before calling Read
 	reader.SetSchema(schema)
 
 	// Create a new Decoder with a given buffer
-	decoder := avro.NewBinaryDecoder(data)
+	decoder := avro.NewBinaryDecoder(buffer.Bytes())
 
-	// Create a new TestRecord that we will read data into
-	record := new(TestRecord)
-
-	// Read data into a given record with a given Decoder. Unlike GenericDatumReader the first paramter should be the value to map data into.
-	// This inconsistency sucks, will try to fix this a bit later.
-	_, err = reader.Read(record, decoder)
+	// Read a new GenericRecord with a given Decoder. The first parameter to Read should be nil for GenericDatumReader
+	decodedRecord, err := reader.Read(nil, decoder)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(record)
+	// GenericDatumReader always returns a *avro.GenericRecord, so it's safe to do a type assertion
+	decodedValue := decodedRecord.(*avro.GenericRecord).Get("value").(int32)
+	if value != decodedValue {
+		panic("Something went terribly wrong!")
+	}
+	fmt.Printf("Read a value: %d", decodedValue)
 }

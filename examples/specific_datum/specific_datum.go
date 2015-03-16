@@ -16,12 +16,10 @@ limitations under the License. */
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stealthly/go-avro"
 )
-
-// Define our data to read
-var data = []byte{0x02}
 
 // Define the schema to read
 var rawSchema = `{
@@ -32,6 +30,11 @@ var rawSchema = `{
      ]
 }`
 
+// Define a struct that will match a schema definition. Some fields may be omitted, but all fields to map should be exported
+type TestRecord struct {
+	Value int32
+}
+
 func main() {
 	// Parse the schema first
 	schema, err := avro.ParseSchema(rawSchema)
@@ -40,18 +43,41 @@ func main() {
 		panic(err)
 	}
 
-	reader := avro.NewGenericDatumReader()
+	// Create a test record to encode
+	record := new(TestRecord)
+	record.Value = 3
+
+	writer := avro.NewSpecificDatumWriter()
+	// SetSchema must be called before calling Write
+	writer.SetSchema(schema)
+
+	// Create a new Buffer and Encoder to write to this Buffer
+	buffer := new(bytes.Buffer)
+	encoder := avro.NewBinaryEncoder(buffer)
+
+	// Write the record
+	writer.Write(record, encoder)
+
+	reader := avro.NewSpecificDatumReader()
 	// SetSchema must be called before calling Read
 	reader.SetSchema(schema)
 
 	// Create a new Decoder with a given buffer
-	decoder := avro.NewBinaryDecoder(data)
+	decoder := avro.NewBinaryDecoder(buffer.Bytes())
 
-	// Read a new GenericRecord with a given Decoder. The first parameter to Read should be nil for GenericDatumReader
-	record, err := reader.Read(nil, decoder)
+	// Create a new TestRecord to decode data into
+	decodedRecord := new(TestRecord)
+
+	// Read data into a given record with a given Decoder. Unlike GenericDatumReader the first paramter should be the value to map data into.
+	// This inconsistency sucks, will try to fix this a bit later.
+	_, err = reader.Read(decodedRecord, decoder)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(record.(*avro.GenericRecord).Get("value"))
+	if record.Value != decodedRecord.Value {
+		panic("Something went terribly wrong!")
+	}
+
+	fmt.Printf("Read a value: %d", decodedRecord.Value)
 }
