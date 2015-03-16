@@ -17,6 +17,8 @@ type Encoder interface {
 	WriteString(string)
 	WriteArrayStart(int64)
 	WriteArrayNext(int64)
+	WriteMapStart(int64)
+	WriteMapNext(int64)
 }
 
 type BinaryEncoder struct {
@@ -91,6 +93,14 @@ func (this *BinaryEncoder) WriteArrayStart(count int64) {
 }
 
 func (this *BinaryEncoder) WriteArrayNext(count int64) {
+	this.writeItemCount(count)
+}
+
+func (this *BinaryEncoder) WriteMapStart(count int64) {
+	this.writeItemCount(count)
+}
+
+func (this *BinaryEncoder) WriteMapNext(count int64) {
 	this.writeItemCount(count)
 }
 

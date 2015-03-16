@@ -160,6 +160,14 @@ func (this *GenericDatumWriter) write(v interface{}, enc Encoder, s Schema) erro
 		return this.writeString(v, enc)
 	case Array:
 		return this.writeArray(v, enc, s)
+	case Map:
+		return this.writeMap(v, enc, s)
+	case Enum:
+		return this.writeEnum(v, enc, s)
+	case Union:
+		return this.writeUnion(v, enc, s)
+	case Fixed:
+		return this.writeFixed(v, enc, s)
 	case Record:
 		return this.writeRecord(v, enc, s)
 	}
@@ -250,6 +258,7 @@ func (this *GenericDatumWriter) writeArray(v interface{}, enc Encoder, s Schema)
 		return errors.New("Not a slice or array type")
 	}
 
+	//TODO should probably write blocks of some length
 	enc.WriteArrayStart(int64(rv.Len()))
 	for i := 0; i < rv.Len(); i++ {
 		this.write(rv.Index(i).Interface(), enc, s.(*ArraySchema).Items)
@@ -257,6 +266,49 @@ func (this *GenericDatumWriter) writeArray(v interface{}, enc Encoder, s Schema)
 	enc.WriteArrayNext(0)
 
 	return nil
+}
+
+func (this *GenericDatumWriter) writeMap(v interface{}, enc Encoder, s Schema) error {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Map {
+		return errors.New("Not a map type")
+	}
+
+	//TODO should probably write blocks of some length
+	enc.WriteMapStart(int64(rv.Len()))
+	for _, key := range rv.MapKeys() {
+		this.writeString(key.Interface(), enc)
+		this.write(rv.MapIndex(key).Interface(), enc, s.(*MapSchema).Values)
+	}
+	enc.WriteMapNext(0)
+
+	return nil
+}
+
+func (this *GenericDatumWriter) writeEnum(v interface{}, enc Encoder, s Schema) error {
+	switch v.(type) {
+	case *GenericEnum:
+		{
+			rs := s.(*EnumSchema)
+			for i := range rs.Symbols {
+				if rs.Name == rs.Symbols[i] {
+					this.writeInt(i, enc)
+				}
+			}
+		}
+	default:
+		return fmt.Errorf("%v is not a *GenericEnum", v)
+	}
+
+	return nil
+}
+
+func (this *GenericDatumWriter) writeUnion(v interface{}, enc Encoder, s Schema) error {
+	panic("Not implemented yet")
+}
+
+func (this *GenericDatumWriter) writeFixed(v interface{}, enc Encoder, s Schema) error {
+	return this.writeBytes(v, enc)
 }
 
 func (this *GenericDatumWriter) writeRecord(v interface{}, enc Encoder, s Schema) error {
