@@ -16,12 +16,14 @@ limitations under the License. */
 package main
 
 import (
-    "github.com/stealthly/go-avro"
-    "fmt"
+	"fmt"
+	"github.com/stealthly/go-avro"
 )
 
+// Define our data to read
 var data = []byte{0x02}
 
+// Define the schema to read
 var rawSchema = `{
      "type": "record",
      "name": "TestRecord",
@@ -31,20 +33,25 @@ var rawSchema = `{
 }`
 
 func main() {
-    schema, err := avro.ParseSchema(rawSchema)
-    if err != nil {
-        panic(err)
-    }
+	// Parse the schema first
+	schema, err := avro.ParseSchema(rawSchema)
+	if err != nil {
+		// Should not happen if the schema is valid
+		panic(err)
+	}
 
-    reader := avro.NewGenericDatumReader()
-    reader.SetSchema(schema)
+	reader := avro.NewGenericDatumReader()
+	// SetSchema must be called before calling Read
+	reader.SetSchema(schema)
 
-    decoder := avro.NewBinaryDecoder(data)
+	// Create a new Decoder with a given buffer
+	decoder := avro.NewBinaryDecoder(data)
 
-    record, err := reader.Read(nil, decoder)
-    if err != nil {
-        panic(err)
-    }
+	// Read a new GenericRecord with a given Decoder. The first parameter to Read should be nil for GenericDatumReader
+	record, err := reader.Read(nil, decoder)
+	if err != nil {
+		panic(err)
+	}
 
-    fmt.Println(record.(*avro.GenericRecord).Get("value"))
+	fmt.Println(record.(*avro.GenericRecord).Get("value"))
 }

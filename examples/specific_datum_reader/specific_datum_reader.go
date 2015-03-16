@@ -14,13 +14,16 @@ See the License for the specific language governing permissions and
 limitations under the License. */
 
 package main
+
 import (
-    "github.com/stealthly/go-avro"
-    "fmt"
+	"fmt"
+	"github.com/stealthly/go-avro"
 )
 
+// Define our data to read
 var data = []byte{0x02}
 
+// Define the schema to read
 var rawSchema = `{
      "type": "record",
      "name": "TestRecord",
@@ -29,26 +32,35 @@ var rawSchema = `{
      ]
 }`
 
+// Define a struct that will match a schema definition. Some fields may be omitted, but all fields to map should be exported
 type TestRecord struct {
-    Value int32
+	Value int32
 }
 
 func main() {
-    schema, err := avro.ParseSchema(rawSchema)
-    if err != nil {
-        panic(err)
-    }
+	// Parse the schema first
+	schema, err := avro.ParseSchema(rawSchema)
+	if err != nil {
+		// Should not happen if the schema is valid
+		panic(err)
+	}
 
-    reader := avro.NewSpecificDatumReader()
-    reader.SetSchema(schema)
+	reader := avro.NewSpecificDatumReader()
+	// SetSchema must be called before calling Read
+	reader.SetSchema(schema)
 
-    decoder := avro.NewBinaryDecoder(data)
+	// Create a new Decoder with a given buffer
+	decoder := avro.NewBinaryDecoder(data)
 
-    record := new(TestRecord)
-    _, err = reader.Read(record, decoder)
-    if err != nil {
-        panic(err)
-    }
+	// Create a new TestRecord that we will read data into
+	record := new(TestRecord)
 
-    fmt.Println(record)
+	// Read data into a given record with a given Decoder. Unlike GenericDatumReader the first paramter should be the value to map data into.
+	// This inconsistency sucks, will try to fix this a bit later.
+	_, err = reader.Read(record, decoder)
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(record)
 }
