@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+    "go/format"
 )
 
 type CodeGenerator struct {
@@ -86,7 +87,12 @@ func (this *CodeGenerator) Generate() (string, error) {
 		return "", err
 	}
 
-	return this.collectResult(), nil
+	formatted, err := format.Source([]byte(this.collectResult()))
+    if err != nil {
+        return "", nil
+    }
+
+    return string(formatted), nil
 }
 
 func (this *CodeGenerator) collectResult() string {
@@ -143,7 +149,7 @@ func (this *CodeGenerator) writeStruct(info *schemaInfo) error {
 func (this *CodeGenerator) writeImportStatement() {
 	buffer := this.codeSnippets[0]
 	buffer.WriteString(`import "github.com/stealthly/go-avro"`)
-	buffer.WriteString("\n\n")
+	buffer.WriteString("\n")
 }
 
 func (this *CodeGenerator) writeStructSchemaVar(info *schemaInfo) {
