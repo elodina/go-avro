@@ -545,6 +545,7 @@ func parseRecordSchema(v map[string]interface{}) (Schema, error) {
 	}
 	schema := &RecordSchema{Name: v[schema_nameField].(string), Fields: fields}
 	setOptionalField(&schema.Namespace, v, schema_namespaceField)
+	setOptionalField(&schema.Doc, v, schema_docField)
 
 	return schema, nil
 }
