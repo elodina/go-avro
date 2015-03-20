@@ -250,6 +250,32 @@ func (this *RecordSchema) GetName() string {
 	return this.Name
 }
 
+type RecursiveSchema struct {
+	Name string
+}
+
+func newRecursiveSchema(parent *RecordSchema) *RecursiveSchema {
+	return &RecursiveSchema{
+		Name: parent.GetName(),
+	}
+}
+
+func (this *RecursiveSchema) String() string {
+	return fmt.Sprintf(`{"type": "%s"}`, this.Name)
+}
+
+func (*RecursiveSchema) Type() int {
+	return Record
+}
+
+func (this *RecursiveSchema) GetName() string {
+	return this.Name
+}
+
+func (this *RecursiveSchema) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, this.Name)), nil
+}
+
 type SchemaField struct {
 	Name    string      `json:"name,omitempty"`
 	Doc     string      `json:"doc,omitempty"`
@@ -423,16 +449,18 @@ func (this *FixedSchema) MarshalJSON() ([]byte, error) {
 	})
 }
 
+type typeRegistry map[string]Schema
+
 func ParseSchema(rawSchema string) (Schema, error) {
 	var schema interface{}
 	if err := json.Unmarshal([]byte(rawSchema), &schema); err != nil {
 		schema = rawSchema
 	}
 
-	return schemaByType(schema)
+	return schemaByType(schema, make(typeRegistry))
 }
 
-func schemaByType(i interface{}) (Schema, error) {
+func schemaByType(i interface{}, registry typeRegistry) (Schema, error) {
 	switch v := i.(type) {
 	case nil:
 		return new(NullSchema), nil
@@ -454,7 +482,16 @@ func schemaByType(i interface{}) (Schema, error) {
 			return new(BytesSchema), nil
 		case type_string:
 			return new(StringSchema), nil
+		default:
+			schema, ok := registry[v]
+			if !ok {
+				return nil, fmt.Errorf("Unknown type name: %s", v)
+			}
+
+			return schema, nil
 		}
+	case map[string][]interface{}:
+		return parseUnionSchema(v[schema_typeField], registry)
 	case map[string]interface{}:
 		switch v[schema_typeField] {
 		case type_null:
@@ -474,13 +511,13 @@ func schemaByType(i interface{}) (Schema, error) {
 		case type_string:
 			return new(StringSchema), nil
 		case type_array:
-			items, err := schemaByType(v[schema_itemsField])
+			items, err := schemaByType(v[schema_itemsField], registry)
 			if err != nil {
 				return nil, err
 			}
 			return &ArraySchema{Items: items}, nil
 		case type_map:
-			values, err := schemaByType(v[schema_valuesField])
+			values, err := schemaByType(v[schema_valuesField], registry)
 			if err != nil {
 				return nil, err
 			}
@@ -490,12 +527,10 @@ func schemaByType(i interface{}) (Schema, error) {
 		case type_fixed:
 			return parseFixedSchema(v)
 		case type_record:
-			return parseRecordSchema(v)
+			return parseRecordSchema(v, registry)
 		}
 	case []interface{}:
-		return parseUnionSchema(v)
-	case map[string][]interface{}:
-		return parseUnionSchema(v[schema_typeField])
+		return parseUnionSchema(v, registry)
 	}
 
 	return nil, InvalidSchema
@@ -522,10 +557,10 @@ func parseFixedSchema(v map[string]interface{}) (Schema, error) {
 	}
 }
 
-func parseUnionSchema(v []interface{}) (Schema, error) {
+func parseUnionSchema(v []interface{}, registry typeRegistry) (Schema, error) {
 	types := make([]Schema, 2)
 	for i := range types {
-		unionType, err := schemaByType(v[i])
+		unionType, err := schemaByType(v[i], registry)
 		if err != nil {
 			return nil, err
 		}
@@ -534,28 +569,30 @@ func parseUnionSchema(v []interface{}) (Schema, error) {
 	return &UnionSchema{Types: types}, nil
 }
 
-func parseRecordSchema(v map[string]interface{}) (Schema, error) {
+func parseRecordSchema(v map[string]interface{}, registry typeRegistry) (Schema, error) {
+	schema := &RecordSchema{Name: v[schema_nameField].(string)}
+	registry[schema.Name] = newRecursiveSchema(schema)
 	fields := make([]*SchemaField, len(v[schema_fieldsField].([]interface{})))
 	for i := range fields {
-		field, err := parseSchemaField(v[schema_fieldsField].([]interface{})[i])
+		field, err := parseSchemaField(v[schema_fieldsField].([]interface{})[i], registry)
 		if err != nil {
 			return nil, err
 		}
 		fields[i] = field
 	}
-	schema := &RecordSchema{Name: v[schema_nameField].(string), Fields: fields}
+	schema.Fields = fields
 	setOptionalField(&schema.Namespace, v, schema_namespaceField)
 	setOptionalField(&schema.Doc, v, schema_docField)
 
 	return schema, nil
 }
 
-func parseSchemaField(i interface{}) (*SchemaField, error) {
+func parseSchemaField(i interface{}, registry typeRegistry) (*SchemaField, error) {
 	switch v := i.(type) {
 	case map[string]interface{}:
 		schemaField := &SchemaField{Name: v[schema_nameField].(string)}
 		setOptionalField(&schemaField.Doc, v, schema_docField)
-		fieldType, err := schemaByType(v[schema_typeField])
+		fieldType, err := schemaByType(v[schema_typeField], registry)
 		if err != nil {
 			return nil, err
 		}
