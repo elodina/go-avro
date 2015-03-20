@@ -304,7 +304,53 @@ func (this *GenericDatumWriter) writeEnum(v interface{}, enc Encoder, s Schema) 
 }
 
 func (this *GenericDatumWriter) writeUnion(v interface{}, enc Encoder, s Schema) error {
-	panic("Not implemented yet")
+	unionSchema := s.(*UnionSchema)
+	if this.isWritableAs(v, unionSchema.Types[0]) {
+		enc.WriteInt(0)
+		return this.write(v, enc, unionSchema.Types[0])
+	} else if this.isWritableAs(v, unionSchema.Types[1]) {
+		enc.WriteInt(1)
+		return this.write(v, enc, unionSchema.Types[1])
+	}
+
+	return fmt.Errorf("Could not write %v as %s", v, s)
+}
+
+func (this *GenericDatumWriter) isWritableAs(v interface{}, s Schema) bool {
+	ok := false
+	switch s.(type) {
+	case *NullSchema:
+		return v == nil
+	case *BooleanSchema:
+		_, ok = v.(bool)
+	case *IntSchema:
+		_, ok = v.(int32)
+	case *LongSchema:
+		_, ok = v.(int64)
+	case *FloatSchema:
+		_, ok = v.(float32)
+	case *DoubleSchema:
+		_, ok = v.(float64)
+	case *StringSchema:
+		_, ok = v.(string)
+	case *BytesSchema:
+		_, ok = v.([]byte)
+	case *ArraySchema:
+		{
+			kind := reflect.ValueOf(v).Kind()
+			return kind == reflect.Array || kind == reflect.Slice
+		}
+	case *MapSchema:
+		return reflect.ValueOf(v).Kind() == reflect.Map
+	case *EnumSchema:
+		_, ok = v.(*GenericEnum)
+	case *UnionSchema:
+		panic("Nested unions not supported") //this is a part of spec: http://avro.apache.org/docs/current/spec.html#binary_encode_complex
+	case *RecordSchema:
+		_, ok = v.(*GenericRecord)
+	}
+
+	return ok
 }
 
 func (this *GenericDatumWriter) writeFixed(v interface{}, enc Encoder, s Schema) error {
