@@ -432,6 +432,16 @@ func ParseSchema(rawSchema string) (Schema, error) {
 	return schemaByType(schema)
 }
 
+// MustParseSchema is like ParseSchema, but panics if the given schema
+// cannot be parsed.
+func MustParseSchema(rawSchema string) Schema {
+	s, err := ParseSchema(rawSchema)
+	if err != nil {
+		panic(err)
+	}
+	return s
+}
+
 func schemaByType(i interface{}) (Schema, error) {
 	switch v := i.(type) {
 	case nil:
