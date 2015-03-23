@@ -9,6 +9,10 @@ import (
 
 type DatumWriter interface {
 	SetSchema(Schema)
+	// Write accepts a pointer to the object to be written and an Encoder, and writes
+	// the Avro representation of the object to the Encoder’s buffer.
+	// Note that `obj` **must** be a pointer to an object or you will probably get
+	// a panic.
 	Write(interface{}, Encoder)
 }
 
@@ -24,6 +28,9 @@ func (this *SpecificDatumWriter) SetSchema(schema Schema) {
 	this.schema = schema
 }
 
+// Write accepts a pointer to the object to be written and an Encoder, and writes
+// the Avro representation of the object to the Encoder’s buffer.
+// Note that `obj` **must** be a pointer to an object or you will probably get a panic.
 func (this *SpecificDatumWriter) Write(obj interface{}, enc Encoder) error {
 	rv := reflect.ValueOf(obj)
 
