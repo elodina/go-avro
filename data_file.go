@@ -128,19 +128,19 @@ func (this *DataFileReader) hasNextBlock() bool {
 	return int64(len(this.data)) > this.dec.Tell()
 }
 
-func (this *DataFileReader) Next(v interface{}) (bool, error) {
+func (this *DataFileReader) Next(v interface{}) (interface{}, error) {
 	if hasNext, err := this.hasNext(); err != nil {
-		return false, err
+		return nil, err
 	} else {
 		if hasNext {
-			_, err := this.datum.Read(v, this.blockDecoder)
+			rdata, err := this.datum.Read(v, this.blockDecoder)
 			if err != nil {
-				return false, err
+				return nil, err
 			}
 			this.block.BlockRemaining--
-			return true, nil
+			return rdata, nil
 		} else {
-			return false, nil
+			return nil, nil
 		}
 	}
 	return false, nil

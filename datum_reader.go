@@ -237,7 +237,7 @@ func (this *SpecificDatumReader) mapRecord(field Schema, reflectField reflect.Va
 }
 
 type GenericDatumReader struct {
-	schema Schema
+	Schema Schema
 }
 
 func NewGenericDatumReader() *GenericDatumReader {
@@ -245,15 +245,15 @@ func NewGenericDatumReader() *GenericDatumReader {
 }
 
 func (this *GenericDatumReader) SetSchema(schema Schema) {
-	this.schema = schema
+	this.Schema = schema
 }
 
 func (this *GenericDatumReader) Read(v interface{}, dec Decoder) (interface{}, error) {
-	if this.schema == nil {
+	if this.Schema == nil {
 		return nil, SchemaNotSet
 	}
 
-	return this.readValue(this.schema, dec)
+	return this.readValue(this.Schema, dec)
 }
 
 func (this *GenericDatumReader) findAndSet(record *GenericRecord, field *SchemaField, dec Decoder) error {
