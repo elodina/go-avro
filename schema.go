@@ -20,6 +20,7 @@ const (
 	Double
 	Boolean
 	Null
+    Recursive
 )
 
 const (
@@ -251,29 +252,29 @@ func (this *RecordSchema) GetName() string {
 }
 
 type RecursiveSchema struct {
-	Name string
+	Actual *RecordSchema
 }
 
 func newRecursiveSchema(parent *RecordSchema) *RecursiveSchema {
 	return &RecursiveSchema{
-		Name: parent.GetName(),
+		Actual: parent,
 	}
 }
 
 func (this *RecursiveSchema) String() string {
-	return fmt.Sprintf(`{"type": "%s"}`, this.Name)
+	return fmt.Sprintf(`{"type": "%s"}`, this.Actual.GetName())
 }
 
 func (*RecursiveSchema) Type() int {
-	return Record
+	return Recursive
 }
 
 func (this *RecursiveSchema) GetName() string {
-	return this.Name
+	return this.Actual.GetName()
 }
 
 func (this *RecursiveSchema) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, this.Name)), nil
+	return []byte(fmt.Sprintf(`"%s"`, this.Actual.GetName())), nil
 }
 
 type SchemaField struct {
@@ -434,7 +435,7 @@ func (*FixedSchema) Type() int {
 }
 
 func (this *FixedSchema) GetName() string {
-	return type_fixed
+	return this.Name
 }
 
 func (this *FixedSchema) MarshalJSON() ([]byte, error) {

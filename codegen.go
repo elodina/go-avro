@@ -120,9 +120,14 @@ func (this *CodeGenerator) writePackageName(info *schemaInfo) {
 }
 
 func (this *CodeGenerator) writeStruct(info *schemaInfo) error {
-	buffer := &bytes.Buffer{}
-	this.codeSnippets = append(this.codeSnippets, buffer)
-	this.structs[info.typeName] = buffer
+    buffer := &bytes.Buffer{}
+    if _, exists := this.structs[info.typeName]; !exists {
+        this.codeSnippets = append(this.codeSnippets, buffer)
+        this.structs[info.typeName] = buffer
+    } else {
+        fmt.Printf("%s already exists, skipping\n", info.typeName)
+        return nil
+    }
 
 	this.writeStructSchemaVar(info)
 
@@ -145,6 +150,27 @@ func (this *CodeGenerator) writeStruct(info *schemaInfo) error {
 	this.writeSchemaGetter(info, buffer)
 
 	return nil
+}
+
+func (this *CodeGenerator) writeFixed(schema *FixedSchema) error {
+    fixedName := fmt.Sprintf("%s%s", strings.ToUpper(schema.Name[:1]), schema.Name[1:])
+
+    buffer := &bytes.Buffer{}
+    if _, exists := this.structs[fixedName]; !exists {
+        this.codeSnippets = append(this.codeSnippets, buffer)
+        this.structs[fixedName] = buffer
+    } else {
+        fmt.Printf("%s already exists, skipping\n", fixedName)
+        return nil
+    }
+
+    buffer.WriteString("type ")
+    buffer.WriteString(fixedName)
+    buffer.WriteString(" [")
+    buffer.WriteString(fmt.Sprintf("%d", schema.Size))
+    buffer.WriteString("]byte\n")
+
+    return nil
 }
 
 func (this *CodeGenerator) writeImportStatement() {
@@ -263,11 +289,11 @@ func (this *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buf
 			if fixedSchema.Name == "" {
 				return errors.New("Empty Fixed type name.")
 			}
+            fixedName := fmt.Sprintf("%s%s", strings.ToUpper(fixedSchema.Name[:1]), fixedSchema.Name[1:])
 
-			buffer.WriteString("[")
-			buffer.WriteString(fmt.Sprintf("%d", fixedSchema.Size))
-			buffer.WriteString("]")
-			buffer.WriteString(fixedSchema.Name)
+            buffer.WriteString(fixedName)
+
+            return this.writeFixed(fixedSchema)
 		}
 	case Record:
 		{
@@ -283,15 +309,36 @@ func (this *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buf
 
 			return this.writeStruct(schemaInfo)
 		}
+        case Recursive: {
+            buffer.WriteString("*")
+            buffer.WriteString(schema.(*RecursiveSchema).GetName())
+        }
 	}
 
 	return nil
 }
 
 func (this *CodeGenerator) writeStructUnionType(schema *UnionSchema, buffer *bytes.Buffer) error {
-	//TODO implement
-	buffer.WriteString("int32")
+    var unionType Schema
+    if schema.Types[0].Type() == Null {
+        unionType = schema.Types[1]
+    } else if schema.Types[1].Type() == Null {
+        unionType = schema.Types[0]
+    }
+
+    if unionType != nil && this.isNullable(unionType) {
+        return this.writeStructFieldType(unionType, buffer)
+    }
+
+	buffer.WriteString("interface{}")
 	return nil
+}
+
+func (this *CodeGenerator) isNullable(schema Schema) bool {
+    switch schema.(type) {
+        case *BooleanSchema, *IntSchema, *LongSchema, *FloatSchema, *DoubleSchema, *StringSchema: return false
+        default: return true
+    }
 }
 
 func (this *CodeGenerator) writeStructConstructor(info *schemaInfo, buffer *bytes.Buffer) error {
@@ -391,8 +438,11 @@ func (this *CodeGenerator) writeStructConstructorField(info *schemaInfo, field *
 		buffer.WriteString("nil") //TODO not implemented yet
 	case *UnionSchema:
 		buffer.WriteString("nil") //TODO not implemented yet
-	case *FixedSchema:
-		buffer.WriteString("nil") //TODO not implemented yet
+	case *FixedSchema: {
+        buffer.WriteString("make(")
+        buffer.WriteString(field.Type.GetName())
+        buffer.WriteString(")")
+    }
 	case *RecordSchema:
 		{
 			buffer.WriteString("New")
@@ -415,7 +465,7 @@ func (this *CodeGenerator) needWriteField(field *SchemaField) bool {
 	}
 
 	switch field.Type.(type) {
-	case *BytesSchema, *ArraySchema, *MapSchema, *FixedSchema, *RecordSchema:
+	case *BytesSchema, *ArraySchema, *MapSchema, *RecordSchema:
 		return true
 	}
 
