@@ -40,25 +40,57 @@ func NewCodeGenerator(schema string) *CodeGenerator {
 	}
 }
 
-type schemaInfo struct {
+type recordSchemaInfo struct {
 	schema        *RecordSchema
 	typeName      string
 	schemaVarName string
 	schemaErrName string
 }
 
-func newSchemaInfo(schema *RecordSchema) (*schemaInfo, error) {
+func newRecordSchemaInfo(schema *RecordSchema) (*recordSchemaInfo, error) {
 	if schema.Name == "" {
 		return nil, errors.New("Name not set.")
 	}
 
 	typeName := fmt.Sprintf("%s%s", strings.ToUpper(schema.Name[:1]), schema.Name[1:])
 
-	return &schemaInfo{
+	return &recordSchemaInfo{
 		schema:        schema,
 		typeName:      typeName,
 		schemaVarName: fmt.Sprintf("_%s_schema", typeName),
 		schemaErrName: fmt.Sprintf("_%s_schema_err", typeName),
+	}, nil
+}
+
+type fixedSchemaInfo struct {
+	schema   *FixedSchema
+	typeName string
+}
+
+func newFixedSchemaInfo(schema *FixedSchema) (*fixedSchemaInfo, error) {
+	if schema.Name == "" {
+		return nil, errors.New("Name not set.")
+	}
+
+	return &fixedSchemaInfo{
+		schema:   schema,
+		typeName: fmt.Sprintf("%s%s", strings.ToUpper(schema.Name[:1]), schema.Name[1:]),
+	}, nil
+}
+
+type enumSchemaInfo struct {
+	schema   *EnumSchema
+	typeName string
+}
+
+func newEnumSchemaInfo(schema *EnumSchema) (*enumSchemaInfo, error) {
+	if schema.Name == "" {
+		return nil, errors.New("Name not set.")
+	}
+
+	return &enumSchemaInfo{
+		schema:   schema,
+		typeName: fmt.Sprintf("%s%s", strings.ToUpper(schema.Name[:1]), schema.Name[1:]),
 	}, nil
 }
 
@@ -72,7 +104,7 @@ func (this *CodeGenerator) Generate() (string, error) {
 	if !ok {
 		return "", errors.New("Not a Record schema.")
 	}
-	schemaInfo, err := newSchemaInfo(schema)
+	schemaInfo, err := newRecordSchemaInfo(schema)
 	if err != nil {
 		return "", err
 	}
@@ -107,7 +139,7 @@ func (this *CodeGenerator) collectResult() string {
 	return strings.Join(results, "\n")
 }
 
-func (this *CodeGenerator) writePackageName(info *schemaInfo) {
+func (this *CodeGenerator) writePackageName(info *recordSchemaInfo) {
 	buffer := this.codeSnippets[0]
 	buffer.WriteString("package ")
 	if info.schema.Namespace == "" {
@@ -115,19 +147,17 @@ func (this *CodeGenerator) writePackageName(info *schemaInfo) {
 	}
 
 	packages := strings.Split(info.schema.Namespace, ".")
-	buffer.WriteString(packages[len(packages)-1])
-	buffer.WriteString("\n\n")
+	buffer.WriteString(fmt.Sprintf("%s\n\n", packages[len(packages)-1]))
 }
 
-func (this *CodeGenerator) writeStruct(info *schemaInfo) error {
-    buffer := &bytes.Buffer{}
-    if _, exists := this.structs[info.typeName]; !exists {
-        this.codeSnippets = append(this.codeSnippets, buffer)
-        this.structs[info.typeName] = buffer
-    } else {
-        fmt.Printf("%s already exists, skipping\n", info.typeName)
-        return nil
-    }
+func (this *CodeGenerator) writeStruct(info *recordSchemaInfo) error {
+	buffer := &bytes.Buffer{}
+	if _, exists := this.structs[info.typeName]; exists {
+		return nil
+	} else {
+		this.codeSnippets = append(this.codeSnippets, buffer)
+		this.structs[info.typeName] = buffer
+	}
 
 	this.writeStructSchemaVar(info)
 
@@ -152,25 +182,49 @@ func (this *CodeGenerator) writeStruct(info *schemaInfo) error {
 	return nil
 }
 
-func (this *CodeGenerator) writeFixed(schema *FixedSchema) error {
-    fixedName := fmt.Sprintf("%s%s", strings.ToUpper(schema.Name[:1]), schema.Name[1:])
+func (this *CodeGenerator) writeFixed(info *fixedSchemaInfo) error {
+	buffer := &bytes.Buffer{}
+	if _, exists := this.structs[info.typeName]; exists {
+		return nil
+	} else {
+		this.codeSnippets = append(this.codeSnippets, buffer)
+		this.structs[info.typeName] = buffer
+	}
 
-    buffer := &bytes.Buffer{}
-    if _, exists := this.structs[fixedName]; !exists {
-        this.codeSnippets = append(this.codeSnippets, buffer)
-        this.structs[fixedName] = buffer
-    } else {
-        fmt.Printf("%s already exists, skipping\n", fixedName)
-        return nil
-    }
+	buffer.WriteString(fmt.Sprintf("type %s [%d]byte\n", info.typeName, info.schema.Size))
 
-    buffer.WriteString("type ")
-    buffer.WriteString(fixedName)
-    buffer.WriteString(" [")
-    buffer.WriteString(fmt.Sprintf("%d", schema.Size))
-    buffer.WriteString("]byte\n")
+	return nil
+}
 
-    return nil
+func (this *CodeGenerator) writeEnum(info *enumSchemaInfo) error {
+	buffer := &bytes.Buffer{}
+	if _, exists := this.structs[info.typeName]; exists {
+		return nil
+	} else {
+		this.codeSnippets = append(this.codeSnippets, buffer)
+		this.structs[info.typeName] = buffer
+	}
+
+	err := this.writeEnumConstants(info, buffer)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (this *CodeGenerator) writeEnumConstants(info *enumSchemaInfo, buffer *bytes.Buffer) error {
+	if len(info.schema.Symbols) == 0 {
+		return nil
+	}
+
+	buffer.WriteString(fmt.Sprintf("// Enum values for %s\n", info.typeName))
+	buffer.WriteString("const (")
+	for index, symbol := range info.schema.Symbols {
+		buffer.WriteString(fmt.Sprintf("%s_%s int32 = %d\n", info.typeName, symbol, index))
+	}
+	buffer.WriteString(")")
+	return nil
 }
 
 func (this *CodeGenerator) writeImportStatement() {
@@ -179,16 +233,10 @@ func (this *CodeGenerator) writeImportStatement() {
 	buffer.WriteString("\n")
 }
 
-func (this *CodeGenerator) writeStructSchemaVar(info *schemaInfo) {
+func (this *CodeGenerator) writeStructSchemaVar(info *recordSchemaInfo) {
 	buffer := this.schemaDefinitions
 	buffer.WriteString("// Generated by codegen. Please do not modify.\n")
-	buffer.WriteString("var ")
-	buffer.WriteString(info.schemaVarName)
-	buffer.WriteString(", ")
-	buffer.WriteString(info.schemaErrName)
-	buffer.WriteString(" = avro.ParseSchema(`")
-	buffer.WriteString(info.schema.String())
-	buffer.WriteString("`)\n\n")
+	buffer.WriteString(fmt.Sprintf("var %s, %s = avro.ParseSchema(`%s`)\n\n", info.schemaVarName, info.schemaErrName, info.schema.String()))
 }
 
 func (this *CodeGenerator) writeDoc(prefix string, doc string, buffer *bytes.Buffer) {
@@ -196,16 +244,11 @@ func (this *CodeGenerator) writeDoc(prefix string, doc string, buffer *bytes.Buf
 		return
 	}
 
-	buffer.WriteString(prefix)
-	buffer.WriteString("/* ")
-	buffer.WriteString(doc)
-	buffer.WriteString(" */\n")
+	buffer.WriteString(fmt.Sprintf("%s/* %s */\n", prefix, doc))
 }
 
-func (this *CodeGenerator) writeStructDefinition(info *schemaInfo, buffer *bytes.Buffer) error {
-	buffer.WriteString("type ")
-	buffer.WriteString(info.typeName)
-	buffer.WriteString(" struct {\n")
+func (this *CodeGenerator) writeStructDefinition(info *recordSchemaInfo, buffer *bytes.Buffer) error {
+	buffer.WriteString(fmt.Sprintf("type %s struct {\n", info.typeName))
 
 	for i := 0; i < len(info.schema.Fields); i++ {
 		err := this.writeStructField(info.schema.Fields[i], buffer)
@@ -225,10 +268,7 @@ func (this *CodeGenerator) writeStructField(field *SchemaField, buffer *bytes.Bu
 		return errors.New("Empty field name.")
 	}
 
-	buffer.WriteString("\t")
-	buffer.WriteString(strings.ToUpper(field.Name[:1]))
-	buffer.WriteString(field.Name[1:])
-	buffer.WriteString(" ")
+	buffer.WriteString(fmt.Sprintf("\t%s%s ", strings.ToUpper(field.Name[:1]), field.Name[1:]))
 
 	err := this.writeStructFieldType(field.Type, buffer)
 	if err != nil {
@@ -275,7 +315,17 @@ func (this *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buf
 			}
 		}
 	case Enum:
-		buffer.WriteString("*avro.GenericEnum")
+		{
+			enumSchema := schema.(*EnumSchema)
+			info, err := newEnumSchemaInfo(enumSchema)
+			if err != nil {
+				return err
+			}
+
+			buffer.WriteString("*avro.GenericEnum")
+
+			return this.writeEnum(info)
+		}
 	case Union:
 		{
 			err := this.writeStructUnionType(schema.(*UnionSchema), buffer)
@@ -286,21 +336,21 @@ func (this *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buf
 	case Fixed:
 		{
 			fixedSchema := schema.(*FixedSchema)
-			if fixedSchema.Name == "" {
-				return errors.New("Empty Fixed type name.")
+			info, err := newFixedSchemaInfo(fixedSchema)
+			if err != nil {
+				return err
 			}
-            fixedName := fmt.Sprintf("%s%s", strings.ToUpper(fixedSchema.Name[:1]), fixedSchema.Name[1:])
 
-            buffer.WriteString(fixedName)
+			buffer.WriteString(info.typeName)
 
-            return this.writeFixed(fixedSchema)
+			return this.writeFixed(info)
 		}
 	case Record:
 		{
 			buffer.WriteString("*")
 			recordSchema := schema.(*RecordSchema)
 
-			schemaInfo, err := newSchemaInfo(recordSchema)
+			schemaInfo, err := newRecordSchemaInfo(recordSchema)
 			if err != nil {
 				return err
 			}
@@ -309,47 +359,43 @@ func (this *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buf
 
 			return this.writeStruct(schemaInfo)
 		}
-        case Recursive: {
-            buffer.WriteString("*")
-            buffer.WriteString(schema.(*RecursiveSchema).GetName())
-        }
+	case Recursive:
+		{
+			buffer.WriteString("*")
+			buffer.WriteString(schema.(*RecursiveSchema).GetName())
+		}
 	}
 
 	return nil
 }
 
 func (this *CodeGenerator) writeStructUnionType(schema *UnionSchema, buffer *bytes.Buffer) error {
-    var unionType Schema
-    if schema.Types[0].Type() == Null {
-        unionType = schema.Types[1]
-    } else if schema.Types[1].Type() == Null {
-        unionType = schema.Types[0]
-    }
+	var unionType Schema
+	if schema.Types[0].Type() == Null {
+		unionType = schema.Types[1]
+	} else if schema.Types[1].Type() == Null {
+		unionType = schema.Types[0]
+	}
 
-    if unionType != nil && this.isNullable(unionType) {
-        return this.writeStructFieldType(unionType, buffer)
-    }
+	if unionType != nil && this.isNullable(unionType) {
+		return this.writeStructFieldType(unionType, buffer)
+	}
 
 	buffer.WriteString("interface{}")
 	return nil
 }
 
 func (this *CodeGenerator) isNullable(schema Schema) bool {
-    switch schema.(type) {
-        case *BooleanSchema, *IntSchema, *LongSchema, *FloatSchema, *DoubleSchema, *StringSchema: return false
-        default: return true
-    }
+	switch schema.(type) {
+	case *BooleanSchema, *IntSchema, *LongSchema, *FloatSchema, *DoubleSchema, *StringSchema:
+		return false
+	default:
+		return true
+	}
 }
 
-func (this *CodeGenerator) writeStructConstructor(info *schemaInfo, buffer *bytes.Buffer) error {
-	buffer.WriteString("func New")
-	buffer.WriteString(info.typeName)
-	buffer.WriteString("() *")
-	buffer.WriteString(info.typeName)
-	buffer.WriteString(" {\n")
-	buffer.WriteString("\treturn &")
-	buffer.WriteString(info.typeName)
-	buffer.WriteString("{\n")
+func (this *CodeGenerator) writeStructConstructor(info *recordSchemaInfo, buffer *bytes.Buffer) error {
+	buffer.WriteString(fmt.Sprintf("func New%s() *%s {\n\treturn &%s{\n", info.typeName, info.typeName, info.typeName))
 
 	for i := 0; i < len(info.schema.Fields); i++ {
 		err := this.writeStructConstructorField(info, info.schema.Fields[i], buffer)
@@ -358,24 +404,30 @@ func (this *CodeGenerator) writeStructConstructor(info *schemaInfo, buffer *byte
 		}
 	}
 
-	buffer.WriteString("\t}\n")
-	buffer.WriteString("}")
+	buffer.WriteString("\t}\n}")
 
 	return nil
 }
 
-func (this *CodeGenerator) writeStructConstructorField(info *schemaInfo, field *SchemaField, buffer *bytes.Buffer) error {
+func (this *CodeGenerator) writeStructConstructorField(info *recordSchemaInfo, field *SchemaField, buffer *bytes.Buffer) error {
 	if !this.needWriteField(field) {
 		return nil
 	}
 
 	this.writeStructConstructorFieldName(field, buffer)
+	this.writeStructConstructorFieldValue(info, field, buffer)
 
+	buffer.WriteString(",\n")
+
+	return nil
+}
+
+func (this *CodeGenerator) writeStructConstructorFieldValue(info *recordSchemaInfo, field *SchemaField, buffer *bytes.Buffer) error {
 	switch field.Type.(type) {
 	case *NullSchema:
 		buffer.WriteString("nil")
 	case *BooleanSchema:
-		buffer.WriteString(fmt.Sprintf("%s", field.Default))
+		buffer.WriteString(fmt.Sprintf("%t", field.Default))
 	case *StringSchema:
 		{
 			buffer.WriteString(`"`)
@@ -415,7 +467,7 @@ func (this *CodeGenerator) writeStructConstructorField(info *schemaInfo, field *
 			buffer.WriteString(fmt.Sprintf("float64(%f)", defaultValue))
 		}
 	case *BytesSchema:
-		buffer.WriteString("[]byte{}") //TODO not implemented yet
+		buffer.WriteString("[]byte{}")
 	case *ArraySchema:
 		{
 			buffer.WriteString("make(")
@@ -435,26 +487,37 @@ func (this *CodeGenerator) writeStructConstructorField(info *schemaInfo, field *
 			buffer.WriteString(")")
 		}
 	case *EnumSchema:
-		buffer.WriteString("nil") //TODO not implemented yet
+		{
+			buffer.WriteString("avro.NewGenericEnum([]string{")
+			enum := field.Type.(*EnumSchema)
+			for _, symbol := range enum.Symbols {
+				buffer.WriteString(`"`)
+				buffer.WriteString(symbol)
+				buffer.WriteString(`",`)
+			}
+			buffer.WriteString("})")
+		}
 	case *UnionSchema:
-		buffer.WriteString("nil") //TODO not implemented yet
-	case *FixedSchema: {
-        buffer.WriteString("make(")
-        buffer.WriteString(field.Type.GetName())
-        buffer.WriteString(")")
-    }
+		{
+			union := field.Type.(*UnionSchema)
+			unionField := &SchemaField{}
+			*unionField = *field
+			unionField.Type = union.Types[0]
+			return this.writeStructConstructorFieldValue(info, unionField, buffer)
+		}
+	case *FixedSchema:
+		{
+			buffer.WriteString(fmt.Sprintf("make(%s)", field.Type.GetName()))
+		}
 	case *RecordSchema:
 		{
-			buffer.WriteString("New")
-			info, err := newSchemaInfo(field.Type.(*RecordSchema))
+			info, err := newRecordSchemaInfo(field.Type.(*RecordSchema))
 			if err != nil {
 				return err
 			}
-			buffer.WriteString(info.typeName)
-			buffer.WriteString("()")
+			buffer.WriteString(fmt.Sprintf("New%s()", info.typeName))
 		}
 	}
-	buffer.WriteString(",\n")
 
 	return nil
 }
@@ -465,7 +528,7 @@ func (this *CodeGenerator) needWriteField(field *SchemaField) bool {
 	}
 
 	switch field.Type.(type) {
-	case *BytesSchema, *ArraySchema, *MapSchema, *RecordSchema:
+	case *BytesSchema, *ArraySchema, *MapSchema, *EnumSchema, *RecordSchema:
 		return true
 	}
 
@@ -479,19 +542,8 @@ func (this *CodeGenerator) writeStructConstructorFieldName(field *SchemaField, b
 	buffer.WriteString(": ")
 }
 
-func (this *CodeGenerator) writeSchemaGetter(info *schemaInfo, buffer *bytes.Buffer) {
-	buffer.WriteString("func (this *")
-	buffer.WriteString(info.typeName)
-	buffer.WriteString(") Schema() avro.Schema {\n\t")
-
-	buffer.WriteString("if ")
-	buffer.WriteString(info.schemaErrName)
-	buffer.WriteString(" != nil {\n\t\t")
-	buffer.WriteString("panic(")
-	buffer.WriteString(info.schemaErrName)
-	buffer.WriteString(")\n\t}\n\t")
-
-	buffer.WriteString("return ")
-	buffer.WriteString(info.schemaVarName)
-	buffer.WriteString("\n}")
+func (this *CodeGenerator) writeSchemaGetter(info *recordSchemaInfo, buffer *bytes.Buffer) {
+	buffer.WriteString(fmt.Sprintf("func (this *%s) Schema() avro.Schema {\n\t", info.typeName))
+	buffer.WriteString(fmt.Sprintf("if %s != nil {\n\t\tpanic(%s)\n\t}\n\t", info.schemaErrName, info.schemaErrName))
+	buffer.WriteString(fmt.Sprintf("return %s\n}", info.schemaVarName))
 }

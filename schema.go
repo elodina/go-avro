@@ -20,7 +20,7 @@ const (
 	Double
 	Boolean
 	Null
-    Recursive
+	Recursive
 )
 
 const (
