@@ -260,50 +260,51 @@ func TestFixedSchema(t *testing.T) {
 }
 
 func TestSchemaRegistryMap(t *testing.T) {
-    rawSchema1 := `{"type": "record", "name": "TestRecord", "fields": [
+	rawSchema1 := `{"type": "record", "name": "TestRecord", "fields": [
      	{"name": "longRecordField", "type": "long"}
      ]}`
 
-    rawSchema2 := `{"type": "record", "name": "TestRecord2", "fields": [
+	rawSchema2 := `{"type": "record", "name": "TestRecord2", "fields": [
      	{"name": "record", "type": ["null", "TestRecord"]}
      ]}`
 
-    registry := make(map[string]Schema)
+	registry := make(map[string]Schema)
 
-    s1, err := ParseSchemaWithRegistry(rawSchema1, registry)
-    assert(t, err, nil)
-    assert(t, s1.Type(), Record)
-    assert(t, len(registry), 1)
+	s1, err := ParseSchemaWithRegistry(rawSchema1, registry)
+	assert(t, err, nil)
+	assert(t, s1.Type(), Record)
+	assert(t, len(registry), 1)
 
-    s2, err := ParseSchemaWithRegistry(rawSchema2, registry)
-    assert(t, err, nil)
-    assert(t, s2.Type(), Record)
-    assert(t, len(registry), 2)
+	s2, err := ParseSchemaWithRegistry(rawSchema2, registry)
+	assert(t, err, nil)
+	assert(t, s2.Type(), Record)
+	assert(t, len(registry), 2)
 }
 
 func TestRecordCustomProps(t *testing.T) {
-    raw := `{"type": "record", "name": "TestRecord", "hello": "world", "fields": [
+	raw := `{"type": "record", "name": "TestRecord", "hello": "world", "fields": [
      	{"name": "longRecordField", "type": "long"},
      	{"name": "stringRecordField", "type": "string"},
      	{"name": "intRecordField", "type": "int"},
      	{"name": "floatRecordField", "type": "float"}
      ]}`
-    s, err := ParseSchema(raw)
-    assert(t, err, nil)
+	s, err := ParseSchema(raw)
+	assert(t, err, nil)
+	assert(t, len(s.(*RecordSchema).Properties), 1)
 
-    value, exists := s.Prop("hello")
-    assert(t, exists, true)
-    assert(t, value, "world")
+	value, exists := s.Prop("hello")
+	assert(t, exists, true)
+	assert(t, value, "world")
 }
 
 func TestLoadSchemas(t *testing.T) {
-    schemas := LoadSchemas("test/schemas/")
-    assert(t, len(schemas), 2)
+	schemas := LoadSchemas("test/schemas/")
+	assert(t, len(schemas), 4)
 
-    _, exists := schemas["TestRecord"]
-    assert(t, exists, true)
-    _, exists = schemas["TestRecord2"]
-    assert(t, exists, true)
+	_, exists := schemas["Complex"]
+	assert(t, exists, true)
+	_, exists = schemas["foo"]
+	assert(t, exists, true)
 }
 
 func arrayEqual(arr1 []string, arr2 []string) bool {

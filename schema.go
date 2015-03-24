@@ -3,6 +3,8 @@ package avro
 import (
 	"encoding/json"
 	"fmt"
+	"math"
+	"reflect"
 )
 
 const (
@@ -67,6 +69,9 @@ type Schema interface {
 
 	// Converts this schema to its JSON representation.
 	String() string
+
+	// Checks whether the given value is writeable to this schema.
+	Validate(v reflect.Value) bool
 }
 
 // PRIMITIVES
@@ -86,6 +91,11 @@ func (*StringSchema) GetName() string {
 
 func (*StringSchema) Prop(key string) (string, bool) {
 	return "", false
+}
+
+func (*StringSchema) Validate(v reflect.Value) bool {
+	_, ok := dereference(v).Interface().(string)
+	return ok
 }
 
 func (this *StringSchema) MarshalJSON() ([]byte, error) {
@@ -110,6 +120,12 @@ func (*BytesSchema) Prop(key string) (string, bool) {
 	return "", false
 }
 
+func (*BytesSchema) Validate(v reflect.Value) bool {
+	v = dereference(v)
+
+	return v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.Uint8
+}
+
 func (this *BytesSchema) MarshalJSON() ([]byte, error) {
 	return []byte(`"bytes"`), nil
 }
@@ -130,6 +146,10 @@ func (*IntSchema) GetName() string {
 
 func (*IntSchema) Prop(key string) (string, bool) {
 	return "", false
+}
+
+func (*IntSchema) Validate(v reflect.Value) bool {
+	return dereference(v).Kind() == reflect.Int32
 }
 
 func (this *IntSchema) MarshalJSON() ([]byte, error) {
@@ -154,6 +174,10 @@ func (*LongSchema) Prop(key string) (string, bool) {
 	return "", false
 }
 
+func (*LongSchema) Validate(v reflect.Value) bool {
+	return dereference(v).Kind() == reflect.Int64
+}
+
 func (this *LongSchema) MarshalJSON() ([]byte, error) {
 	return []byte(`"long"`), nil
 }
@@ -174,6 +198,10 @@ func (*FloatSchema) GetName() string {
 
 func (*FloatSchema) Prop(key string) (string, bool) {
 	return "", false
+}
+
+func (*FloatSchema) Validate(v reflect.Value) bool {
+	return dereference(v).Kind() == reflect.Float32
 }
 
 func (this *FloatSchema) MarshalJSON() ([]byte, error) {
@@ -198,6 +226,10 @@ func (*DoubleSchema) Prop(key string) (string, bool) {
 	return "", false
 }
 
+func (*DoubleSchema) Validate(v reflect.Value) bool {
+	return dereference(v).Kind() == reflect.Float64
+}
+
 func (this *DoubleSchema) MarshalJSON() ([]byte, error) {
 	return []byte(`"double"`), nil
 }
@@ -220,6 +252,10 @@ func (*BooleanSchema) Prop(key string) (string, bool) {
 	return "", false
 }
 
+func (*BooleanSchema) Validate(v reflect.Value) bool {
+	return dereference(v).Kind() == reflect.Bool
+}
+
 func (this *BooleanSchema) MarshalJSON() ([]byte, error) {
 	return []byte(`"boolean"`), nil
 }
@@ -240,6 +276,33 @@ func (*NullSchema) GetName() string {
 
 func (*NullSchema) Prop(key string) (string, bool) {
 	return "", false
+}
+
+func (*NullSchema) Validate(v reflect.Value) bool {
+	// Check if the value is something that can be null
+	switch v.Kind() {
+	case reflect.Array:
+		return v.Cap() == 0
+	case reflect.Slice:
+		return v.IsNil() || v.Cap() == 0
+	case reflect.Map:
+		return len(v.MapKeys()) == 0
+	case reflect.String:
+		return len(v.String()) == 0
+	case reflect.Float32:
+		// Should NaN floats be treated as null?
+		return math.IsNaN(v.Float())
+	case reflect.Float64:
+		// Should NaN floats be treated as null?
+		return math.IsNaN(v.Float())
+	case reflect.Ptr:
+		return v.IsNil()
+	case reflect.Invalid:
+		return true
+	}
+
+	// Nothing else in particular, so this should not validate?
+	return false
 }
 
 func (this *NullSchema) MarshalJSON() ([]byte, error) {
@@ -301,6 +364,12 @@ func (this *RecordSchema) Prop(key string) (string, bool) {
 	return "", false
 }
 
+func (rs *RecordSchema) Validate(v reflect.Value) bool {
+	v = dereference(v)
+
+	return v.Kind() == reflect.Struct
+}
+
 type RecursiveSchema struct {
 	Actual *RecordSchema
 }
@@ -325,6 +394,10 @@ func (this *RecursiveSchema) GetName() string {
 
 func (*RecursiveSchema) Prop(key string) (string, bool) {
 	return "", false
+}
+
+func (this *RecursiveSchema) Validate(v reflect.Value) bool {
+	return this.Actual.Validate(v)
 }
 
 func (this *RecursiveSchema) MarshalJSON() ([]byte, error) {
@@ -378,6 +451,11 @@ func (this *EnumSchema) Prop(key string) (string, bool) {
 	return "", false
 }
 
+func (this *EnumSchema) Validate(v reflect.Value) bool {
+	//TODO implement
+	return true
+}
+
 func (this *EnumSchema) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Type      string   `json:"type,omitempty"`
@@ -426,6 +504,13 @@ func (this *ArraySchema) Prop(key string) (string, bool) {
 	return "", false
 }
 
+func (this *ArraySchema) Validate(v reflect.Value) bool {
+	v = dereference(v)
+
+	// This needs to be a slice
+	return v.Kind() == reflect.Slice || v.Kind() == reflect.Array
+}
+
 func (this *ArraySchema) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Type  string `json:"type,omitempty"`
@@ -467,6 +552,12 @@ func (this *MapSchema) Prop(key string) (string, bool) {
 	return "", false
 }
 
+func (this *MapSchema) Validate(v reflect.Value) bool {
+	v = dereference(v)
+
+	return v.Kind() == reflect.Map && v.Type().Key().Kind() == reflect.String
+}
+
 func (this *MapSchema) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Type   string `json:"type,omitempty"`
@@ -500,6 +591,30 @@ func (*UnionSchema) GetName() string {
 
 func (*UnionSchema) Prop(key string) (string, bool) {
 	return "", false
+}
+
+func (this *UnionSchema) GetType(v reflect.Value) int {
+	if this.Types != nil {
+		for i := range this.Types {
+			if t := this.Types[i]; t.Validate(v) {
+				return i
+			}
+		}
+	}
+
+	return -1
+}
+
+func (this *UnionSchema) Validate(v reflect.Value) bool {
+	v = dereference(v)
+
+	for i := range this.Types {
+		if t := this.Types[i]; t.Validate(v) {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (this *UnionSchema) MarshalJSON() ([]byte, error) {
@@ -536,6 +651,12 @@ func (this *FixedSchema) Prop(key string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+func (this *FixedSchema) Validate(v reflect.Value) bool {
+	v = dereference(v)
+
+	return (v.Kind() == reflect.Array || v.Kind() == reflect.Slice) && v.Type().Elem().Kind() == reflect.Uint8 && v.Len() == this.Size
 }
 
 func (this *FixedSchema) MarshalJSON() ([]byte, error) {
@@ -762,18 +883,18 @@ func getProperties(v map[string]interface{}) map[string]string {
 
 func isReserved(name string) bool {
 	switch name {
-	case schema_aliasesField:
-	case schema_docField:
-	case schema_fieldsField:
-	case schema_itemsField:
-	case schema_nameField:
-	case schema_namespaceField:
-	case schema_sizeField:
-	case schema_symbolsField:
-	case schema_typeField:
-	case schema_valuesField:
+	case schema_aliasesField, schema_docField, schema_fieldsField, schema_itemsField, schema_nameField,
+		schema_namespaceField, schema_sizeField, schema_symbolsField, schema_typeField, schema_valuesField:
 		return true
 	}
 
 	return false
+}
+
+func dereference(v reflect.Value) reflect.Value {
+	if v.Kind() == reflect.Ptr {
+		return v.Elem()
+	}
+
+	return v
 }

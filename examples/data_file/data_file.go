@@ -24,7 +24,7 @@ import (
 type SomeComplexType struct {
 	StringArray []string
 	LongArray   []int64
-	EnumField   avro.GenericEnum
+	EnumField   *avro.GenericEnum
 	MapOfInts   map[string]int32
 	UnionField  string
 	FixedField  []byte
