@@ -132,7 +132,8 @@ func (this *SpecificDatumReader) readValue(field Schema, reflectField reflect.Va
 		return this.mapFixed(field, dec)
 	case Record:
 		return this.mapRecord(field, reflectField, dec)
-		//TODO recursive types
+	case Recursive:
+		return this.mapRecord(field.(*RecursiveSchema).Actual, reflectField, dec)
 	}
 
 	return reflect.ValueOf(nil), fmt.Errorf("Unknown field type: %s", field.Type())
@@ -223,10 +224,12 @@ func (this *SpecificDatumReader) mapMap(field Schema, reflectField reflect.Value
 }
 
 func (this *SpecificDatumReader) mapEnum(field Schema, dec Decoder) (reflect.Value, error) {
-	if enum, err := dec.ReadEnum(); err != nil {
-		return reflect.ValueOf(enum), err
+	if enumIndex, err := dec.ReadEnum(); err != nil {
+		return reflect.ValueOf(enumIndex), err
 	} else {
-		return reflect.ValueOf(GenericEnum{Symbols: field.(*EnumSchema).Symbols, index: enum}), nil
+		enum := NewGenericEnum(field.(*EnumSchema).Symbols)
+		enum.SetIndex(enumIndex)
+		return reflect.ValueOf(enum), nil
 	}
 }
 
@@ -363,10 +366,12 @@ func (this *GenericDatumReader) mapArray(field Schema, dec Decoder) ([]interface
 }
 
 func (this *GenericDatumReader) mapEnum(field Schema, dec Decoder) (*GenericEnum, error) {
-	if enum, err := dec.ReadEnum(); err != nil {
+	if enumIndex, err := dec.ReadEnum(); err != nil {
 		return nil, err
 	} else {
-		return &GenericEnum{Symbols: field.(*EnumSchema).Symbols, index: enum}, nil
+		enum := NewGenericEnum(field.(*EnumSchema).Symbols)
+		enum.SetIndex(enumIndex)
+		return enum, nil
 	}
 }
 

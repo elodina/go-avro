@@ -6,7 +6,7 @@ import (
 )
 
 //primitives
-type Primitive struct {
+type primitive struct {
 	BooleanField bool
 	IntField     int32
 	LongField    int64
@@ -37,7 +37,7 @@ func TestPrimitiveBinding(t *testing.T) {
 		t.Fatal(err)
 	}
 	for {
-		p := &Primitive{}
+		p := &primitive{}
 		ok, err := reader.Next(p)
 		if !ok {
 			if err != nil {
@@ -61,7 +61,7 @@ func TestPrimitiveBinding(t *testing.T) {
 type complex struct {
 	StringArray []string
 	LongArray   []int64
-	EnumField   GenericEnum
+	EnumField   *GenericEnum
 	MapOfInts   map[string]int32
 	UnionField  string
 	FixedField  []byte
@@ -171,7 +171,7 @@ type testRecord2 struct {
 
 type testRecord3 struct {
 	StringArray     []string
-	EnumRecordField GenericEnum
+	EnumRecordField *GenericEnum
 }
 
 func TestComplexOfComplexBinding(t *testing.T) {

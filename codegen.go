@@ -62,22 +62,6 @@ func newRecordSchemaInfo(schema *RecordSchema) (*recordSchemaInfo, error) {
 	}, nil
 }
 
-type fixedSchemaInfo struct {
-	schema   *FixedSchema
-	typeName string
-}
-
-func newFixedSchemaInfo(schema *FixedSchema) (*fixedSchemaInfo, error) {
-	if schema.Name == "" {
-		return nil, errors.New("Name not set.")
-	}
-
-	return &fixedSchemaInfo{
-		schema:   schema,
-		typeName: fmt.Sprintf("%s%s", strings.ToUpper(schema.Name[:1]), schema.Name[1:]),
-	}, nil
-}
-
 type enumSchemaInfo struct {
 	schema   *EnumSchema
 	typeName string
@@ -183,20 +167,6 @@ func (this *CodeGenerator) writeStruct(info *recordSchemaInfo) error {
 	buffer.WriteString("\n\n")
 
 	this.writeSchemaGetter(info, buffer)
-
-	return nil
-}
-
-func (this *CodeGenerator) writeFixed(info *fixedSchemaInfo) error {
-	buffer := &bytes.Buffer{}
-	if _, exists := this.structs[info.typeName]; exists {
-		return nil
-	} else {
-		this.codeSnippets = append(this.codeSnippets, buffer)
-		this.structs[info.typeName] = buffer
-	}
-
-	buffer.WriteString(fmt.Sprintf("type %s [%d]byte\n", info.typeName, info.schema.Size))
 
 	return nil
 }
@@ -339,17 +309,7 @@ func (this *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buf
 			}
 		}
 	case Fixed:
-		{
-			fixedSchema := schema.(*FixedSchema)
-			info, err := newFixedSchemaInfo(fixedSchema)
-			if err != nil {
-				return err
-			}
-
-			buffer.WriteString(info.typeName)
-
-			return this.writeFixed(info)
-		}
+		buffer.WriteString("[]byte")
 	case Record:
 		{
 			buffer.WriteString("*")
@@ -512,7 +472,7 @@ func (this *CodeGenerator) writeStructConstructorFieldValue(info *recordSchemaIn
 		}
 	case *FixedSchema:
 		{
-			buffer.WriteString(fmt.Sprintf("make(%s)", field.Type.GetName()))
+			buffer.WriteString(fmt.Sprintf("make([]byte, %d)", field.Type.(*FixedSchema).Size))
 		}
 	case *RecordSchema:
 		{
@@ -533,7 +493,7 @@ func (this *CodeGenerator) needWriteField(field *SchemaField) bool {
 	}
 
 	switch field.Type.(type) {
-	case *BytesSchema, *ArraySchema, *MapSchema, *EnumSchema, *RecordSchema:
+	case *BytesSchema, *ArraySchema, *MapSchema, *EnumSchema, *FixedSchema, *RecordSchema:
 		return true
 	}
 

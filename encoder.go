@@ -19,6 +19,7 @@ type Encoder interface {
 	WriteArrayNext(int64)
 	WriteMapStart(int64)
 	WriteMapNext(int64)
+	WriteRaw([]byte)
 }
 
 type BinaryEncoder struct {
@@ -59,6 +60,10 @@ func (this *BinaryEncoder) WriteDouble(x float64) {
 	bytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bytes, math.Float64bits(x))
 	this.buffer.Write(bytes)
+}
+
+func (this *BinaryEncoder) WriteRaw(x []byte) {
+	this.buffer.Write(x)
 }
 
 func (this *BinaryEncoder) WriteBytes(x []byte) {
