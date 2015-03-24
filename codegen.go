@@ -24,16 +24,16 @@ import (
 )
 
 type CodeGenerator struct {
-	rawSchema string
+	rawSchemas []string
 
 	structs           map[string]*bytes.Buffer
 	codeSnippets      []*bytes.Buffer
 	schemaDefinitions *bytes.Buffer
 }
 
-func NewCodeGenerator(schema string) *CodeGenerator {
+func NewCodeGenerator(schemas []string) *CodeGenerator {
 	return &CodeGenerator{
-		rawSchema:         schema,
+		rawSchemas:        schemas,
 		structs:           make(map[string]*bytes.Buffer),
 		codeSnippets:      make([]*bytes.Buffer, 0),
 		schemaDefinitions: &bytes.Buffer{},
@@ -95,30 +95,35 @@ func newEnumSchemaInfo(schema *EnumSchema) (*enumSchemaInfo, error) {
 }
 
 func (this *CodeGenerator) Generate() (string, error) {
-	parsedSchema, err := ParseSchema(this.rawSchema)
-	if err != nil {
-		return "", err
-	}
+	for index, rawSchema := range this.rawSchemas {
+		parsedSchema, err := ParseSchema(rawSchema)
+		if err != nil {
+			return "", err
+		}
 
-	schema, ok := parsedSchema.(*RecordSchema)
-	if !ok {
-		return "", errors.New("Not a Record schema.")
-	}
-	schemaInfo, err := newRecordSchemaInfo(schema)
-	if err != nil {
-		return "", err
-	}
+		schema, ok := parsedSchema.(*RecordSchema)
+		if !ok {
+			return "", errors.New("Not a Record schema.")
+		}
+		schemaInfo, err := newRecordSchemaInfo(schema)
+		if err != nil {
+			return "", err
+		}
 
-	buffer := &bytes.Buffer{}
-	this.codeSnippets = append(this.codeSnippets, buffer)
+		buffer := &bytes.Buffer{}
+		this.codeSnippets = append(this.codeSnippets, buffer)
 
-	this.writePackageName(schemaInfo)
+		// write package and import only once
+		if index == 0 {
+			this.writePackageName(schemaInfo)
 
-	this.writeImportStatement()
+			this.writeImportStatement()
+		}
 
-	err = this.writeStruct(schemaInfo)
-	if err != nil {
-		return "", err
+		err = this.writeStruct(schemaInfo)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	formatted, err := format.Source([]byte(this.collectResult()))

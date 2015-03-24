@@ -24,16 +24,32 @@ import (
 	"strings"
 )
 
-var schema = flag.String("schema", "", "Path to avsc schema file.")
+type schemas []string
+
+func (i *schemas) String() string {
+	return fmt.Sprintf("%s", *i)
+}
+
+func (i *schemas) Set(value string) error {
+	*i = append(*i, value)
+	return nil
+}
+
+//var schema = flag.String("schema", "", "Path to avsc schema file.")
+var schema schemas
 var output = flag.String("out", "", "Output file name.")
 
 func main() {
 	parseAndValidateArgs()
 
-	contents, err := ioutil.ReadFile(*schema)
-	checkErr(err)
+	schemas := make([]string, 0)
+	for _, schema := range schema {
+		contents, err := ioutil.ReadFile(schema)
+		checkErr(err)
+		schemas = append(schemas, string(contents))
+	}
 
-	gen := avro.NewCodeGenerator(string(contents))
+	gen := avro.NewCodeGenerator(schemas)
 	code, err := gen.Generate()
 	checkErr(err)
 
@@ -43,10 +59,11 @@ func main() {
 }
 
 func parseAndValidateArgs() {
+	flag.Var(&schema, "schema", "Path to avsc schema file.")
 	flag.Parse()
 
-	if *schema == "" {
-		fmt.Println("--schema flag is required.")
+	if len(schema) == 0 {
+		fmt.Println("At least one --schema flag is required.")
 		os.Exit(1)
 	}
 
