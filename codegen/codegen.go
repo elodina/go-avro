@@ -35,7 +35,6 @@ func (i *schemas) Set(value string) error {
 	return nil
 }
 
-//var schema = flag.String("schema", "", "Path to avsc schema file.")
 var schema schemas
 var output = flag.String("out", "", "Output file name.")
 
