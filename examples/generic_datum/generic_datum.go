@@ -65,18 +65,18 @@ func main() {
 	value := int32(3)
 	record.Set("value", value)
 
-    subRecords := make([]*avro.GenericRecord, 2)
-    subRecord0 := avro.NewGenericRecord(schema)
-    subRecord0.Set("stringValue", "Hello")
-    subRecord0.Set("intValue", int32(1))
-    subRecords[0] = subRecord0
+	subRecords := make([]*avro.GenericRecord, 2)
+	subRecord0 := avro.NewGenericRecord(schema)
+	subRecord0.Set("stringValue", "Hello")
+	subRecord0.Set("intValue", int32(1))
+	subRecords[0] = subRecord0
 
-    subRecord1 := avro.NewGenericRecord(schema)
-    subRecord1.Set("stringValue", "World")
-    subRecord1.Set("intValue", int32(2))
-    subRecords[1] = subRecord1
+	subRecord1 := avro.NewGenericRecord(schema)
+	subRecord1.Set("stringValue", "World")
+	subRecord1.Set("intValue", int32(2))
+	subRecords[1] = subRecord1
 
-    record.Set("rec", subRecords)
+	record.Set("rec", subRecords)
 
 	writer := avro.NewGenericDatumWriter()
 	// SetSchema must be called before calling Write
@@ -104,20 +104,20 @@ func main() {
 
 	// GenericDatumReader always returns a *avro.GenericRecord, so it's safe to do a type assertion
 	decodedGenericRecord := decodedRecord.(*avro.GenericRecord)
-    decodedValue := decodedGenericRecord.Get("value").(int32)
+	decodedValue := decodedGenericRecord.Get("value").(int32)
 	if value != decodedValue {
 		panic("Something went terribly wrong!")
 	}
 	fmt.Printf("Read a value: %d\n", decodedValue)
 
-    decodedArray := decodedGenericRecord.Get("rec").([]interface{})
-    if len(decodedArray) != 2 {
-        panic("Something went terribly wrong!")
-    }
+	decodedArray := decodedGenericRecord.Get("rec").([]interface{})
+	if len(decodedArray) != 2 {
+		panic("Something went terribly wrong!")
+	}
 
-    for index, decodedSubRecord := range decodedArray {
-        r := decodedSubRecord.(*avro.GenericRecord)
-        fmt.Printf("Read a subrecord %d string value: %s\n", index, r.Get("stringValue"))
-        fmt.Printf("Read a subrecord %d int value: %d\n", index, r.Get("intValue"))
-    }
+	for index, decodedSubRecord := range decodedArray {
+		r := decodedSubRecord.(*avro.GenericRecord)
+		fmt.Printf("Read a subrecord %d string value: %s\n", index, r.Get("stringValue"))
+		fmt.Printf("Read a subrecord %d int value: %d\n", index, r.Get("intValue"))
+	}
 }
