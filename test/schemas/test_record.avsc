@@ -1,0 +1,30 @@
+{
+   "type":"record",
+   "name":"TestRecord",
+   "fields":[
+      {
+         "name":"value",
+         "type":"int"
+      },
+      {
+         "name":"rec",
+         "type":{
+            "type":"array",
+            "items":{
+               "type":"record",
+               "name":"TestRecord2",
+               "fields":[
+                  {
+                     "name":"stringValue",
+                     "type":"string"
+                  },
+                  {
+                     "name":"intValue",
+                     "type":"int"
+                  }
+               ]
+            }
+         }
+      }
+   ]
+}
