@@ -13,12 +13,41 @@ type DatumReader interface {
 }
 
 type GenericEnum struct {
-	Symbols []string
-	index   int32
+	Symbols        []string
+	symbolsToIndex map[string]int32
+	index          int32
+}
+
+func NewGenericEnum(symbols []string) *GenericEnum {
+	symbolsToIndex := make(map[string]int32)
+	for index, symbol := range symbols {
+		symbolsToIndex[symbol] = int32(index)
+	}
+
+	return &GenericEnum{
+		Symbols:        symbols,
+		symbolsToIndex: symbolsToIndex,
+	}
+}
+
+func (this *GenericEnum) GetIndex() int32 {
+	return this.index
 }
 
 func (this *GenericEnum) Get() string {
 	return this.Symbols[this.index]
+}
+
+func (this *GenericEnum) SetIndex(index int32) {
+	this.index = index
+}
+
+func (this *GenericEnum) Set(symbol string) {
+	if index, exists := this.symbolsToIndex[symbol]; !exists {
+		panic("Unknown enum symbol")
+	} else {
+		this.index = index
+	}
 }
 
 type SpecificDatumReader struct {
@@ -197,7 +226,7 @@ func (this *SpecificDatumReader) mapEnum(field Schema, dec Decoder) (reflect.Val
 	if enum, err := dec.ReadEnum(); err != nil {
 		return reflect.ValueOf(enum), err
 	} else {
-		return reflect.ValueOf(GenericEnum{field.(*EnumSchema).Symbols, enum}), nil
+		return reflect.ValueOf(GenericEnum{Symbols: field.(*EnumSchema).Symbols, index: enum}), nil
 	}
 }
 
@@ -337,7 +366,7 @@ func (this *GenericDatumReader) mapEnum(field Schema, dec Decoder) (*GenericEnum
 	if enum, err := dec.ReadEnum(); err != nil {
 		return nil, err
 	} else {
-		return &GenericEnum{field.(*EnumSchema).Symbols, enum}, nil
+		return &GenericEnum{Symbols: field.(*EnumSchema).Symbols, index: enum}, nil
 	}
 }
 

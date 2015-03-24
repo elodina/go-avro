@@ -14,3 +14,6 @@ Some usage examples are located in [examples folder](https://github.com/stealthl
 * [DataFileReader](https://github.com/stealthly/go-avro/blob/master/examples/data_file/data_file.go)
 * [GenericDatumReader/Writer](https://github.com/stealthly/go-avro/blob/master/examples/generic_datum/generic_datum.go)
 * [SpecificDatumReader/Writer](https://github.com/stealthly/go-avro/blob/master/examples/specific_datum/specific_datum.go)
+
+
+**go-avro** now also supports code generation from Avro schemas which is available in [codegen folder](https://github.com/stealthly/go-avro/tree/master/codegen)
