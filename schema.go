@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math"
 	"reflect"
-	"strings"
 )
 
 const (
@@ -898,25 +897,4 @@ func dereference(v reflect.Value) reflect.Value {
 	}
 
 	return v
-}
-
-func findField(where reflect.Value, name string) (reflect.Value, bool) {
-	if where.Kind() != reflect.Struct {
-		return reflect.ValueOf(nil), false
-	}
-
-	field := where.FieldByName(strings.ToUpper(name[0:1]) + name[1:])
-	if !field.IsValid() {
-		field = where.FieldByName(name)
-	}
-
-	if !field.IsValid() {
-		return reflect.ValueOf(nil), false
-	}
-
-	if field.Kind() == reflect.Interface {
-		field = field.Elem()
-	}
-
-	return field, true
 }

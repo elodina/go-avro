@@ -230,14 +230,20 @@ func (this *SpecificDatumWriter) writeRecord(v reflect.Value, enc Encoder, s Sch
 }
 
 func (this *SpecificDatumWriter) findField(where reflect.Value, name string) (reflect.Value, error) {
-	elem := where.Elem() //TODO maybe check first?
-	field := elem.FieldByName(strings.ToUpper(name[0:1]) + name[1:])
+	if where.Kind() == reflect.Ptr {
+		where = where.Elem()
+	}
+	field := where.FieldByName(strings.ToUpper(name[0:1]) + name[1:])
 	if !field.IsValid() {
-		field = elem.FieldByName(name)
+		field = where.FieldByName(name)
 	}
 
 	if !field.IsValid() {
 		return reflect.Zero(nil), fmt.Errorf("Field %s does not exist", name)
+	}
+
+	if field.Kind() == reflect.Interface {
+		return field.Elem(), nil
 	}
 
 	return field, nil
