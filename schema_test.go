@@ -296,6 +296,16 @@ func TestRecordCustomProps(t *testing.T) {
     assert(t, value, "world")
 }
 
+func TestLoadSchemas(t *testing.T) {
+    schemas := LoadSchemas("test/schemas/")
+    assert(t, len(schemas), 2)
+
+    _, exists := schemas["TestRecord"]
+    assert(t, exists, true)
+    _, exists = schemas["TestRecord2"]
+    assert(t, exists, true)
+}
+
 func arrayEqual(arr1 []string, arr2 []string) bool {
 	if len(arr1) != len(arr2) {
 		return false
