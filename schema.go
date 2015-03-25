@@ -690,6 +690,16 @@ func ParseSchemaWithRegistry(rawSchema string, schemas map[string]Schema) (Schem
 	return schemaByType(schema, schemas, "")
 }
 
+// MustParseSchema is like ParseSchema, but panics if the given schema
+// cannot be parsed.
+func MustParseSchema(rawSchema string) Schema {
+	s, err := ParseSchema(rawSchema)
+	if err != nil {
+		panic(err)
+	}
+	return s
+}
+
 func schemaByType(i interface{}, registry map[string]Schema, namespace string) (Schema, error) {
 	switch v := i.(type) {
 	case nil:
