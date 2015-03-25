@@ -328,7 +328,8 @@ func (this *GenericDatumReader) readValue(field Schema, dec Decoder) (interface{
 		return this.mapFixed(field, dec)
 	case Record:
 		return this.mapRecord(field, dec)
-		//TODO recursive types
+	case Recursive:
+		return this.mapRecord(field.(*RecursiveSchema).Actual, dec)
 	}
 
 	return nil, fmt.Errorf("Unknown field type: %s", field.Type())
