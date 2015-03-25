@@ -301,9 +301,9 @@ func TestLoadSchemas(t *testing.T) {
 	schemas := LoadSchemas("test/schemas/")
 	assert(t, len(schemas), 4)
 
-	_, exists := schemas["Complex"]
+	_, exists := schemas["example.avro.Complex"]
 	assert(t, exists, true)
-	_, exists = schemas["foo"]
+	_, exists = schemas["example.avro.foo"]
 	assert(t, exists, true)
 }
 

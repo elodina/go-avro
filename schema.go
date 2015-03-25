@@ -687,10 +687,10 @@ func ParseSchemaWithRegistry(rawSchema string, schemas map[string]Schema) (Schem
 		schema = rawSchema
 	}
 
-	return schemaByType(schema, schemas)
+	return schemaByType(schema, schemas, "")
 }
 
-func schemaByType(i interface{}, registry map[string]Schema) (Schema, error) {
+func schemaByType(i interface{}, registry map[string]Schema, namespace string) (Schema, error) {
 	switch v := i.(type) {
 	case nil:
 		return new(NullSchema), nil
@@ -713,7 +713,7 @@ func schemaByType(i interface{}, registry map[string]Schema) (Schema, error) {
 		case type_string:
 			return new(StringSchema), nil
 		default:
-			schema, ok := registry[v]
+			schema, ok := registry[getFullName(v, namespace)]
 			if !ok {
 				return nil, fmt.Errorf("Unknown type name: %s", v)
 			}
@@ -721,7 +721,7 @@ func schemaByType(i interface{}, registry map[string]Schema) (Schema, error) {
 			return schema, nil
 		}
 	case map[string][]interface{}:
-		return parseUnionSchema(v[schema_typeField], registry)
+		return parseUnionSchema(v[schema_typeField], registry, namespace)
 	case map[string]interface{}:
 		switch v[schema_typeField] {
 		case type_null:
@@ -741,32 +741,32 @@ func schemaByType(i interface{}, registry map[string]Schema) (Schema, error) {
 		case type_string:
 			return new(StringSchema), nil
 		case type_array:
-			items, err := schemaByType(v[schema_itemsField], registry)
+			items, err := schemaByType(v[schema_itemsField], registry, namespace)
 			if err != nil {
 				return nil, err
 			}
 			return &ArraySchema{Items: items, Properties: getProperties(v)}, nil
 		case type_map:
-			values, err := schemaByType(v[schema_valuesField], registry)
+			values, err := schemaByType(v[schema_valuesField], registry, namespace)
 			if err != nil {
 				return nil, err
 			}
 			return &MapSchema{Values: values, Properties: getProperties(v)}, nil
 		case type_enum:
-			return parseEnumSchema(v, registry)
+			return parseEnumSchema(v, registry, namespace)
 		case type_fixed:
-			return parseFixedSchema(v, registry)
+			return parseFixedSchema(v, registry, namespace)
 		case type_record:
-			return parseRecordSchema(v, registry)
+			return parseRecordSchema(v, registry, namespace)
 		}
 	case []interface{}:
-		return parseUnionSchema(v, registry)
+		return parseUnionSchema(v, registry, namespace)
 	}
 
 	return nil, InvalidSchema
 }
 
-func parseEnumSchema(v map[string]interface{}, registry map[string]Schema) (Schema, error) {
+func parseEnumSchema(v map[string]interface{}, registry map[string]Schema, namespace string) (Schema, error) {
 	symbols := make([]string, len(v[schema_symbolsField].([]interface{})))
 	for i, symbol := range v[schema_symbolsField].([]interface{}) {
 		symbols[i] = symbol.(string)
@@ -777,22 +777,22 @@ func parseEnumSchema(v map[string]interface{}, registry map[string]Schema) (Sche
 	setOptionalField(&schema.Doc, v, schema_docField)
 	schema.Properties = getProperties(v)
 
-	return addSchema(getFullName(v), schema, registry)
+	return addSchema(getFullName(v[schema_nameField].(string), namespace), schema, registry)
 }
 
-func parseFixedSchema(v map[string]interface{}, registry map[string]Schema) (Schema, error) {
+func parseFixedSchema(v map[string]interface{}, registry map[string]Schema, namespace string) (Schema, error) {
 	if size, ok := v[schema_sizeField].(float64); !ok {
 		return nil, InvalidFixedSize
 	} else {
-		return addSchema(getFullName(v), &FixedSchema{Name: v[schema_nameField].(string), Size: int(size), Properties: getProperties(v)}, registry)
+		return addSchema(getFullName(v[schema_nameField].(string), namespace), &FixedSchema{Name: v[schema_nameField].(string), Size: int(size), Properties: getProperties(v)}, registry)
 	}
 }
 
-func parseUnionSchema(v []interface{}, registry map[string]Schema) (Schema, error) {
+func parseUnionSchema(v []interface{}, registry map[string]Schema, namespace string) (Schema, error) {
 	types := make([]Schema, len(v))
 	var err error
 	for i := range v {
-		types[i], err = schemaByType(v[i], registry)
+		types[i], err = schemaByType(v[i], registry, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -800,31 +800,32 @@ func parseUnionSchema(v []interface{}, registry map[string]Schema) (Schema, erro
 	return &UnionSchema{Types: types}, nil
 }
 
-func parseRecordSchema(v map[string]interface{}, registry map[string]Schema) (Schema, error) {
+func parseRecordSchema(v map[string]interface{}, registry map[string]Schema, namespace string) (Schema, error) {
 	schema := &RecordSchema{Name: v[schema_nameField].(string)}
-	registry[schema.Name] = newRecursiveSchema(schema)
+	setOptionalField(&schema.Namespace, v, schema_namespaceField)
+	setOptionalField(&namespace, v, schema_namespaceField)
+	setOptionalField(&schema.Doc, v, schema_docField)
+	addSchema(getFullName(v[schema_nameField].(string), namespace), newRecursiveSchema(schema), registry)
 	fields := make([]*SchemaField, len(v[schema_fieldsField].([]interface{})))
 	for i := range fields {
-		field, err := parseSchemaField(v[schema_fieldsField].([]interface{})[i], registry)
+		field, err := parseSchemaField(v[schema_fieldsField].([]interface{})[i], registry, namespace)
 		if err != nil {
 			return nil, err
 		}
 		fields[i] = field
 	}
 	schema.Fields = fields
-	setOptionalField(&schema.Namespace, v, schema_namespaceField)
-	setOptionalField(&schema.Doc, v, schema_docField)
 	schema.Properties = getProperties(v)
 
 	return schema, nil
 }
 
-func parseSchemaField(i interface{}, registry map[string]Schema) (*SchemaField, error) {
+func parseSchemaField(i interface{}, registry map[string]Schema, namespace string) (*SchemaField, error) {
 	switch v := i.(type) {
 	case map[string]interface{}:
 		schemaField := &SchemaField{Name: v[schema_nameField].(string)}
 		setOptionalField(&schemaField.Doc, v, schema_docField)
-		fieldType, err := schemaByType(v[schema_typeField], registry)
+		fieldType, err := schemaByType(v[schema_typeField], registry, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -856,13 +857,11 @@ func addSchema(name string, schema Schema, schemas map[string]Schema) (Schema, e
 	return schema, nil
 }
 
-func getFullName(v map[string]interface{}) string {
-	ns, ok := v[schema_namespaceField].(string)
-
-	if len(ns) > 0 && ok {
-		return ns + "." + v[schema_nameField].(string)
+func getFullName(name string, namespace string) string {
+	if len(namespace) > 0 {
+		return namespace + "." + name
 	} else {
-		return v[schema_nameField].(string)
+		return name
 	}
 }
 
