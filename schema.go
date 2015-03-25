@@ -316,7 +316,7 @@ type RecordSchema struct {
 	Doc        string   `json:"doc,omitempty"`
 	Aliases    []string `json:"aliases,omitempty"`
 	Properties map[string]string
-	Fields     []*SchemaField `json:"fields,omitempty"`
+	Fields     []*SchemaField `json:"fields"`
 }
 
 func (this *RecordSchema) String() string {
@@ -335,7 +335,7 @@ func (this *RecordSchema) MarshalJSON() ([]byte, error) {
 		Name      string         `json:"name,omitempty"`
 		Doc       string         `json:"doc,omitempty"`
 		Aliases   []string       `json:"aliases,omitempty"`
-		Fields    []*SchemaField `json:"fields,omitempty"`
+		Fields    []*SchemaField `json:"fields"`
 	}{
 		Type:      "record",
 		Namespace: this.Namespace,
@@ -407,8 +407,36 @@ func (this *RecursiveSchema) MarshalJSON() ([]byte, error) {
 type SchemaField struct {
 	Name    string      `json:"name,omitempty"`
 	Doc     string      `json:"doc,omitempty"`
-	Default interface{} `json:"default,omitempty"`
+	Default interface{} `json:"default"`
 	Type    Schema      `json:"type,omitempty"`
+}
+
+func (this *SchemaField) MarshalJSON() ([]byte, error) {
+	if this.Type.Type() == Null || (this.Type.Type() == Union && this.Type.(*UnionSchema).Types[0].Type() == Null) {
+		return json.Marshal(struct {
+			Name    string      `json:"name,omitempty"`
+			Doc     string      `json:"doc,omitempty"`
+			Default interface{} `json:"default"`
+			Type    Schema      `json:"type,omitempty"`
+		}{
+			Name: this.Name,
+			Doc: this.Doc,
+			Default: this.Default,
+			Type: this.Type,
+		})
+	} else {
+		return json.Marshal(struct {
+			Name    string      `json:"name,omitempty"`
+			Doc     string      `json:"doc,omitempty"`
+			Default interface{} `json:"default,omitempty"`
+			Type    Schema      `json:"type,omitempty"`
+		}{
+			Name: this.Name,
+			Doc: this.Doc,
+			Default: this.Default,
+			Type: this.Type,
+		})
+	}
 }
 
 func (this *SchemaField) String() string {
