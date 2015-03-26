@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 type DatumReader interface {
@@ -82,22 +81,17 @@ func (this *SpecificDatumReader) Read(v interface{}, dec Decoder) (interface{}, 
 }
 
 func (this *SpecificDatumReader) findAndSet(v interface{}, field *SchemaField, dec Decoder) error {
-	fieldName := field.Name
-	elem := reflect.ValueOf(v).Elem()
-	f := elem.FieldByName(strings.ToUpper(fieldName[0:1]) + fieldName[1:])
-	if !f.IsValid() {
-		f = elem.FieldByName(strings.ToLower(fieldName))
-	}
-
-	if !f.IsValid() {
-		return fmt.Errorf("Field %s does not exist", fieldName)
-	}
-
-	value, err := this.readValue(field.Type, f, dec)
+	structField, err := findField(reflect.ValueOf(v), field.Name)
 	if err != nil {
 		return err
 	}
-	this.setValue(field, f, value)
+
+	value, err := this.readValue(field.Type, structField, dec)
+	if err != nil {
+		return err
+	}
+
+	this.setValue(field, structField, value)
 
 	return nil
 }

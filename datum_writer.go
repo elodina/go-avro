@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
-	"strings"
 )
 
 type DatumWriter interface {
@@ -217,7 +216,7 @@ func (this *SpecificDatumWriter) writeRecord(v reflect.Value, enc Encoder, s Sch
 	rs := s.(*RecordSchema)
 	for i := range rs.Fields {
 		schemaField := rs.Fields[i]
-		field, err := this.findField(v, schemaField.Name)
+		field, err := findField(v, schemaField.Name)
 		if err != nil {
 			return err
 		}
@@ -227,26 +226,6 @@ func (this *SpecificDatumWriter) writeRecord(v reflect.Value, enc Encoder, s Sch
 	}
 
 	return nil
-}
-
-func (this *SpecificDatumWriter) findField(where reflect.Value, name string) (reflect.Value, error) {
-	if where.Kind() == reflect.Ptr {
-		where = where.Elem()
-	}
-	field := where.FieldByName(strings.ToUpper(name[0:1]) + name[1:])
-	if !field.IsValid() {
-		field = where.FieldByName(name)
-	}
-
-	if !field.IsValid() {
-		return reflect.Zero(nil), fmt.Errorf("Field %s does not exist", name)
-	}
-
-	if field.Kind() == reflect.Interface {
-		return field.Elem(), nil
-	}
-
-	return field, nil
 }
 
 type GenericDatumWriter struct {

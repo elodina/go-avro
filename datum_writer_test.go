@@ -109,6 +109,63 @@ func TestSpecificDatumWriterRecursive(t *testing.T) {
 	assert(t, decodedEmployee.Boss.Boss.Name, employee1.Boss.Boss.Name)
 }
 
+func TestSpecificDatumTags(t *testing.T) {
+	type Tagged struct {
+		Bool   bool              `avro:"booleanField"`
+		Int    int32             `avro:"intField"`
+		Long   int64             `avro:"longField"`
+		Float  float32           `avro:"floatField"`
+		Double float64           `avro:"doubleField"`
+		Bytes  []byte            `avro:"bytesField"`
+		String string            `avro:"stringField"`
+		Null   interface{}       `avro:"nullField"`
+		Array  []string          `avro:"arrayField"`
+		Map    map[string]string `avro:"mapField"`
+	}
+
+	sch, err := ParseSchema(`{"type":"record","name":"Tagged","namespace":"example.avro","fields":[{"name":"booleanField","type":"boolean"},{"name":"intField","type":"int"},{"name":"longField","type":"long"},{"name":"floatField","type":"float"},{"name":"doubleField","type":"double"},{"name":"bytesField","type":"bytes"},{"name":"stringField","type":"string"},{"name":"nullField","type":"null"},{"name":"arrayField","type":{"type":"array","items":"string"}},{"name":"mapField","type":{"type":"map","values":"string"}}]}`)
+	assert(t, err, nil)
+
+	buffer := &bytes.Buffer{}
+	enc := NewBinaryEncoder(buffer)
+
+	w := NewSpecificDatumWriter()
+	w.SetSchema(sch)
+
+	in := &Tagged{
+		Bool:   true,
+		Int:    123,
+		Long:   1234567890,
+		Float:  13.5,
+		Double: 56783456.12736,
+		Bytes:  []byte{0, 1, 2, 3, 4},
+		String: "hello world",
+		Null:   nil,
+		Array:  []string{"the", "quick", "brown", "fox", "jumps", "over", "the", "lazy", "dog"},
+		Map:    map[string]string{"a": "A", "b": "B"},
+	}
+
+	err = w.Write(in, enc)
+	assert(t, err, nil)
+	dec := NewBinaryDecoder(buffer.Bytes())
+	r := NewSpecificDatumReader()
+	r.SetSchema(sch)
+
+	out := &Tagged{}
+	r.Read(out, dec)
+
+	assert(t, out.Bool, in.Bool)
+	assert(t, out.Int, in.Int)
+	assert(t, out.Long, in.Long)
+	assert(t, out.Float, in.Float)
+	assert(t, out.Double, in.Double)
+	assert(t, out.Bytes, in.Bytes)
+	assert(t, out.String, in.String)
+	assert(t, out.Null, in.Null)
+	assert(t, out.Array, in.Array)
+	assert(t, out.Map, in.Map)
+}
+
 func randomPrimitiveObject() *primitive {
 	p := &primitive{}
 	p.BooleanField = rand.Int()%2 == 0
