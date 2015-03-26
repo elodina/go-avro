@@ -3,6 +3,7 @@ package avro
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"reflect"
 )
@@ -419,10 +420,10 @@ func (this *SchemaField) MarshalJSON() ([]byte, error) {
 			Default interface{} `json:"default"`
 			Type    Schema      `json:"type,omitempty"`
 		}{
-			Name: this.Name,
-			Doc: this.Doc,
+			Name:    this.Name,
+			Doc:     this.Doc,
 			Default: this.Default,
-			Type: this.Type,
+			Type:    this.Type,
 		})
 	} else {
 		return json.Marshal(struct {
@@ -431,10 +432,10 @@ func (this *SchemaField) MarshalJSON() ([]byte, error) {
 			Default interface{} `json:"default,omitempty"`
 			Type    Schema      `json:"type,omitempty"`
 		}{
-			Name: this.Name,
-			Doc: this.Doc,
+			Name:    this.Name,
+			Doc:     this.Doc,
 			Default: this.Default,
-			Type: this.Type,
+			Type:    this.Type,
 		})
 	}
 }
@@ -697,6 +698,17 @@ func (this *FixedSchema) MarshalJSON() ([]byte, error) {
 		Size: this.Size,
 		Name: this.Name,
 	})
+}
+
+// Parses a given file.
+// May return an error if schema is not parsable or file does not exist.
+func ParseSchemaFile(file string) (Schema, error) {
+	fileContents, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	return ParseSchema(string(fileContents))
 }
 
 // Parses a given schema without provided schemas to reuse.
