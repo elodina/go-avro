@@ -6,17 +6,27 @@ import (
 	"reflect"
 )
 
+// DatumReader is an interface that is responsible for reading structured data according to schema from a decoder
 type DatumReader interface {
+	// Reads a single structured entry using this DatumReader according to provided Schema.
+	// Accepts a value to fill with data and a Decoder to read from. Given value MUST be of pointer type.
+	// May return an error indicating a read failure.
 	Read(interface{}, Decoder) error
+
+	// Sets the schema for this DatumReader to know the data structure.
+	// Note that it must be called before calling Read.
 	SetSchema(Schema)
 }
 
+// Generic Avro enum representation. This is still subject to change and may be rethought.
 type GenericEnum struct {
+	// Avro enum symbols.
 	Symbols        []string
 	symbolsToIndex map[string]int32
 	index          int32
 }
 
+// Returns a new GenericEnum that uses provided enum symbols.
 func NewGenericEnum(symbols []string) *GenericEnum {
 	symbolsToIndex := make(map[string]int32)
 	for index, symbol := range symbols {
@@ -29,18 +39,23 @@ func NewGenericEnum(symbols []string) *GenericEnum {
 	}
 }
 
+// Gets the numeric value for this enum.
 func (this *GenericEnum) GetIndex() int32 {
 	return this.index
 }
 
+// Gets the string value for this enum (e.g. symbol).
 func (this *GenericEnum) Get() string {
 	return this.Symbols[this.index]
 }
 
+// Sets the numeric value for this enum.
 func (this *GenericEnum) SetIndex(index int32) {
 	this.index = index
 }
 
+// Sets the string value for this enum (e.g. symbol).
+// Panics if the given symbol does not exist in this enum.
 func (this *GenericEnum) Set(symbol string) {
 	if index, exists := this.symbolsToIndex[symbol]; !exists {
 		panic("Unknown enum symbol")
@@ -49,19 +64,30 @@ func (this *GenericEnum) Set(symbol string) {
 	}
 }
 
+// SpecificDatumReader implements DatumReader and is used for filling Go structs with data.
+// Each value passed to Read is expected to be a pointer.
 type SpecificDatumReader struct {
-	dataType reflect.Type
-	schema   Schema
+	schema Schema
 }
 
+// Creates a new SpecificDatumReader.
 func NewSpecificDatumReader() *SpecificDatumReader {
 	return &SpecificDatumReader{}
 }
 
+// Sets the schema for this SpecificDatumReader to know the data structure.
+// Note that it must be called before calling Read.
 func (this *SpecificDatumReader) SetSchema(schema Schema) {
 	this.schema = schema
 }
 
+// Reads a single structured entry using this SpecificDatumReader.
+// Accepts a Go struct with exported fields to fill with data and a Decoder to read from. Given value MUST be of
+// pointer type. Field names should match field names in Avro schema but be exported (e.g. "some_value" in Avro
+// schema is expected to be Some_value in struct) or you may provide Go struct tags to explicitly show how
+// to map fields (e.g. if you want to map "some_value" field of type int to SomeValue in Go struct you should define
+// your struct field as follows: SomeValue int32 `avro:"some_field"`).
+// May return an error indicating a read failure.
 func (this *SpecificDatumReader) Read(v interface{}, dec Decoder) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
@@ -262,18 +288,28 @@ func (this *SpecificDatumReader) mapRecord(field Schema, reflectField reflect.Va
 	return reflect.ValueOf(record), nil
 }
 
+// GenericDatumReader implements DatumReader and is used for filling GenericRecords or other Avro supported types
+// (full list is: interface{}, bool, int32, int64, float32, float64, string, slices of any type, maps with string keys
+// and any values, GenericEnums) with data.
+// Each value passed to Read is expected to be a pointer.
 type GenericDatumReader struct {
 	schema Schema
 }
 
+// Creates a new GenericDatumReader.
 func NewGenericDatumReader() *GenericDatumReader {
 	return &GenericDatumReader{}
 }
 
+// Sets the schema for this GenericDatumReader to know the data structure.
+// Note that it must be called before calling Read.
 func (this *GenericDatumReader) SetSchema(schema Schema) {
 	this.schema = schema
 }
 
+// Reads a single entry using this GenericDatumReader.
+// Accepts a value to fill with data and a Decoder to read from. Given value MUST be of  pointer type.
+// May return an error indicating a read failure.
 func (this *GenericDatumReader) Read(v interface{}, dec Decoder) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {

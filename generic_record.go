@@ -15,11 +15,14 @@ limitations under the License. */
 
 package avro
 
+// GenericRecord is a generic instance of a record schema.
+// Fields are accessible by their name.
 type GenericRecord struct {
 	fields map[string]interface{}
 	schema Schema
 }
 
+// Creates a new GenericRecord.
 func NewGenericRecord(schema Schema) *GenericRecord {
 	return &GenericRecord{
 		fields: make(map[string]interface{}),
@@ -27,14 +30,17 @@ func NewGenericRecord(schema Schema) *GenericRecord {
 	}
 }
 
+// Gets a value by its name.
 func (this *GenericRecord) Get(name string) interface{} {
 	return this.fields[name]
 }
 
+// Sets a value for a given name.
 func (this *GenericRecord) Set(name string, value interface{}) {
 	this.fields[name] = value
 }
 
+// Returns a schema for this GenericRecord.
 func (this *GenericRecord) Schema() Schema {
 	return this.schema
 }

@@ -23,6 +23,7 @@ import (
 	"strings"
 )
 
+// CodeGenerator is a code generation tool for structs from given Avro schemas.
 type CodeGenerator struct {
 	rawSchemas []string
 
@@ -31,6 +32,7 @@ type CodeGenerator struct {
 	schemaDefinitions *bytes.Buffer
 }
 
+// Creates a new CodeGenerator for given Avro schemas.
 func NewCodeGenerator(schemas []string) *CodeGenerator {
 	return &CodeGenerator{
 		rawSchemas:        schemas,
@@ -78,6 +80,9 @@ func newEnumSchemaInfo(schema *EnumSchema) (*enumSchemaInfo, error) {
 	}, nil
 }
 
+// Generates source code for Avro schemas specified on creation.
+// The ouput is Go formatted source code that contains struct definitions for all given schemas.
+// May return an error if code generation fails, e.g. due to unparsable schema.
 func (this *CodeGenerator) Generate() (string, error) {
 	for index, rawSchema := range this.rawSchemas {
 		parsedSchema, err := ParseSchema(rawSchema)

@@ -6,30 +6,40 @@ import (
 	"reflect"
 )
 
+// DatumWriter is an interface that is responsible for writing structured data according to schema to an encoder.
 type DatumWriter interface {
-	SetSchema(Schema)
-	// Write accepts a pointer to the object to be written and an Encoder, and writes
-	// the Avro representation of the object to the Encoder’s buffer.
-	// Note that `obj` **must** be a pointer to an object or you will probably get
-	// a panic.
+	// Write writes a single entry using this DatumWriter according to provided Schema.
+	// Accepts a value to write and Encoder to write to.
+	// May return an error indicating a write failure.
 	Write(interface{}, Encoder)
+
+	// Sets the schema for this DatumWriter to know the data structure.
+	// Note that it must be called before calling Write.
+	SetSchema(Schema)
 }
 
+// SpecificDatumWriter implements DatumWriter and is used for writing Go structs in Avro format.
 type SpecificDatumWriter struct {
 	schema Schema
 }
 
+// Creates a new SpecificDatumWriter.
 func NewSpecificDatumWriter() *SpecificDatumWriter {
 	return &SpecificDatumWriter{}
 }
 
+// Sets the schema for this SpecificDatumWriter to know the data structure.
+// Note that it must be called before calling Write.
 func (this *SpecificDatumWriter) SetSchema(schema Schema) {
 	this.schema = schema
 }
 
-// Write accepts a pointer to the object to be written and an Encoder, and writes
-// the Avro representation of the object to the Encoder’s buffer.
-// Note that `obj` **must** be a pointer to an object or you will probably get a panic.
+// Write writes a single Go struct using this SpecificDatumWriter according to provided Schema.
+// Accepts a value to write and Encoder to write to. Field names should match field names in Avro schema but be exported
+// (e.g. "some_value" in Avro schema is expected to be Some_value in struct) or you may provide Go struct tags to
+// explicitly show how to map fields (e.g. if you want to map "some_value" field of type int to SomeValue in Go struct
+// you should define your struct field as follows: SomeValue int32 `avro:"some_field"`).
+// May return an error indicating a write failure.
 func (this *SpecificDatumWriter) Write(obj interface{}, enc Encoder) error {
 	rv := reflect.ValueOf(obj)
 
@@ -228,18 +238,27 @@ func (this *SpecificDatumWriter) writeRecord(v reflect.Value, enc Encoder, s Sch
 	return nil
 }
 
+// GenericDatumWriter implements DatumWriter and is used for writing GenericRecords or other Avro supported types
+// (full list is: interface{}, bool, int32, int64, float32, float64, string, slices of any type, maps with string keys
+// and any values, GenericEnums) to a given Encoder.
 type GenericDatumWriter struct {
 	schema Schema
 }
 
+// Creates a new GenericDatumWriter.
 func NewGenericDatumWriter() *GenericDatumWriter {
 	return &GenericDatumWriter{}
 }
 
+// Sets the schema for this GenericDatumWriter to know the data structure.
+// Note that it must be called before calling Write.
 func (this *GenericDatumWriter) SetSchema(schema Schema) {
 	this.schema = schema
 }
 
+// Write writes a single entry using this GenericDatumWriter according to provided Schema.
+// Accepts a value to write and Encoder to write to.
+// May return an error indicating a write failure.
 func (this *GenericDatumWriter) Write(obj interface{}, enc Encoder) error {
 	return this.write(obj, enc, this.schema)
 }
