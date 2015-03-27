@@ -8,15 +8,18 @@ import (
 	"math"
 )
 
-var VERSION byte = 1
-var MAGIC []byte = []byte{'O', 'b', 'j', VERSION}
+const (
+	version    byte = 1
+	sync_size       = 16
+	schema_key      = "avro.schema"
+	codec_key       = "avro.codec"
+)
 
-var SYNC_SIZE = 16
-var SCHEMA_KEY = "avro.schema"
-var CODEC_KEY = "avro.codec"
+var magic []byte = []byte{'O', 'b', 'j', version}
 
-var syncBuffer = make([]byte, SYNC_SIZE)
+var syncBuffer = make([]byte, sync_size)
 
+// DataFileReader is a reader for Avro Object Container Files. More here: https://avro.apache.org/docs/current/spec.html#Object+Container+Files
 type DataFileReader struct {
 	data         []byte
 	header       *header
@@ -34,16 +37,18 @@ type header struct {
 func newHeader() *header {
 	header := &header{}
 	header.meta = make(map[string][]byte)
-	header.sync = make([]byte, SYNC_SIZE)
+	header.sync = make([]byte, sync_size)
 
 	return header
 }
 
+// Creates a new DataFileReader for a given file and using the given DatumReader to read the data from that file.
+// May return an error if the file contains invalid data or is just missing.
 func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReader, error) {
 	if buf, err := ioutil.ReadFile(filename); err != nil {
 		return nil, err
 	} else {
-		if len(buf) < len(MAGIC) || !bytes.Equal(MAGIC, buf[0:4]) {
+		if len(buf) < len(magic) || !bytes.Equal(magic, buf[0:4]) {
 			return nil, NotAvroFile
 		}
 
@@ -87,7 +92,7 @@ func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReade
 		dec.ReadFixed(reader.header.sync)
 		//TODO codec?
 
-		schema, err := ParseSchema(string(reader.header.meta[SCHEMA_KEY]))
+		schema, err := ParseSchema(string(reader.header.meta[schema_key]))
 		if err != nil {
 			return nil, err
 		}
@@ -104,6 +109,7 @@ func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReade
 	}
 }
 
+// Switches the reading position in this DataFileReader to a provided value.
 func (this *DataFileReader) Seek(pos int64) {
 	this.dec.Seek(pos)
 }
@@ -128,6 +134,10 @@ func (this *DataFileReader) hasNextBlock() bool {
 	return int64(len(this.data)) > this.dec.Tell()
 }
 
+// Reads the next value from file and fills the given value with data.
+// First return value indicates whether the read was successful.
+// Second return value indicates whether there was an error while reading data.
+// Returns (false, nil) when no more data left to read.
 func (this *DataFileReader) Next(v interface{}) (bool, error) {
 	if hasNext, err := this.hasNext(); err != nil {
 		return false, err
@@ -146,6 +156,8 @@ func (this *DataFileReader) Next(v interface{}) (bool, error) {
 	return false, nil
 }
 
+// Tells this DataFileReader to skip current block and move to next one.
+// May return an error if the block is malformed or no more blocks left to read.
 func (this *DataFileReader) NextBlock() error {
 	if blockCount, err := this.dec.ReadLong(); err != nil {
 		return err
