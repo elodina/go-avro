@@ -63,7 +63,7 @@ func TestSpecificDatumWriterComplex(t *testing.T) {
 	r.SetSchema(complex.Schema())
 
 	decodedComplex := newComplex()
-	_, err = r.Read(decodedComplex, dec)
+	err = r.Read(decodedComplex, dec)
 	assert(t, err, nil)
 
 	assert(t, decodedComplex.StringArray, complex.StringArray)
@@ -101,7 +101,7 @@ func TestSpecificDatumWriterRecursive(t *testing.T) {
 	r.SetSchema(employee1.Schema())
 
 	decodedEmployee := newEmployee()
-	_, err = r.Read(decodedEmployee, dec)
+	err = r.Read(decodedEmployee, dec)
 	assert(t, err, nil)
 
 	assert(t, decodedEmployee.Name, employee1.Name)

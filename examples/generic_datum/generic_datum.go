@@ -52,13 +52,11 @@ var rawSchema = `{
    ]
 }`
 
+var rawPrimitiveSchema = `{"type" : "string"}`
+
 func main() {
 	// Parse the schema first
-	schema, err := avro.ParseSchema(rawSchema)
-	if err != nil {
-		// Should not happen if the schema is valid
-		panic(err)
-	}
+	schema := avro.MustParseSchema(rawSchema)
 
 	// Create a record for a given schema
 	record := avro.NewGenericRecord(schema)
@@ -87,7 +85,10 @@ func main() {
 	encoder := avro.NewBinaryEncoder(buffer)
 
 	// Write the record
-	writer.Write(record, encoder)
+	err := writer.Write(record, encoder)
+	if err != nil {
+		panic(err)
+	}
 
 	reader := avro.NewGenericDatumReader()
 	// SetSchema must be called before calling Read
@@ -96,21 +97,20 @@ func main() {
 	// Create a new Decoder with a given buffer
 	decoder := avro.NewBinaryDecoder(buffer.Bytes())
 
-	// Read a new GenericRecord with a given Decoder. The first parameter to Read should be nil for GenericDatumReader
-	decodedRecord, err := reader.Read(nil, decoder)
+	decodedRecord := avro.NewGenericRecord(schema)
+	// Read data into given GenericRecord with a given Decoder. The first parameter to Read should be something to read into
+	err = reader.Read(decodedRecord, decoder)
 	if err != nil {
 		panic(err)
 	}
 
-	// GenericDatumReader always returns a *avro.GenericRecord, so it's safe to do a type assertion
-	decodedGenericRecord := decodedRecord.(*avro.GenericRecord)
-	decodedValue := decodedGenericRecord.Get("value").(int32)
+	decodedValue := decodedRecord.Get("value").(int32)
 	if value != decodedValue {
 		panic("Something went terribly wrong!")
 	}
 	fmt.Printf("Read a value: %d\n", decodedValue)
 
-	decodedArray := decodedGenericRecord.Get("rec").([]interface{})
+	decodedArray := decodedRecord.Get("rec").([]interface{})
 	if len(decodedArray) != 2 {
 		panic("Something went terribly wrong!")
 	}
@@ -120,4 +120,43 @@ func main() {
 		fmt.Printf("Read a subrecord %d string value: %s\n", index, r.Get("stringValue"))
 		fmt.Printf("Read a subrecord %d int value: %d\n", index, r.Get("intValue"))
 	}
+
+	// The same should work for primitives
+	primitiveSchema := avro.MustParseSchema(rawPrimitiveSchema)
+
+	// Define a primitive value to encode
+	primitiveValue := "hello world"
+
+	// Create a new Buffer and Encoder to write to this Buffer
+	buffer = new(bytes.Buffer)
+	encoder = avro.NewBinaryEncoder(buffer)
+
+	primitiveWriter := avro.NewGenericDatumWriter()
+	// SetSchema must be called before calling Write
+	primitiveWriter.SetSchema(primitiveSchema)
+
+	// Write the primitive
+	err = primitiveWriter.Write(primitiveValue, encoder)
+	if err != nil {
+		panic(err)
+	}
+
+	reader = avro.NewGenericDatumReader()
+	// SetSchema must be called before calling Read
+	reader.SetSchema(primitiveSchema)
+
+	// Create a new Decoder with a given buffer
+	decoder = avro.NewBinaryDecoder(buffer.Bytes())
+
+	decodedPrimitive := ""
+	// Read data into given GenericRecord with a given Decoder. The first parameter to Read should be something to read into
+	err = reader.Read(&decodedPrimitive, decoder)
+	if err != nil {
+		panic(err)
+	}
+
+	if primitiveValue != decodedPrimitive {
+		panic("Something went terribly wrong!")
+	}
+	fmt.Printf("Read a primitive value: %s\n", decodedPrimitive)
 }

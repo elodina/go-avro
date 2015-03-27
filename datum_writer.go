@@ -241,18 +241,7 @@ func (this *GenericDatumWriter) SetSchema(schema Schema) {
 }
 
 func (this *GenericDatumWriter) Write(obj interface{}, enc Encoder) error {
-	switch record := obj.(type) {
-	case *GenericRecord:
-		{
-			if this.schema == nil {
-				return SchemaNotSet
-			}
-
-			return this.write(record, enc, this.schema)
-		}
-	default:
-		return errors.New("GenericDatumWriter expects a *GenericRecord to fill")
-	}
+	return this.write(obj, enc, this.schema)
 }
 
 func (this *GenericDatumWriter) write(v interface{}, enc Encoder, s Schema) error {
