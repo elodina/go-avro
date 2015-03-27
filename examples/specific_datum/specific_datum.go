@@ -68,9 +68,8 @@ func main() {
 	// Create a new TestRecord to decode data into
 	decodedRecord := new(TestRecord)
 
-	// Read data into a given record with a given Decoder. Unlike GenericDatumReader the first paramter should be the value to map data into.
-	// This inconsistency sucks, will try to fix this a bit later.
-	_, err = reader.Read(decodedRecord, decoder)
+	// Read data into a given record with a given Decoder.
+	err = reader.Read(decodedRecord, decoder)
 	if err != nil {
 		panic(err)
 	}
@@ -79,5 +78,5 @@ func main() {
 		panic("Something went terribly wrong!")
 	}
 
-	fmt.Printf("Read a value: %d", decodedRecord.Value)
+	fmt.Printf("Read a value: %d\n", decodedRecord.Value)
 }

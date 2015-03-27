@@ -7,7 +7,7 @@ import (
 )
 
 type DatumReader interface {
-	Read(interface{}, Decoder) (interface{}, error)
+	Read(interface{}, Decoder) error
 	SetSchema(Schema)
 }
 
@@ -62,13 +62,13 @@ func (this *SpecificDatumReader) SetSchema(schema Schema) {
 	this.schema = schema
 }
 
-func (this *SpecificDatumReader) Read(v interface{}, dec Decoder) (interface{}, error) {
+func (this *SpecificDatumReader) Read(v interface{}, dec Decoder) error {
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
-		return nil, errors.New("Not applicable for non-pointer types or nil")
+		return errors.New("Not applicable for non-pointer types or nil")
 	}
 	if this.schema == nil {
-		return nil, SchemaNotSet
+		return SchemaNotSet
 	}
 
 	sch := this.schema.(*RecordSchema)
@@ -77,7 +77,7 @@ func (this *SpecificDatumReader) Read(v interface{}, dec Decoder) (interface{}, 
 		this.findAndSet(v, field, dec)
 	}
 
-	return v, nil
+	return nil
 }
 
 func (this *SpecificDatumReader) findAndSet(v interface{}, field *SchemaField, dec Decoder) error {
@@ -274,12 +274,32 @@ func (this *GenericDatumReader) SetSchema(schema Schema) {
 	this.schema = schema
 }
 
-func (this *GenericDatumReader) Read(v interface{}, dec Decoder) (interface{}, error) {
+func (this *GenericDatumReader) Read(v interface{}, dec Decoder) error {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() != reflect.Ptr || rv.IsNil() {
+		return errors.New("Not applicable for non-pointer types or nil")
+	}
+	rv = rv.Elem()
 	if this.schema == nil {
-		return nil, SchemaNotSet
+		return SchemaNotSet
 	}
 
-	return this.readValue(this.schema, dec)
+	//read the value
+	value, err := this.readValue(this.schema, dec)
+	if err != nil {
+		return err
+	}
+
+	newValue := reflect.ValueOf(value)
+	// dereference the value if needed
+	if newValue.Kind() == reflect.Ptr {
+		newValue = newValue.Elem()
+	}
+
+	//set the new value
+	rv.Set(newValue)
+
+	return nil
 }
 
 func (this *GenericDatumReader) findAndSet(record *GenericRecord, field *SchemaField, dec Decoder) error {

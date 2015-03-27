@@ -67,15 +67,14 @@ func main() {
 	decoder := avro.NewBinaryDecoder(buffer.Bytes())
 
 	// Read a new GenericRecord with a given Decoder. The first parameter to Read should be nil for GenericDatumReader
-	decodedRecord, err := reader.Read(nil, decoder)
+	decodedRecord := avro.NewGenericRecord(schema)
+	err = reader.Read(decodedRecord, decoder)
 	if err != nil {
 		panic(err)
 	}
 
-	// GenericDatumReader always returns a *avro.GenericRecord, so it's safe to do a type assertion
-	decodedGenericRecord := decodedRecord.(*avro.GenericRecord)
 	// Check whether the user got decoded correctly
-	decodedUser := decodedGenericRecord.Get("user")
+	decodedUser := decodedRecord.Get("user")
 	decodedUserName := decodedUser.(*avro.GenericRecord).Get("name")
 	if decodedUserName.(string) != "Some User" {
 		panic("Something went terribly wrong!")
