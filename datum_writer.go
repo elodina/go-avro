@@ -11,7 +11,7 @@ type DatumWriter interface {
 	// Write writes a single entry using this DatumWriter according to provided Schema.
 	// Accepts a value to write and Encoder to write to.
 	// May return an error indicating a write failure.
-	Write(interface{}, Encoder)
+	Write(interface{}, Encoder) error
 
 	// Sets the schema for this DatumWriter to know the data structure.
 	// Note that it must be called before calling Write.

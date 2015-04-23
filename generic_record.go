@@ -15,6 +15,10 @@ limitations under the License. */
 
 package avro
 
+type AvroRecord interface {
+	Schema() Schema
+}
+
 // GenericRecord is a generic instance of a record schema.
 // Fields are accessible by their name.
 type GenericRecord struct {
