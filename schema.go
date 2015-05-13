@@ -197,7 +197,7 @@ func (*IntSchema) Prop(key string) (string, bool) {
 
 // Checks whether the given value is writeable to this schema.
 func (*IntSchema) Validate(v reflect.Value) bool {
-	return dereference(v).Kind() == reflect.Int32
+	return reflect.TypeOf(dereference(v).Interface()).Kind() == reflect.Int32
 }
 
 func (this *IntSchema) MarshalJSON() ([]byte, error) {
@@ -229,7 +229,7 @@ func (*LongSchema) Prop(key string) (string, bool) {
 
 // Checks whether the given value is writeable to this schema.
 func (*LongSchema) Validate(v reflect.Value) bool {
-	return dereference(v).Kind() == reflect.Int64
+	return reflect.TypeOf(dereference(v).Interface()).Kind() == reflect.Int64
 }
 
 func (this *LongSchema) MarshalJSON() ([]byte, error) {
@@ -261,7 +261,7 @@ func (*FloatSchema) Prop(key string) (string, bool) {
 
 // Checks whether the given value is writeable to this schema.
 func (*FloatSchema) Validate(v reflect.Value) bool {
-	return dereference(v).Kind() == reflect.Float32
+	return reflect.TypeOf(dereference(v).Interface()).Kind() == reflect.Float32
 }
 
 func (this *FloatSchema) MarshalJSON() ([]byte, error) {
@@ -293,7 +293,7 @@ func (*DoubleSchema) Prop(key string) (string, bool) {
 
 // Checks whether the given value is writeable to this schema.
 func (*DoubleSchema) Validate(v reflect.Value) bool {
-	return dereference(v).Kind() == reflect.Float64
+	return reflect.TypeOf(dereference(v).Interface()).Kind() == reflect.Float64
 }
 
 func (this *DoubleSchema) MarshalJSON() ([]byte, error) {
