@@ -188,14 +188,14 @@ func (this *SpecificDatumReader) mapArray(field Schema, reflectField reflect.Val
 					return reflect.ValueOf(arrayLength), err
 				}
 
-                pointer := reflectField.Type().Elem().Kind() == reflect.Ptr
+				pointer := reflectField.Type().Elem().Kind() == reflect.Ptr
 
-                if pointer && val.Kind() != reflect.Ptr {
-                    val = val.Addr()
-                } else if !pointer && val.Kind() == reflect.Ptr {
-                    val = val.Elem()
-                }
-                arrayPart.Index(int(i)).Set(val)
+				if pointer && val.Kind() != reflect.Ptr {
+					val = val.Addr()
+				} else if !pointer && val.Kind() == reflect.Ptr {
+					val = val.Elem()
+				}
+				arrayPart.Index(int(i)).Set(val)
 			}
 			//concatenate arrays
 			concatArray := reflect.MakeSlice(reflectField.Type(), array.Len()+int(arrayLength), array.Cap()+int(arrayLength))
