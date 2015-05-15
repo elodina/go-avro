@@ -359,6 +359,8 @@ func (*NullSchema) Prop(key string) (string, bool) {
 func (*NullSchema) Validate(v reflect.Value) bool {
 	// Check if the value is something that can be null
 	switch v.Kind() {
+	case reflect.Interface:
+		return v.IsNil()
 	case reflect.Array:
 		return v.Cap() == 0
 	case reflect.Slice:
