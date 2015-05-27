@@ -30,6 +30,22 @@ var rawSchema = `{
          "type":"int"
       },
       {
+         "name":"union",
+         "type":[ {
+		    "name":"union1",
+			"type":"string"
+         },
+         {
+            "name":"union2",
+            "type":"boolean"
+         },
+         {
+            "name":"union3",
+            "type":"int"
+         }],
+         "default":"null"
+	  },
+      {
          "name":"rec",
          "type":{
             "type":"array",
@@ -70,6 +86,9 @@ func main() {
 	record := avro.NewGenericRecord(schema)
 	value := int32(3)
 	record.Set("value", value)
+
+	var unionValue int32 = 1234
+	record.Set("union", unionValue)
 
 	subRecords := make([]*avro.GenericRecord, 2)
 	subRecord0 := avro.NewGenericRecord(schema)
@@ -119,6 +138,12 @@ func main() {
 		panic("Something went terribly wrong!")
 	}
 	fmt.Printf("Read a value: %d\n", decodedValue)
+
+	decodedUnionValue := decodedRecord.Get("union").(int32)
+	if unionValue != decodedUnionValue {
+		panic("Something went terribly wrong!")
+	}
+	fmt.Printf("Read a union value: %d\n", decodedUnionValue)
 
 	decodedArray := decodedRecord.Get("rec").([]interface{})
 	if len(decodedArray) != 2 {
@@ -170,4 +195,5 @@ func main() {
 		panic("Something went terribly wrong!")
 	}
 	fmt.Printf("Read a primitive value: %s\n", decodedPrimitive)
+
 }
