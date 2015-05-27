@@ -44,6 +44,14 @@ var rawSchema = `{
                   {
                      "name":"intValue",
                      "type":"int"
+                  },
+                  {
+                     "name" : "fruits",
+                     "type" : {
+                        "type" : "enum",
+                        "name" : "FruitNames",
+                        "symbols" : [ "apple", "banana", "pear", "plum" ]
+                     }
                   }
                ]
             }
@@ -67,11 +75,13 @@ func main() {
 	subRecord0 := avro.NewGenericRecord(schema)
 	subRecord0.Set("stringValue", "Hello")
 	subRecord0.Set("intValue", int32(1))
+	subRecord0.Set("fruits", "apple")
 	subRecords[0] = subRecord0
 
 	subRecord1 := avro.NewGenericRecord(schema)
 	subRecord1.Set("stringValue", "World")
 	subRecord1.Set("intValue", int32(2))
+	subRecord1.Set("fruits", "pear")
 	subRecords[1] = subRecord1
 
 	record.Set("rec", subRecords)
@@ -119,6 +129,7 @@ func main() {
 		r := decodedSubRecord.(*avro.GenericRecord)
 		fmt.Printf("Read a subrecord %d string value: %s\n", index, r.Get("stringValue"))
 		fmt.Printf("Read a subrecord %d int value: %d\n", index, r.Get("intValue"))
+		fmt.Println("Read a subrecord:", index, "value:", r.Get("fruits"))
 	}
 
 	// The same should work for primitives

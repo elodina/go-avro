@@ -417,6 +417,17 @@ func (this *GenericDatumWriter) writeEnum(v interface{}, enc Encoder, s Schema) 
 			for i := range rs.Symbols {
 				if rs.Name == rs.Symbols[i] {
 					this.writeInt(i, enc)
+					break;
+				}
+			}
+		}
+	case string:
+		{
+			rs := s.(*EnumSchema)
+			for i := range rs.Symbols {
+				if v.(string) == rs.Symbols[i] {
+					enc.WriteInt(int32(i))
+					break
 				}
 			}
 		}
