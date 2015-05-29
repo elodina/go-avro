@@ -1031,8 +1031,28 @@ func parseSchemaField(i interface{}, registry map[string]Schema, namespace strin
 		}
 		schemaField.Type = fieldType
 		if def, exists := v[schema_defaultField]; exists {
-			schemaField.Default = def
+			switch def.(type) {
+				case float64:
+					// JSON treats all numbers as float64 by default
+					switch schemaField.Type.Type() {
+						case Int:
+							var converted int32 = int32(def.(float64))
+							schemaField.Default = converted
+						case Long:
+							var converted int64 = int64(def.(float64))
+							schemaField.Default = converted
+						case Float:
+							var converted float32 = float32(def.(float64))
+							schemaField.Default = converted
+
+						default:
+							schemaField.Default = def
+					}
+				default:
+					schemaField.Default = def
+			}
 		}
+
 		return schemaField, nil
 	}
 

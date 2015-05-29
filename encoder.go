@@ -51,6 +51,8 @@ type Encoder interface {
 
 	// Writes raw bytes to this Encoder.
 	WriteRaw([]byte)
+
+	Tell() int64
 }
 
 // BinaryEncoder implements Encoder and provides low-level support for serializing Avro values.
@@ -66,6 +68,10 @@ func NewBinaryEncoder(buffer *bytes.Buffer) *BinaryEncoder {
 // Writes a null value. Doesn't actually do anything in this implementation.
 func (this *BinaryEncoder) WriteNull(_ interface{}) {
 	//do nothing
+}
+
+func (this *BinaryEncoder) Tell() int64 {
+	return int64(this.buffer.Len())
 }
 
 // Writes a boolean value.

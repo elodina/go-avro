@@ -30,6 +30,26 @@ var rawSchema = `{
          "type":"int"
       },
       {
+         "name":"defval1",
+         "type":"int",
+         "default":1234
+      },
+      {
+         "name":"defval2",
+         "type":"boolean",
+         "default":true
+      },
+      {
+         "name":"defval3",
+         "type":"double",
+         "default":567.89
+      },
+      {
+         "name":"defval4",
+         "type":"long",
+         "default":2345
+      },
+      {
          "name":"union",
          "type":[ {
 		    "name":"union1",
@@ -144,6 +164,27 @@ func main() {
 		panic("Something went terribly wrong!")
 	}
 	fmt.Printf("Read a union value: %d\n", decodedUnionValue)
+
+	defVal1, ok := decodedRecord.Get("defval1").(int32)
+	if !ok {
+		panic("Something went terribly wrong!")
+	}
+	defVal2, ok := decodedRecord.Get("defval2").(bool)
+	if !ok {
+		panic("Something went terribly wrong!")
+	}
+	defVal3, ok := decodedRecord.Get("defval3").(float64)
+	if !ok {
+		panic("Something went terribly wrong!")
+	}
+	defVal4, ok := decodedRecord.Get("defval4").(int64)
+	if !ok {
+		panic("Something went terribly wrong!")
+	}
+	fmt.Println("Read the first default value: ", defVal1)
+	fmt.Println("Read the second default value: ", defVal2)
+	fmt.Println("Read the third default value: ", defVal3)
+	fmt.Println("Read the fourth default value: ", defVal4)
 
 	decodedArray := decodedRecord.Get("rec").([]interface{})
 	if len(decodedArray) != 2 {

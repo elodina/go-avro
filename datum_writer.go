@@ -499,6 +499,9 @@ func (this *GenericDatumWriter) writeRecord(v interface{}, enc Encoder, s Schema
 			for i := range rs.Fields {
 				schemaField := rs.Fields[i]
 				field := value.Get(schemaField.Name)
+				if field == nil {
+					field = schemaField.Default
+				}
 				this.write(field, enc, schemaField.Type)
 			}
 		}
