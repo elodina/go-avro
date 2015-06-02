@@ -456,7 +456,9 @@ func (rs *RecordSchema) Validate(v reflect.Value) bool {
 	}
 	rec, ok := v.Interface().(GenericRecord)
 	if !ok {
-		return false
+		// This is not a generic record and is likely a specific record. Hence
+		// use the basic check.
+		return v.Kind() == reflect.Struct
 	}
 
 	field_count := 0
