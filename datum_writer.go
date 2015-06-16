@@ -417,7 +417,7 @@ func (this *GenericDatumWriter) writeEnum(v interface{}, enc Encoder, s Schema) 
 			for i := range rs.Symbols {
 				if rs.Name == rs.Symbols[i] {
 					this.writeInt(i, enc)
-					break;
+					break
 				}
 			}
 		}
@@ -442,7 +442,7 @@ func (this *GenericDatumWriter) writeUnion(v interface{}, enc Encoder, s Schema)
 	unionSchema := s.(*UnionSchema)
 
 	index := unionSchema.GetType(reflect.ValueOf(v))
-	if (index != -1) {
+	if index != -1 {
 		enc.WriteInt(int32(index))
 		return this.write(v, enc, unionSchema.Types[index])
 	}
