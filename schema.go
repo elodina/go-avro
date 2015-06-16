@@ -451,8 +451,39 @@ func (this *RecordSchema) Prop(key string) (string, bool) {
 // Checks whether the given value is writeable to this schema.
 func (rs *RecordSchema) Validate(v reflect.Value) bool {
 	v = dereference(v)
+	if v.Kind() != reflect.Struct || !v.CanAddr() || !v.CanInterface() {
+		return false
+	}
+	rec, ok := v.Interface().(GenericRecord)
+	if !ok {
+		// This is not a generic record and is likely a specific record. Hence
+		// use the basic check.
+		return v.Kind() == reflect.Struct
+	}
 
-	return v.Kind() == reflect.Struct
+	field_count := 0
+	for key, val := range rec.fields {
+		for idx := range rs.Fields {
+			// key.Name must have rs.Fields[idx].Name as a suffix
+			if len(rs.Fields[idx].Name) <= len(key) {
+				lhs := key[len(key) - len(rs.Fields[idx].Name) : len(key)]
+				if lhs == rs.Fields[idx].Name {
+					if !rs.Fields[idx].Type.Validate(reflect.ValueOf(val)) {
+						return false
+					}
+					field_count ++
+					break
+				}
+			}
+		}
+	}
+
+	// All of the fields set must be accounted for in the union.
+	if field_count < len(rec.fields) {
+		return false
+	}
+
+	return true
 }
 
 // RecursiveSchema implements Schema and represents Avro record type without a definition (e.g. that should be looked up).
@@ -752,7 +783,6 @@ func (this *UnionSchema) GetType(v reflect.Value) int {
 // Checks whether the given value is writeable to this schema.
 func (this *UnionSchema) Validate(v reflect.Value) bool {
 	v = dereference(v)
-
 	for i := range this.Types {
 		if t := this.Types[i]; t.Validate(v) {
 			return true
@@ -1003,8 +1033,28 @@ func parseSchemaField(i interface{}, registry map[string]Schema, namespace strin
 		}
 		schemaField.Type = fieldType
 		if def, exists := v[schema_defaultField]; exists {
-			schemaField.Default = def
+			switch def.(type) {
+				case float64:
+					// JSON treats all numbers as float64 by default
+					switch schemaField.Type.Type() {
+						case Int:
+							var converted int32 = int32(def.(float64))
+							schemaField.Default = converted
+						case Long:
+							var converted int64 = int64(def.(float64))
+							schemaField.Default = converted
+						case Float:
+							var converted float32 = float32(def.(float64))
+							schemaField.Default = converted
+
+						default:
+							schemaField.Default = def
+					}
+				default:
+					schemaField.Default = def
+			}
 		}
+
 		return schemaField, nil
 	}
 

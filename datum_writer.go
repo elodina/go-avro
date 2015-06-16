@@ -417,6 +417,17 @@ func (this *GenericDatumWriter) writeEnum(v interface{}, enc Encoder, s Schema) 
 			for i := range rs.Symbols {
 				if rs.Name == rs.Symbols[i] {
 					this.writeInt(i, enc)
+					break;
+				}
+			}
+		}
+	case string:
+		{
+			rs := s.(*EnumSchema)
+			for i := range rs.Symbols {
+				if v.(string) == rs.Symbols[i] {
+					enc.WriteInt(int32(i))
+					break
 				}
 			}
 		}
@@ -429,12 +440,11 @@ func (this *GenericDatumWriter) writeEnum(v interface{}, enc Encoder, s Schema) 
 
 func (this *GenericDatumWriter) writeUnion(v interface{}, enc Encoder, s Schema) error {
 	unionSchema := s.(*UnionSchema)
-	if this.isWritableAs(v, unionSchema.Types[0]) {
-		enc.WriteInt(0)
-		return this.write(v, enc, unionSchema.Types[0])
-	} else if this.isWritableAs(v, unionSchema.Types[1]) {
-		enc.WriteInt(1)
-		return this.write(v, enc, unionSchema.Types[1])
+
+	index := unionSchema.GetType(reflect.ValueOf(v))
+	if (index != -1) {
+		enc.WriteInt(int32(index))
+		return this.write(v, enc, unionSchema.Types[index])
 	}
 
 	return fmt.Errorf("Could not write %v as %s", v, s)
@@ -489,6 +499,9 @@ func (this *GenericDatumWriter) writeRecord(v interface{}, enc Encoder, s Schema
 			for i := range rs.Fields {
 				schemaField := rs.Fields[i]
 				field := value.Get(schemaField.Name)
+				if field == nil {
+					field = schemaField.Default
+				}
 				this.write(field, enc, schemaField.Type)
 			}
 		}

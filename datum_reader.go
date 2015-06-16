@@ -347,7 +347,17 @@ func (this *GenericDatumReader) findAndSet(record *GenericRecord, field *SchemaF
 	if err != nil {
 		return err
 	}
-	record.Set(field.Name, value)
+
+	switch typedValue := value.(type) {
+		case *GenericEnum:
+			if typedValue.GetIndex() >= int32(len(typedValue.Symbols)) {
+				return errors.New("Enum index invalid!")
+			}
+			record.Set(field.Name, typedValue.Symbols[typedValue.GetIndex()])
+
+		default:
+			record.Set(field.Name, value)
+	}
 
 	return nil
 }

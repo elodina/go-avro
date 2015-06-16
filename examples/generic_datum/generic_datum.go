@@ -30,6 +30,42 @@ var rawSchema = `{
          "type":"int"
       },
       {
+         "name":"defval1",
+         "type":"int",
+         "default":1234
+      },
+      {
+         "name":"defval2",
+         "type":"boolean",
+         "default":true
+      },
+      {
+         "name":"defval3",
+         "type":"double",
+         "default":567.89
+      },
+      {
+         "name":"defval4",
+         "type":"long",
+         "default":2345
+      },
+      {
+         "name":"union",
+         "type":[ {
+		    "name":"union1",
+			"type":"string"
+         },
+         {
+            "name":"union2",
+            "type":"boolean"
+         },
+         {
+            "name":"union3",
+            "type":"int"
+         }],
+         "default":"null"
+	  },
+      {
          "name":"rec",
          "type":{
             "type":"array",
@@ -44,6 +80,14 @@ var rawSchema = `{
                   {
                      "name":"intValue",
                      "type":"int"
+                  },
+                  {
+                     "name" : "fruits",
+                     "type" : {
+                        "type" : "enum",
+                        "name" : "FruitNames",
+                        "symbols" : [ "apple", "banana", "pear", "plum" ]
+                     }
                   }
                ]
             }
@@ -63,15 +107,20 @@ func main() {
 	value := int32(3)
 	record.Set("value", value)
 
+	var unionValue int32 = 1234
+	record.Set("union", unionValue)
+
 	subRecords := make([]*avro.GenericRecord, 2)
 	subRecord0 := avro.NewGenericRecord(schema)
 	subRecord0.Set("stringValue", "Hello")
 	subRecord0.Set("intValue", int32(1))
+	subRecord0.Set("fruits", "apple")
 	subRecords[0] = subRecord0
 
 	subRecord1 := avro.NewGenericRecord(schema)
 	subRecord1.Set("stringValue", "World")
 	subRecord1.Set("intValue", int32(2))
+	subRecord1.Set("fruits", "pear")
 	subRecords[1] = subRecord1
 
 	record.Set("rec", subRecords)
@@ -110,6 +159,33 @@ func main() {
 	}
 	fmt.Printf("Read a value: %d\n", decodedValue)
 
+	decodedUnionValue := decodedRecord.Get("union").(int32)
+	if unionValue != decodedUnionValue {
+		panic("Something went terribly wrong!")
+	}
+	fmt.Printf("Read a union value: %d\n", decodedUnionValue)
+
+	defVal1, ok := decodedRecord.Get("defval1").(int32)
+	if !ok {
+		panic("Something went terribly wrong!")
+	}
+	defVal2, ok := decodedRecord.Get("defval2").(bool)
+	if !ok {
+		panic("Something went terribly wrong!")
+	}
+	defVal3, ok := decodedRecord.Get("defval3").(float64)
+	if !ok {
+		panic("Something went terribly wrong!")
+	}
+	defVal4, ok := decodedRecord.Get("defval4").(int64)
+	if !ok {
+		panic("Something went terribly wrong!")
+	}
+	fmt.Println("Read the first default value: ", defVal1)
+	fmt.Println("Read the second default value: ", defVal2)
+	fmt.Println("Read the third default value: ", defVal3)
+	fmt.Println("Read the fourth default value: ", defVal4)
+
 	decodedArray := decodedRecord.Get("rec").([]interface{})
 	if len(decodedArray) != 2 {
 		panic("Something went terribly wrong!")
@@ -119,6 +195,7 @@ func main() {
 		r := decodedSubRecord.(*avro.GenericRecord)
 		fmt.Printf("Read a subrecord %d string value: %s\n", index, r.Get("stringValue"))
 		fmt.Printf("Read a subrecord %d int value: %d\n", index, r.Get("intValue"))
+		fmt.Println("Read a subrecord:", index, "value:", r.Get("fruits"))
 	}
 
 	// The same should work for primitives
@@ -159,4 +236,5 @@ func main() {
 		panic("Something went terribly wrong!")
 	}
 	fmt.Printf("Read a primitive value: %s\n", decodedPrimitive)
+
 }
