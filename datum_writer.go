@@ -6,6 +6,12 @@ import (
 	"reflect"
 )
 
+// Reader is an interface that may be implemented to avoid using runtime reflection during serialization.
+// Implementing it is optional and may be used as an optimization. Falls back to using reflection if not implemented.
+type Writer interface {
+	Write(enc Encoder) error
+}
+
 // DatumWriter is an interface that is responsible for writing structured data according to schema to an encoder.
 type DatumWriter interface {
 	// Write writes a single entry using this DatumWriter according to provided Schema.
@@ -41,6 +47,10 @@ func (this *SpecificDatumWriter) SetSchema(schema Schema) {
 // you should define your struct field as follows: SomeValue int32 `avro:"some_field"`).
 // May return an error indicating a write failure.
 func (this *SpecificDatumWriter) Write(obj interface{}, enc Encoder) error {
+	if writer, ok := obj.(Writer); ok {
+		return writer.Write(enc)
+	}
+
 	rv := reflect.ValueOf(obj)
 
 	if this.schema == nil {
@@ -417,7 +427,7 @@ func (this *GenericDatumWriter) writeEnum(v interface{}, enc Encoder, s Schema) 
 			for i := range rs.Symbols {
 				if rs.Name == rs.Symbols[i] {
 					this.writeInt(i, enc)
-					break;
+					break
 				}
 			}
 		}
@@ -442,7 +452,7 @@ func (this *GenericDatumWriter) writeUnion(v interface{}, enc Encoder, s Schema)
 	unionSchema := s.(*UnionSchema)
 
 	index := unionSchema.GetType(reflect.ValueOf(v))
-	if (index != -1) {
+	if index != -1 {
 		enc.WriteInt(int32(index))
 		return this.write(v, enc, unionSchema.Types[index])
 	}

@@ -161,7 +161,7 @@ func (this *BinaryDecoder) ReadString() (string, error) {
 	if err := checkEOF(this.buf, this.pos, int(length)); err != nil {
 		return "", err
 	}
-	value := string(this.buf[this.pos : this.pos + length])
+	value := string(this.buf[this.pos : this.pos+length])
 	this.pos += length
 	return value, nil
 }

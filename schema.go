@@ -466,12 +466,12 @@ func (rs *RecordSchema) Validate(v reflect.Value) bool {
 		for idx := range rs.Fields {
 			// key.Name must have rs.Fields[idx].Name as a suffix
 			if len(rs.Fields[idx].Name) <= len(key) {
-				lhs := key[len(key) - len(rs.Fields[idx].Name) : len(key)]
+				lhs := key[len(key)-len(rs.Fields[idx].Name) : len(key)]
 				if lhs == rs.Fields[idx].Name {
 					if !rs.Fields[idx].Type.Validate(reflect.ValueOf(val)) {
 						return false
 					}
-					field_count ++
+					field_count++
 					break
 				}
 			}
@@ -1034,24 +1034,24 @@ func parseSchemaField(i interface{}, registry map[string]Schema, namespace strin
 		schemaField.Type = fieldType
 		if def, exists := v[schema_defaultField]; exists {
 			switch def.(type) {
-				case float64:
-					// JSON treats all numbers as float64 by default
-					switch schemaField.Type.Type() {
-						case Int:
-							var converted int32 = int32(def.(float64))
-							schemaField.Default = converted
-						case Long:
-							var converted int64 = int64(def.(float64))
-							schemaField.Default = converted
-						case Float:
-							var converted float32 = float32(def.(float64))
-							schemaField.Default = converted
+			case float64:
+				// JSON treats all numbers as float64 by default
+				switch schemaField.Type.Type() {
+				case Int:
+					var converted int32 = int32(def.(float64))
+					schemaField.Default = converted
+				case Long:
+					var converted int64 = int64(def.(float64))
+					schemaField.Default = converted
+				case Float:
+					var converted float32 = float32(def.(float64))
+					schemaField.Default = converted
 
-						default:
-							schemaField.Default = def
-					}
 				default:
 					schemaField.Default = def
+				}
+			default:
+				schemaField.Default = def
 			}
 		}
 
