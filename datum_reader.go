@@ -6,6 +6,12 @@ import (
 	"reflect"
 )
 
+// Reader is an interface that may be implemented to avoid using runtime reflection during deserialization.
+// Implementing it is optional and may be used as an optimization. Falls back to using reflection if not implemented.
+type Reader interface {
+	Read(dec Decoder) error
+}
+
 // DatumReader is an interface that is responsible for reading structured data according to schema from a decoder
 type DatumReader interface {
 	// Reads a single structured entry using this DatumReader according to provided Schema.
@@ -89,6 +95,10 @@ func (this *SpecificDatumReader) SetSchema(schema Schema) {
 // your struct field as follows: SomeValue int32 `avro:"some_field"`).
 // May return an error indicating a read failure.
 func (this *SpecificDatumReader) Read(v interface{}, dec Decoder) error {
+	if reader, ok := v.(Reader); ok {
+		return reader.Read(dec)
+	}
+
 	rv := reflect.ValueOf(v)
 	if rv.Kind() != reflect.Ptr || rv.IsNil() {
 		return errors.New("Not applicable for non-pointer types or nil")
