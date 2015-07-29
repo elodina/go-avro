@@ -15,6 +15,8 @@ limitations under the License. */
 
 package avro
 
+import "encoding/json"
+
 type AvroRecord interface {
 	Schema() Schema
 }
@@ -47,4 +49,22 @@ func (this *GenericRecord) Set(name string, value interface{}) {
 // Returns a schema for this GenericRecord.
 func (this *GenericRecord) Schema() Schema {
 	return this.schema
+}
+
+// Returns a JSON representation of this GenericRecord.
+func (this *GenericRecord) String() (string, error) {
+	m := makeMap(this)
+	buf, err := json.Marshal(m)
+	return string(buf), err
+}
+
+func makeMap(rec *GenericRecord) map[string]interface{} {
+	m := make(map[string]interface{})
+	for k, v := range rec.fields {
+		if r, ok := v.(*GenericRecord); ok {
+			v = makeMap(r)
+		}
+		m[k] = v
+	}
+	return m
 }
