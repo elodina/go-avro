@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math"
 	"reflect"
+	"strings"
 )
 
 const (
@@ -978,7 +979,8 @@ func parseEnumSchema(v map[string]interface{}, registry map[string]Schema, names
 	setOptionalField(&schema.Namespace, v, schema_namespaceField)
 	setOptionalField(&schema.Doc, v, schema_docField)
 	schema.Properties = getProperties(v)
-
+	//Fix characters in docs that can mess with code generation
+	schema.Doc = strings.Replace(schema.Doc, "`", "'", -1)
 	return addSchema(getFullName(v[schema_nameField].(string), namespace), schema, registry)
 }
 
@@ -1018,7 +1020,8 @@ func parseRecordSchema(v map[string]interface{}, registry map[string]Schema, nam
 	}
 	schema.Fields = fields
 	schema.Properties = getProperties(v)
-
+  //Fix characters in docs that can mess with code generation
+	schema.Doc = strings.Replace(schema.Doc, "`", "'", -1)
 	return schema, nil
 }
 
@@ -1027,6 +1030,9 @@ func parseSchemaField(i interface{}, registry map[string]Schema, namespace strin
 	case map[string]interface{}:
 		schemaField := &SchemaField{Name: v[schema_nameField].(string)}
 		setOptionalField(&schemaField.Doc, v, schema_docField)
+		//Fix characters in docs that can mess with code generation
+		schemaField.Doc = strings.Replace(schemaField.Doc, "`", "'", -1)
+
 		fieldType, err := schemaByType(v[schema_typeField], registry, namespace)
 		if err != nil {
 			return nil, err
