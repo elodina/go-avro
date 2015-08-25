@@ -36,33 +36,51 @@ func (i *schemas) Set(value string) error {
 }
 
 var schema schemas
+var protocol string
 var output = flag.String("out", "", "Output file name.")
 
 func main() {
 	parseAndValidateArgs()
 
-	schemas := make([]string, 0)
-	for _, schema := range schema {
-		contents, err := ioutil.ReadFile(schema)
+
+  if len(schema) > 0 {
+		schemas := make([]string, 0)
+		for _, schema := range schema {
+			contents, err := ioutil.ReadFile(schema)
+			checkErr(err)
+			schemas = append(schemas, string(contents))
+		}
+
+		gen := avro.NewCodeGenerator(schemas)
+		code, err := gen.Generate()
+	  	checkErrMsg(err, code)
+
+		createDirs()
+		err = ioutil.WriteFile(*output, []byte(code), 0664)
 		checkErr(err)
-		schemas = append(schemas, string(contents))
 	}
+	if protocol != "" {
+		contents, err := ioutil.ReadFile(protocol)
+		checkErr(err)
 
-	gen := avro.NewCodeGenerator(schemas)
-	code, err := gen.Generate()
-	checkErr(err)
+		gen := avro.NewCodeGeneratorProtocol(string(contents))
+		code, err := gen.Generate()
+		checkErrMsg(err, code)
 
-	createDirs()
-	err = ioutil.WriteFile(*output, []byte(code), 0664)
-	checkErr(err)
+		createDirs()
+		err = ioutil.WriteFile(*output, []byte(code), 0664)
+		checkErr(err)
+	}
 }
 
 func parseAndValidateArgs() {
 	flag.Var(&schema, "schema", "Path to avsc schema file.")
+	flag.StringVar(&protocol, "protocol", "", "Path to avpr protocol file.")
+
 	flag.Parse()
 
-	if len(schema) == 0 {
-		fmt.Println("At least one --schema flag is required.")
+	if len(schema) == 0 && protocol == "" {
+		fmt.Println("At least one --schema or --protocol flag is required.")
 		os.Exit(1)
 	}
 
@@ -83,6 +101,14 @@ func createDirs() {
 
 func checkErr(err error) {
 	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
+}
+
+func checkErrMsg(err error, msg string) {
+	if err != nil {
+		fmt.Println(msg)
 		fmt.Println(err)
 		os.Exit(1)
 	}

@@ -26,7 +26,8 @@ import (
 // CodeGenerator is a code generation tool for structs from given Avro schemas.
 type CodeGenerator struct {
 	rawSchemas []string
-
+	rawProtocol string
+  	protocol bool
 	structs           map[string]*bytes.Buffer
 	codeSnippets      []*bytes.Buffer
 	schemaDefinitions *bytes.Buffer
@@ -36,6 +37,20 @@ type CodeGenerator struct {
 func NewCodeGenerator(schemas []string) *CodeGenerator {
 	return &CodeGenerator{
 		rawSchemas:        schemas,
+		rawProtocol:       "",
+		protocol:          false,
+		structs:           make(map[string]*bytes.Buffer),
+		codeSnippets:      make([]*bytes.Buffer, 0),
+		schemaDefinitions: &bytes.Buffer{},
+	}
+}
+
+// Creates a new CodeGenerator for a given Avro protocol.
+func NewCodeGeneratorProtocol(protocol string) *CodeGenerator {
+	return &CodeGenerator{
+		rawSchemas:        make([]string, 0),
+		rawProtocol:       protocol,
+		protocol:          true,
 		structs:           make(map[string]*bytes.Buffer),
 		codeSnippets:      make([]*bytes.Buffer, 0),
 		schemaDefinitions: &bytes.Buffer{},
@@ -84,6 +99,44 @@ func newEnumSchemaInfo(schema *EnumSchema) (*enumSchemaInfo, error) {
 // The ouput is Go formatted source code that contains struct definitions for all given schemas.
 // May return an error if code generation fails, e.g. due to unparsable schema.
 func (this *CodeGenerator) Generate() (string, error) {
+
+	if (this.protocol) {
+		parsedProtocol, err := ParseProtocol(this.rawProtocol)
+		if err != nil {
+			return "", err
+		}
+
+		index := 0
+		for _, parsedSchema := range parsedProtocol.records {
+			schema, ok := parsedSchema.(*RecordSchema)
+			if ok {
+				schemaInfo, err := newRecordSchemaInfo(schema)
+				if err != nil {
+					return "", err
+				}
+
+				buffer := &bytes.Buffer{}
+				this.codeSnippets = append(this.codeSnippets, buffer)
+
+				if index == 0 {
+					this.writePackageName(schemaInfo)
+
+					this.writeImportStatement()
+				}
+				err = this.writeStruct(schemaInfo)
+				if err != nil {
+					return "", err
+				}
+			}
+
+			_, ok = parsedSchema.(*EnumSchema)
+			if ok {
+
+			}
+			index += 1
+		}
+	}
+
 	for index, rawSchema := range this.rawSchemas {
 		parsedSchema, err := ParseSchema(rawSchema)
 		if err != nil {
@@ -117,7 +170,7 @@ func (this *CodeGenerator) Generate() (string, error) {
 
 	formatted, err := format.Source([]byte(this.collectResult()))
 	if err != nil {
-		return "", err
+		return this.collectResult(), err
 	}
 
 	return string(formatted), nil
@@ -406,7 +459,7 @@ func (this *CodeGenerator) writeStructConstructorFieldValue(info *recordSchemaIn
 		}
 	case *IntSchema:
 		{
-			defaultValue, ok := field.Default.(float64)
+			defaultValue, ok := field.Default.(int32)
 			if !ok {
 				return fmt.Errorf("Invalid default value for %s field of type %s", field.Name, field.Type.GetName())
 			}

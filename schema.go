@@ -879,7 +879,6 @@ func ParseSchemaWithRegistry(rawSchema string, schemas map[string]Schema) (Schem
 	if err := json.Unmarshal([]byte(rawSchema), &schema); err != nil {
 		schema = rawSchema
 	}
-
 	return schemaByType(schema, schemas, "")
 }
 
