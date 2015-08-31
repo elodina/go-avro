@@ -512,7 +512,10 @@ func (this *GenericDatumWriter) writeRecord(v interface{}, enc Encoder, s Schema
 				if field == nil {
 					field = schemaField.Default
 				}
-				this.write(field, enc, schemaField.Type)
+				err := this.write(field, enc, schemaField.Type)
+				if err != nil {
+					return err
+				}
 			}
 		}
 	default:
