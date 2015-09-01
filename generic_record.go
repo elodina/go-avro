@@ -64,6 +64,16 @@ func makeMap(rec *GenericRecord) map[string]interface{} {
 		if r, ok := v.(*GenericRecord); ok {
 			v = makeMap(r)
 		}
+		if a, ok := v.([]interface{}); ok {
+			slice := make([]interface{}, len(a))
+			for i, elem := range a {
+				if rec, ok := elem.(*GenericRecord); ok {
+					elem = makeMap(rec)
+				}
+				slice[i] = elem
+			}
+			v = slice
+		}
 		m[k] = v
 	}
 	return m
