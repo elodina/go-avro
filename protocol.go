@@ -8,6 +8,8 @@ import (
 
 type Protocol struct {
 	records map[string]Schema
+  Types Schema
+  Messages map[string]interface{}
 }
 
 
@@ -22,5 +24,26 @@ func ParseProtocol(rawProtocol string) (Protocol, error) {
 		a, _ := schemaByType(schema, schemas, "")
 		out[a.GetName()] = a
 	}
-	return Protocol{records:out}, nil
+
+  types := protocol["types"]
+  messages := protocol["messages"]
+
+  typesJson, err := json.Marshal(types)
+  if err != nil {
+    panic(err)
+  }
+  typesSchema, err := ParseSchema(string(typesJson))
+  if err != nil {
+    panic(err)
+  }
+
+  return Protocol{records:out, Messages: messages.(map[string]interface{}), Types: typesSchema}, nil
+}
+
+func (protocol *Protocol) GetSchema(name string) Schema {
+  return protocol.records[name]
+}
+
+func (protocol *Protocol) TypeRegistry() map[string]Schema {
+  return protocol.records
 }
