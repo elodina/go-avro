@@ -457,7 +457,9 @@ func (this *GenericDatumWriter) writeUnion(v interface{}, enc Encoder, s Schema)
 		return this.write(v, enc, unionSchema.Types[index])
 	}
 
-	return fmt.Errorf("Could not write %v as %s", v, s)
+  // LOCAL: write nil if union has no value
+  return this.write(nil, enc, unionSchema)
+  // return fmt.Errorf("Could not write %v as %s", v, s)
 }
 
 func (this *GenericDatumWriter) isWritableAs(v interface{}, s Schema) bool {
