@@ -542,7 +542,7 @@ func (this *SchemaField) Prop(key string) (interface{}, bool) {
 			return prop, true
 		}
 	}
-	return "", false
+	return nil, false
 }
 
 func (this *SchemaField) MarshalJSON() ([]byte, error) {
