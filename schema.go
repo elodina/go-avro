@@ -528,10 +528,21 @@ func (this *RecursiveSchema) MarshalJSON() ([]byte, error) {
 
 // SchemaField represents a schema field for Avro record.
 type SchemaField struct {
-	Name    string      `json:"name,omitempty"`
-	Doc     string      `json:"doc,omitempty"`
-	Default interface{} `json:"default"`
-	Type    Schema      `json:"type,omitempty"`
+	Name       string      `json:"name,omitempty"`
+	Doc        string      `json:"doc,omitempty"`
+	Default    interface{} `json:"default"`
+	Type       Schema      `json:"type,omitempty"`
+	Properties map[string]interface{}
+}
+
+// Gets a custom non-reserved string property from this schemafield and a bool representing if it exists.
+func (this *SchemaField) Prop(key string) (interface{}, bool) {
+	if this.Properties != nil {
+		if prop, ok := this.Properties[key]; ok {
+			return prop, true
+		}
+	}
+	return "", false
 }
 
 func (this *SchemaField) MarshalJSON() ([]byte, error) {
@@ -1025,7 +1036,7 @@ func parseRecordSchema(v map[string]interface{}, registry map[string]Schema, nam
 func parseSchemaField(i interface{}, registry map[string]Schema, namespace string) (*SchemaField, error) {
 	switch v := i.(type) {
 	case map[string]interface{}:
-		schemaField := &SchemaField{Name: v[schema_nameField].(string)}
+		schemaField := &SchemaField{Name: v[schema_nameField].(string), Properties: getArbitraryProperties(v)}
 		setOptionalField(&schemaField.Doc, v, schema_docField)
 		fieldType, err := schemaByType(v[schema_typeField], registry, namespace)
 		if err != nil {
@@ -1054,7 +1065,6 @@ func parseSchemaField(i interface{}, registry map[string]Schema, namespace strin
 				schemaField.Default = def
 			}
 		}
-
 		return schemaField, nil
 	}
 
@@ -1098,7 +1108,17 @@ func getProperties(v map[string]interface{}) map[string]string {
 			}
 		}
 	}
+	return props
+}
 
+// gets custom arbitrary type properties from a given schema
+func getArbitraryProperties(v map[string]interface{}) map[string]interface{} {
+	props := make(map[string]interface{})
+	for name, value := range v {
+		if !isReserved(name) {
+			props[name] = value
+		}
+	}
 	return props
 }
 
