@@ -95,8 +95,8 @@ type Schema interface {
 	// If this is a record, enum or fixed, returns its name, otherwise the name of the primitive type.
 	GetName() string
 
-	// Gets a custom non-reserved string property from this schema and a bool representing if it exists.
-	Prop(key string) (string, bool)
+	// Gets a custom non-reserved property from this schema and a bool representing if it exists.
+	Prop(key string) (interface{}, bool)
 
 	// Converts this schema to its JSON representation.
 	String() string
@@ -124,8 +124,8 @@ func (*StringSchema) GetName() string {
 }
 
 // Doesn't return anything valuable for StringSchema.
-func (*StringSchema) Prop(key string) (string, bool) {
-	return "", false
+func (*StringSchema) Prop(key string) (interface{}, bool) {
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -157,8 +157,8 @@ func (*BytesSchema) GetName() string {
 }
 
 // Doesn't return anything valuable for BytesSchema.
-func (*BytesSchema) Prop(key string) (string, bool) {
-	return "", false
+func (*BytesSchema) Prop(key string) (interface{}, bool) {
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -191,8 +191,8 @@ func (*IntSchema) GetName() string {
 }
 
 // Doesn't return anything valuable for IntSchema.
-func (*IntSchema) Prop(key string) (string, bool) {
-	return "", false
+func (*IntSchema) Prop(key string) (interface{}, bool) {
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -223,8 +223,8 @@ func (*LongSchema) GetName() string {
 }
 
 // Doesn't return anything valuable for LongSchema.
-func (*LongSchema) Prop(key string) (string, bool) {
-	return "", false
+func (*LongSchema) Prop(key string) (interface{}, bool) {
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -255,8 +255,8 @@ func (*FloatSchema) GetName() string {
 }
 
 // Doesn't return anything valuable for FloatSchema.
-func (*FloatSchema) Prop(key string) (string, bool) {
-	return "", false
+func (*FloatSchema) Prop(key string) (interface{}, bool) {
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -287,8 +287,8 @@ func (*DoubleSchema) GetName() string {
 }
 
 // Doesn't return anything valuable for DoubleSchema.
-func (*DoubleSchema) Prop(key string) (string, bool) {
-	return "", false
+func (*DoubleSchema) Prop(key string) (interface{}, bool) {
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -319,8 +319,8 @@ func (*BooleanSchema) GetName() string {
 }
 
 // Doesn't return anything valuable for BooleanSchema.
-func (*BooleanSchema) Prop(key string) (string, bool) {
-	return "", false
+func (*BooleanSchema) Prop(key string) (interface{}, bool) {
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -351,8 +351,8 @@ func (*NullSchema) GetName() string {
 }
 
 // Doesn't return anything valuable for NullSchema.
-func (*NullSchema) Prop(key string) (string, bool) {
-	return "", false
+func (*NullSchema) Prop(key string) (interface{}, bool) {
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -395,7 +395,7 @@ type RecordSchema struct {
 	Namespace  string   `json:"namespace,omitempty"`
 	Doc        string   `json:"doc,omitempty"`
 	Aliases    []string `json:"aliases,omitempty"`
-	Properties map[string]string
+	Properties map[string]interface{}
 	Fields     []*SchemaField `json:"fields"`
 }
 
@@ -438,14 +438,14 @@ func (this *RecordSchema) GetName() string {
 }
 
 // Gets a custom non-reserved string property from this schema and a bool representing if it exists.
-func (this *RecordSchema) Prop(key string) (string, bool) {
+func (this *RecordSchema) Prop(key string) (interface{}, bool) {
 	if this.Properties != nil {
 		if prop, ok := this.Properties[key]; ok {
 			return prop, true
 		}
 	}
 
-	return "", false
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -513,8 +513,8 @@ func (this *RecursiveSchema) GetName() string {
 }
 
 // Doesn't return anything valuable for RecursiveSchema.
-func (*RecursiveSchema) Prop(key string) (string, bool) {
-	return "", false
+func (*RecursiveSchema) Prop(key string) (interface{}, bool) {
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -535,7 +535,7 @@ type SchemaField struct {
 	Properties map[string]interface{}
 }
 
-// Gets a custom non-reserved string property from this schemafield and a bool representing if it exists.
+// Gets a custom non-reserved property from this schemafield and a bool representing if it exists.
 func (this *SchemaField) Prop(key string) (interface{}, bool) {
 	if this.Properties != nil {
 		if prop, ok := this.Properties[key]; ok {
@@ -585,7 +585,7 @@ type EnumSchema struct {
 	Aliases    []string
 	Doc        string
 	Symbols    []string
-	Properties map[string]string
+	Properties map[string]interface{}
 }
 
 // Returns a JSON representation of EnumSchema.
@@ -608,15 +608,15 @@ func (this *EnumSchema) GetName() string {
 	return this.Name
 }
 
-// Gets a custom non-reserved string property from this schema and a bool representing if it exists.
-func (this *EnumSchema) Prop(key string) (string, bool) {
+// Gets a custom non-reserved property from this schema and a bool representing if it exists.
+func (this *EnumSchema) Prop(key string) (interface{}, bool) {
 	if this.Properties != nil {
 		if prop, ok := this.Properties[key]; ok {
 			return prop, true
 		}
 	}
 
-	return "", false
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -644,7 +644,7 @@ func (this *EnumSchema) MarshalJSON() ([]byte, error) {
 // ArraySchema implements Schema and represents Avro array type.
 type ArraySchema struct {
 	Items      Schema
-	Properties map[string]string
+	Properties map[string]interface{}
 }
 
 // Returns a JSON representation of ArraySchema.
@@ -668,14 +668,14 @@ func (*ArraySchema) GetName() string {
 }
 
 // Gets a custom non-reserved string property from this schema and a bool representing if it exists.
-func (this *ArraySchema) Prop(key string) (string, bool) {
+func (this *ArraySchema) Prop(key string) (interface{}, bool) {
 	if this.Properties != nil {
 		if prop, ok := this.Properties[key]; ok {
 			return prop, true
 		}
 	}
 
-	return "", false
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -699,7 +699,7 @@ func (this *ArraySchema) MarshalJSON() ([]byte, error) {
 // MapSchema implements Schema and represents Avro map type.
 type MapSchema struct {
 	Values     Schema
-	Properties map[string]string
+	Properties map[string]interface{}
 }
 
 // Returns a JSON representation of MapSchema.
@@ -723,13 +723,13 @@ func (*MapSchema) GetName() string {
 }
 
 // Gets a custom non-reserved string property from this schema and a bool representing if it exists.
-func (this *MapSchema) Prop(key string) (string, bool) {
+func (this *MapSchema) Prop(key string) (interface{}, bool) {
 	if this.Properties != nil {
 		if prop, ok := this.Properties[key]; ok {
 			return prop, true
 		}
 	}
-	return "", false
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -775,8 +775,8 @@ func (*UnionSchema) GetName() string {
 }
 
 // Doesn't return anything valuable for UnionSchema.
-func (*UnionSchema) Prop(key string) (string, bool) {
-	return "", false
+func (*UnionSchema) Prop(key string) (interface{}, bool) {
+	return nil, false
 }
 
 func (this *UnionSchema) GetType(v reflect.Value) int {
@@ -811,7 +811,7 @@ func (this *UnionSchema) MarshalJSON() ([]byte, error) {
 type FixedSchema struct {
 	Name       string
 	Size       int
-	Properties map[string]string
+	Properties map[string]interface{}
 }
 
 // Returns a JSON representation of FixedSchema.
@@ -835,13 +835,13 @@ func (this *FixedSchema) GetName() string {
 }
 
 // Gets a custom non-reserved string property from this schema and a bool representing if it exists.
-func (this *FixedSchema) Prop(key string) (string, bool) {
+func (this *FixedSchema) Prop(key string) (interface{}, bool) {
 	if this.Properties != nil {
 		if prop, ok := this.Properties[key]; ok {
 			return prop, true
 		}
 	}
-	return "", false
+	return nil, false
 }
 
 // Checks whether the given value is writeable to this schema.
@@ -1036,7 +1036,7 @@ func parseRecordSchema(v map[string]interface{}, registry map[string]Schema, nam
 func parseSchemaField(i interface{}, registry map[string]Schema, namespace string) (*SchemaField, error) {
 	switch v := i.(type) {
 	case map[string]interface{}:
-		schemaField := &SchemaField{Name: v[schema_nameField].(string), Properties: getArbitraryProperties(v)}
+		schemaField := &SchemaField{Name: v[schema_nameField].(string), Properties: getProperties(v)}
 		setOptionalField(&schemaField.Doc, v, schema_docField)
 		fieldType, err := schemaByType(v[schema_typeField], registry, namespace)
 		if err != nil {
@@ -1098,21 +1098,7 @@ func getFullName(name string, namespace string) string {
 }
 
 // gets custom string properties from a given schema
-func getProperties(v map[string]interface{}) map[string]string {
-	props := make(map[string]string)
-
-	for name, value := range v {
-		if !isReserved(name) {
-			if val, ok := value.(string); ok {
-				props[name] = val
-			}
-		}
-	}
-	return props
-}
-
-// gets custom arbitrary type properties from a given schema
-func getArbitraryProperties(v map[string]interface{}) map[string]interface{} {
+func getProperties(v map[string]interface{}) map[string]interface{} {
 	props := make(map[string]interface{})
 	for name, value := range v {
 		if !isReserved(name) {
