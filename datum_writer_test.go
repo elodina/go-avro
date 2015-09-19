@@ -196,6 +196,39 @@ func randomPrimitiveObject() *primitive {
 	return p
 }
 
+func BenchmarkEncodeVarint32(b *testing.B) {
+	enc := NewBinaryEncoder(nil)
+	for i := 0; i < b.N; i++ {
+		enc.encodeVarint32(int32(i))
+	}
+}
+
+func BenchmarkEncodeVarint64(b *testing.B) {
+	enc := NewBinaryEncoder(nil)
+	for i := 0; i < b.N; i++ {
+		enc.encodeVarint64(int64(i))
+	}
+}
+
+func BenchmarkSpecificDatumWriter(b *testing.B) {
+	var c = newComplex()
+	c.FixedField = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+	w := NewSpecificDatumWriter()
+	w.SetSchema(c.Schema())
+	var buf bytes.Buffer
+	buf.Grow(10000)
+	err := w.Write(c, NewBinaryEncoder(&buf))
+	if err != nil {
+		panic(err)
+	}
+	buf.Reset()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		w.Write(c, NewBinaryEncoder(&buf))
+		buf.Reset()
+	}
+}
+
 type _complex struct {
 	StringArray []string
 	LongArray   []int64
