@@ -1,8 +1,8 @@
 package avro
 
 import (
-	"bytes"
 	"encoding/binary"
+	"io"
 	"math"
 )
 
@@ -51,27 +51,21 @@ type Encoder interface {
 
 	// Writes raw bytes to this Encoder.
 	WriteRaw([]byte)
-
-	Tell() int64
 }
 
 // BinaryEncoder implements Encoder and provides low-level support for serializing Avro values.
 type BinaryEncoder struct {
-	buffer *bytes.Buffer
+	buffer io.Writer
 }
 
-// Creates a new BinaryEncoder that will write to a given buffer.
-func NewBinaryEncoder(buffer *bytes.Buffer) *BinaryEncoder {
+// Creates a new BinaryEncoder that will write to a given io.Writer.
+func NewBinaryEncoder(buffer io.Writer) *BinaryEncoder {
 	return &BinaryEncoder{buffer: buffer}
 }
 
 // Writes a null value. Doesn't actually do anything in this implementation.
 func (this *BinaryEncoder) WriteNull(_ interface{}) {
 	//do nothing
-}
-
-func (this *BinaryEncoder) Tell() int64 {
-	return int64(this.buffer.Len())
 }
 
 // Writes a boolean value.
