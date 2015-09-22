@@ -1025,7 +1025,11 @@ func parseRecordSchema(v map[string]interface{}, registry map[string]Schema, nam
 func parseSchemaField(i interface{}, registry map[string]Schema, namespace string) (*SchemaField, error) {
 	switch v := i.(type) {
 	case map[string]interface{}:
-		schemaField := &SchemaField{Name: v[schema_nameField].(string)}
+		name, ok := v[schema_nameField].(string)
+		if !ok {
+			return nil, fmt.Errorf("Schema field name missing")
+		}
+		schemaField := &SchemaField{Name: name}
 		setOptionalField(&schemaField.Doc, v, schema_docField)
 		fieldType, err := schemaByType(v[schema_typeField], registry, namespace)
 		if err != nil {
