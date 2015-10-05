@@ -464,7 +464,7 @@ func (this *GenericDatumReader) mapMap(field Schema, dec Decoder) (map[string]in
 				}
 				val, err := this.readValue(field.(*MapSchema).Values, dec)
 				if err != nil {
-					return nil, nil
+					return nil, err
 				}
 				resultMap[key.(string)] = val
 			}
@@ -502,7 +502,10 @@ func (this *GenericDatumReader) mapRecord(field Schema, dec Decoder) (*GenericRe
 
 	recordSchema := field.(*RecordSchema)
 	for i := 0; i < len(recordSchema.Fields); i++ {
-		this.findAndSet(record, recordSchema.Fields[i], dec)
+		err := this.findAndSet(record, recordSchema.Fields[i], dec)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return record, nil

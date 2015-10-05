@@ -166,6 +166,74 @@ func TestSpecificDatumTags(t *testing.T) {
 	assert(t, out.Map, in.Map)
 }
 
+func TestGenericDatumWriterEmptyMap(t *testing.T) {
+	sch, err := ParseSchema(`{
+    "type": "record",
+    "name": "Rec",
+    "fields": [
+        {
+            "name": "map1",
+            "type": {
+                "type": "map",
+                "values": "string"
+            }
+        }
+    ]
+}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buffer := &bytes.Buffer{}
+	enc := NewBinaryEncoder(buffer)
+	w := NewGenericDatumWriter()
+	w.SetSchema(sch)
+
+	rec := NewGenericRecord(sch)
+	rec.Set("map1", map[string]string{})
+
+	err = w.Write(rec, enc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert(t, buffer.Bytes(), []byte{0x00})
+}
+
+func TestGenericDatumWriterEmptyArray(t *testing.T) {
+	sch, err := ParseSchema(`{
+    "type": "record",
+    "name": "Rec",
+    "fields": [
+        {
+            "name": "arr",
+            "type": {
+                "type": "array",
+                "items": "string"
+            }
+        }
+    ]
+}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	buffer := &bytes.Buffer{}
+	enc := NewBinaryEncoder(buffer)
+	w := NewGenericDatumWriter()
+	w.SetSchema(sch)
+
+	rec := NewGenericRecord(sch)
+	rec.Set("arr", []string{})
+
+	err = w.Write(rec, enc)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert(t, buffer.Bytes(), []byte{0x00})
+}
+
 func randomPrimitiveObject() *primitive {
 	p := &primitive{}
 	p.BooleanField = rand.Int()%2 == 0
