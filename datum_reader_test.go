@@ -268,6 +268,68 @@ func TestComplexOfComplexBinding(t *testing.T) {
 	}
 }
 
+func TestGenericDatumReaderEmptyMap(t *testing.T) {
+	sch, err := ParseSchema(`{
+    "type": "record",
+    "name": "Rec",
+    "fields": [
+        {
+            "name": "map1",
+            "type": {
+                "type": "map",
+                "values": "string"
+            }
+        }
+    ]
+}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reader := NewGenericDatumReader()
+	reader.SetSchema(sch)
+
+	decoder := NewBinaryDecoder([]byte{0x00})
+	rec := NewGenericRecord(sch)
+	err = reader.Read(rec, decoder)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert(t, rec.Get("map1"), make(map[string]interface{}))
+}
+
+func TestGenericDatumReaderEmptyArray(t *testing.T) {
+	sch, err := ParseSchema(`{
+    "type": "record",
+    "name": "Rec",
+    "fields": [
+        {
+            "name": "arr",
+            "type": {
+                "type": "array",
+                "items": "string"
+            }
+        }
+    ]
+}`)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	reader := NewGenericDatumReader()
+	reader.SetSchema(sch)
+
+	decoder := NewBinaryDecoder([]byte{0x00})
+	rec := NewGenericRecord(sch)
+	err = reader.Read(rec, decoder)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	assert(t, rec.Get("map1"), nil)
+}
+
 func BenchmarkSpecificDatumReader_complex(b *testing.B) {
 	var dest complex
 	specificReaderBenchComplex(b, &dest)
