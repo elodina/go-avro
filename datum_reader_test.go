@@ -198,7 +198,7 @@ func TestComplexOfComplexBinding(t *testing.T) {
 			for i := 0; i < arrayLength; i++ {
 				for j := 0; j < arrayLength; j++ {
 					if c.ArrayStringArray[i][j] != fmt.Sprintf("string%d%d", i, j) {
-						t.Errorf("Expected array element %d, actual %d", fmt.Sprintf("string%d%d", i, j), c.ArrayStringArray[i][j])
+						t.Errorf("Expected array element %s, actual %s", fmt.Sprintf("string%d%d", i, j), c.ArrayStringArray[i][j])
 					}
 				}
 			}

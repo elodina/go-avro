@@ -166,7 +166,7 @@ func (this *SpecificDatumReader) readValue(field Schema, reflectField reflect.Va
 		return this.mapRecord(field.(*RecursiveSchema).Actual, reflectField, dec)
 	}
 
-	return reflect.ValueOf(nil), fmt.Errorf("Unknown field type: %s", field.Type())
+	return reflect.ValueOf(nil), fmt.Errorf("Unknown field type: %d", field.Type())
 }
 
 func (this *SpecificDatumReader) setValue(field *SchemaField, where reflect.Value, what reflect.Value) {
@@ -410,7 +410,7 @@ func (this *GenericDatumReader) readValue(field Schema, dec Decoder) (interface{
 		return this.mapRecord(field.(*RecursiveSchema).Actual, dec)
 	}
 
-	return nil, fmt.Errorf("Unknown field type: %s", field.Type())
+	return nil, fmt.Errorf("Unknown field type: %d", field.Type())
 }
 
 func (this *GenericDatumReader) mapArray(field Schema, dec Decoder) ([]interface{}, error) {
