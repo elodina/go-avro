@@ -190,6 +190,10 @@ func (this *SpecificDatumReader) mapArray(field Schema, reflectField reflect.Val
 	} else {
 		array := reflect.MakeSlice(reflectField.Type(), 0, 0)
 		for {
+			if arrayLength == 0 {
+				break
+			}
+
 			arrayPart := reflect.MakeSlice(reflectField.Type(), int(arrayLength), int(arrayLength))
 			var i int64 = 0
 			for ; i < arrayLength; i++ {
@@ -215,8 +219,6 @@ func (this *SpecificDatumReader) mapArray(field Schema, reflectField reflect.Val
 			arrayLength, err = dec.ArrayNext()
 			if err != nil {
 				return reflect.ValueOf(arrayLength), err
-			} else if arrayLength == 0 {
-				break
 			}
 		}
 		return array, nil
@@ -229,6 +231,10 @@ func (this *SpecificDatumReader) mapMap(field Schema, reflectField reflect.Value
 	} else {
 		resultMap := reflect.MakeMap(reflectField.Type())
 		for {
+			if mapLength == 0 {
+				break
+			}
+
 			var i int64 = 0
 			for ; i < mapLength; i++ {
 				key, err := this.readValue(&StringSchema{}, reflectField, dec)
@@ -249,8 +255,6 @@ func (this *SpecificDatumReader) mapMap(field Schema, reflectField reflect.Value
 			mapLength, err = dec.MapNext()
 			if err != nil {
 				return reflect.ValueOf(mapLength), err
-			} else if mapLength == 0 {
-				break
 			}
 		}
 		return resultMap, nil
@@ -415,6 +419,9 @@ func (this *GenericDatumReader) mapArray(field Schema, dec Decoder) ([]interface
 	} else {
 		array := make([]interface{}, 0)
 		for {
+			if arrayLength == 0 {
+				break
+			}
 			arrayPart := make([]interface{}, arrayLength, arrayLength)
 			var i int64 = 0
 			for ; i < arrayLength; i++ {
@@ -432,8 +439,6 @@ func (this *GenericDatumReader) mapArray(field Schema, dec Decoder) ([]interface
 			arrayLength, err = dec.ArrayNext()
 			if err != nil {
 				return nil, err
-			} else if arrayLength == 0 {
-				break
 			}
 		}
 		return array, nil
@@ -456,6 +461,9 @@ func (this *GenericDatumReader) mapMap(field Schema, dec Decoder) (map[string]in
 	} else {
 		resultMap := make(map[string]interface{})
 		for {
+			if mapLength == 0 {
+				break
+			}
 			var i int64 = 0
 			for ; i < mapLength; i++ {
 				key, err := this.readValue(&StringSchema{}, dec)
@@ -472,8 +480,6 @@ func (this *GenericDatumReader) mapMap(field Schema, dec Decoder) (map[string]in
 			mapLength, err = dec.MapNext()
 			if err != nil {
 				return nil, err
-			} else if mapLength == 0 {
-				break
 			}
 		}
 		return resultMap, nil
