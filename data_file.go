@@ -153,7 +153,6 @@ func (this *DataFileReader) Next(v interface{}) (bool, error) {
 			return false, nil
 		}
 	}
-	return false, nil
 }
 
 // Tells this DataFileReader to skip current block and move to next one.
