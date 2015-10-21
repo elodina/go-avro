@@ -52,23 +52,27 @@ func (this *GenericRecord) Schema() Schema {
 }
 
 // Returns a JSON representation of this GenericRecord.
-func (this *GenericRecord) String() (string, error) {
-	m := makeMap(this)
+func (this *GenericRecord) String() string {
+	m := this.Map()
 	buf, err := json.Marshal(m)
-	return string(buf), err
+	if err != nil {
+		panic(err)
+	}
+	return string(buf)
 }
 
-func makeMap(rec *GenericRecord) map[string]interface{} {
+// Returns a map representation of this GenericRecord.
+func (this *GenericRecord) Map() map[string]interface{} {
 	m := make(map[string]interface{})
-	for k, v := range rec.fields {
+	for k, v := range this.fields {
 		if r, ok := v.(*GenericRecord); ok {
-			v = makeMap(r)
+			v = (r)
 		}
 		if a, ok := v.([]interface{}); ok {
 			slice := make([]interface{}, len(a))
 			for i, elem := range a {
 				if rec, ok := elem.(*GenericRecord); ok {
-					elem = makeMap(rec)
+					elem = rec.Map()
 				}
 				slice[i] = elem
 			}
