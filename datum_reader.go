@@ -490,8 +490,12 @@ func (this *GenericDatumReader) mapUnion(field Schema, dec Decoder) (interface{}
 	if unionType, err := dec.ReadInt(); err != nil {
 		return nil, err
 	} else {
-		union := field.(*UnionSchema).Types[unionType]
-		return this.readValue(union, dec)
+		if unionType >= 0 && unionType < int32(len(field.(*UnionSchema).Types)) {
+			union := field.(*UnionSchema).Types[unionType]
+			return this.readValue(union, dec)
+		} else {
+			return nil, errors.New("Union type overflow")
+		}
 	}
 }
 
