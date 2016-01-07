@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"math"
 )
@@ -62,38 +63,43 @@ func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReade
 	if buf, err := ioutil.ReadFile(filename); err != nil {
 		return nil, err
 	} else {
-		if len(buf) < len(magic) || !bytes.Equal(magic, buf[0:4]) {
-			return nil, NotAvroFile
-		}
-
-		dec := NewBinaryDecoder(buf)
-		blockDecoder := NewBinaryDecoder(nil)
-		reader := &DataFileReader{
-			data:         buf,
-			dec:          dec,
-			blockDecoder: blockDecoder,
-			datum:        datumReader,
-		}
-
-		if reader.header, err = readObjFileHeader(dec); err != nil {
-			return nil, err
-		}
-
-		schema, err := ParseSchema(string(reader.header.Meta[schema_key]))
-		if err != nil {
-			return nil, err
-		}
-		reader.datum.SetSchema(schema)
-		reader.block = &DataBlock{}
-
-		if reader.hasNextBlock() {
-			if err := reader.NextBlock(); err != nil {
-				return nil, err
-			}
-		}
-
-		return reader, nil
+		return newDataFileReaderBytes(buf, datumReader)
 	}
+}
+
+// separated out mainly for testing currently, will be refactored later for io.Reader paradigm
+func newDataFileReaderBytes(buf []byte, datumReader DatumReader) (reader *DataFileReader, err error) {
+	if len(buf) < len(magic) || !bytes.Equal(magic, buf[0:4]) {
+		return nil, NotAvroFile
+	}
+
+	dec := NewBinaryDecoder(buf)
+	blockDecoder := NewBinaryDecoder(nil)
+	reader = &DataFileReader{
+		data:         buf,
+		dec:          dec,
+		blockDecoder: blockDecoder,
+		datum:        datumReader,
+	}
+
+	if reader.header, err = readObjFileHeader(dec); err != nil {
+		return nil, err
+	}
+
+	schema, err := ParseSchema(string(reader.header.Meta[schema_key]))
+	if err != nil {
+		return nil, err
+	}
+	reader.datum.SetSchema(schema)
+	reader.block = &DataBlock{}
+
+	if reader.hasNextBlock() {
+		if err := reader.NextBlock(); err != nil {
+			return nil, err
+		}
+	}
+
+	return reader, nil
 }
 
 // Switches the reading position in this DataFileReader to a provided value.
@@ -172,4 +178,112 @@ func (this *DataFileReader) NextBlock() error {
 		}
 	}
 	return nil
+}
+
+////////// DATA FILE WRITER
+
+// DataFileWriter lets you write object container files.
+type DataFileWriter struct {
+	output      io.Writer
+	outputEnc   *BinaryEncoder
+	datumWriter DatumWriter
+	sync        []byte
+
+	// current block is buffered until flush
+	blockBuf   *bytes.Buffer
+	blockCount int64
+	blockEnc   *BinaryEncoder
+}
+
+func NewDataFileWriter(output io.Writer, schema Schema, datumWriter DatumWriter) (writer *DataFileWriter, err error) {
+	encoder := NewBinaryEncoder(output)
+	datumWriter.SetSchema(schema)
+	sync := []byte("1234567890abcdef") // TODO come up with other sync value
+
+	header := &objFileHeader{
+		Magic: magic,
+		Meta: map[string][]byte{
+			schema_key: []byte(schema.String()),
+			codec_key:  []byte("null"),
+		},
+		Sync: sync,
+	}
+	headerWriter := NewSpecificDatumWriter()
+	headerWriter.SetSchema(objHeaderSchema)
+	if err = headerWriter.Write(header, encoder); err != nil {
+		return
+	}
+	blockBuf := &bytes.Buffer{}
+	writer = &DataFileWriter{
+		output:      output,
+		outputEnc:   encoder,
+		datumWriter: datumWriter,
+		sync:        sync,
+		blockBuf:    blockBuf,
+		blockEnc:    NewBinaryEncoder(blockBuf),
+	}
+
+	return
+}
+
+// Write out a single datum.
+//
+// Encoded datums are buffered internally and will not be written to the
+// underlying io.Writer until Flush() is called.
+func (w *DataFileWriter) Write(v interface{}) error {
+	w.blockCount++
+	err := w.datumWriter.Write(v, w.blockEnc)
+	return err
+}
+
+// Flush out any previously written datums to our underlying io.Writer.
+// Does nothing if no datums had previously been written.
+//
+// It's up to the library user to decide how often to flush; doing it
+// often will spend a lot of time on tiny I/O but save memory.
+func (w *DataFileWriter) Flush() error {
+	if w.blockCount > 0 {
+		return w.actuallyFlush()
+	}
+	return nil
+}
+
+func (w *DataFileWriter) actuallyFlush() error {
+	// Write the block count and length directly to output
+	w.outputEnc.WriteLong(w.blockCount)
+	w.outputEnc.WriteLong(int64(w.blockBuf.Len()))
+
+	// copy the buffer which is the block buf to output
+	_, err := io.Copy(w.output, w.blockBuf)
+	if err != nil {
+		return err
+	}
+
+	// write the sync bytes
+	_, err = w.output.Write(w.sync)
+	if err != nil {
+		return err
+	}
+
+	w.blockBuf.Reset() // allow blockbuf's internal memory to be reused
+	w.blockCount = 0
+	return nil
+}
+
+// Close this DataFileWriter.
+// This is required to finish out the data file format.
+// After Close() is called, this DataFileWriter cannot be used anymore.
+func (w *DataFileWriter) Close() error {
+	err := w.Flush() // flush anything remaining
+	if err == nil {
+		// Do an empty flush to signal end of data file format
+		err = w.actuallyFlush()
+
+		if err == nil {
+			// Clean up references.
+			w.output, w.outputEnc, w.datumWriter = nil, nil, nil
+			w.blockBuf, w.blockEnc = nil, nil
+		}
+	}
+	return err
 }
