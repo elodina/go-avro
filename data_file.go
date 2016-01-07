@@ -30,8 +30,6 @@ const (
 
 var magic []byte = []byte{'O', 'b', 'j', version}
 
-var syncBuffer = make([]byte, sync_size)
-
 // DataFileReader is a reader for Avro Object Container Files.
 // More here: https://avro.apache.org/docs/current/spec.html#Object+Container+Files
 type DataFileReader struct {
@@ -165,6 +163,7 @@ func (this *DataFileReader) NextBlock() error {
 			block.NumEntries = blockCount
 			block.BlockSize = int(blockSize)
 			this.dec.ReadFixedWithBounds(block.Data, 0, int(block.BlockSize))
+			syncBuffer := make([]byte, sync_size)
 			this.dec.ReadFixed(syncBuffer)
 			if !bytes.Equal(syncBuffer, this.header.Sync) {
 				return InvalidSync
