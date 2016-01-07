@@ -8,6 +8,19 @@ import (
 	"math"
 )
 
+// Support decoding the avro Object Container File format.
+// Spec: http://avro.apache.org/docs/1.7.7/spec.html#Object+Container+Files
+
+const objHeaderSchemaRaw = `{"type": "record", "name": "org.apache.avro.file.Header",
+ "fields" : [
+   {"name": "magic", "type": {"type": "fixed", "name": "Magic", "size": 4}},
+   {"name": "meta", "type": {"type": "map", "values": "bytes"}},
+   {"name": "sync", "type": {"type": "fixed", "name": "Sync", "size": 16}}
+  ]
+}`
+
+var objHeaderSchema = MustParseSchema(objHeaderSchemaRaw)
+
 const (
 	version    byte = 1
 	sync_size       = 16
@@ -19,27 +32,30 @@ var magic []byte = []byte{'O', 'b', 'j', version}
 
 var syncBuffer = make([]byte, sync_size)
 
-// DataFileReader is a reader for Avro Object Container Files. More here: https://avro.apache.org/docs/current/spec.html#Object+Container+Files
+// DataFileReader is a reader for Avro Object Container Files.
+// More here: https://avro.apache.org/docs/current/spec.html#Object+Container+Files
 type DataFileReader struct {
 	data         []byte
-	header       *header
+	header       *objFileHeader
 	block        *DataBlock
 	dec          Decoder
 	blockDecoder Decoder
 	datum        DatumReader
 }
 
-type header struct {
-	meta map[string][]byte
-	sync []byte
+// The header for object container files
+type objFileHeader struct {
+	Magic []byte            `avro:"magic"`
+	Meta  map[string][]byte `avro:"meta"`
+	Sync  []byte            `avro:"sync"`
 }
 
-func newHeader() *header {
-	header := &header{}
-	header.meta = make(map[string][]byte)
-	header.sync = make([]byte, sync_size)
-
-	return header
+func readObjFileHeader(dec *BinaryDecoder) (*objFileHeader, error) {
+	reader := NewSpecificDatumReader()
+	reader.SetSchema(objHeaderSchema)
+	header := &objFileHeader{}
+	err := reader.Read(header, dec)
+	return header, err
 }
 
 // Creates a new DataFileReader for a given file and using the given DatumReader to read the data from that file.
@@ -60,39 +76,12 @@ func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReade
 			blockDecoder: blockDecoder,
 			datum:        datumReader,
 		}
-		reader.Seek(4) //skip the magic bytes
 
-		reader.header = newHeader()
-		if metaLength, err := dec.ReadMapStart(); err != nil {
+		if reader.header, err = readObjFileHeader(dec); err != nil {
 			return nil, err
-		} else {
-			for {
-				var i int64 = 0
-				for i < metaLength {
-					key, err := dec.ReadString()
-					if err != nil {
-						return nil, err
-					}
-
-					value, err := dec.ReadBytes()
-					if err != nil {
-						return nil, err
-					}
-					reader.header.meta[key] = value
-					i++
-				}
-				metaLength, err = dec.MapNext()
-				if err != nil {
-					return nil, err
-				} else if metaLength == 0 {
-					break
-				}
-			}
 		}
-		dec.ReadFixed(reader.header.sync)
-		//TODO codec?
 
-		schema, err := ParseSchema(string(reader.header.meta[schema_key]))
+		schema, err := ParseSchema(string(reader.header.Meta[schema_key]))
 		if err != nil {
 			return nil, err
 		}
@@ -177,7 +166,7 @@ func (this *DataFileReader) NextBlock() error {
 			block.BlockSize = int(blockSize)
 			this.dec.ReadFixedWithBounds(block.Data, 0, int(block.BlockSize))
 			this.dec.ReadFixed(syncBuffer)
-			if !bytes.Equal(syncBuffer, this.header.sync) {
+			if !bytes.Equal(syncBuffer, this.header.Sync) {
 				return InvalidSync
 			}
 			this.blockDecoder.SetBlock(this.block)
