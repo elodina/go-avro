@@ -18,7 +18,7 @@ package main
 import (
 	"flag"
 	"fmt"
-	"github.com/stealthly/go-avro"
+	"github.com/elodina/go-avro"
 	"io/ioutil"
 	"os"
 	"strings"

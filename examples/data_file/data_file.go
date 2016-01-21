@@ -17,7 +17,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/stealthly/go-avro"
+	"github.com/elodina/go-avro"
 )
 
 // Fields to map should be exported
