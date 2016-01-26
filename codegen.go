@@ -209,7 +209,7 @@ func (this *CodeGenerator) writeEnumConstants(info *enumSchemaInfo, buffer *byte
 
 func (this *CodeGenerator) writeImportStatement() {
 	buffer := this.codeSnippets[0]
-	buffer.WriteString(`import "github.com/stealthly/go-avro"`)
+	buffer.WriteString(`import "github.com/elodina/go-avro"`)
 	buffer.WriteString("\n")
 }
 

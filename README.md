@@ -1,7 +1,7 @@
 Apache Avro for Golang
 =====================
 
-[![Build Status](https://travis-ci.org/elodina/go-avro.svg?branch=master)](https://travis-ci.org/stealthly/go-avro)
+[![Build Status](https://travis-ci.org/elodina/go-avro.svg?branch=master)](https://travis-ci.org/elodina/go-avro)
 
 Please note that this project is still an early alpha and is subject to change.
 

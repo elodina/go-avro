@@ -18,7 +18,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/stealthly/go-avro"
+	"github.com/elodina/go-avro"
 )
 
 var rawSchema = `{
