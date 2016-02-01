@@ -16,7 +16,6 @@ limitations under the License. */
 package avro
 
 import (
-	"fmt"
 	"reflect"
 	"strings"
 )
@@ -33,7 +32,7 @@ func findField(where reflect.Value, name string) (reflect.Value, error) {
 	if rf, ok := rm.names[name]; ok {
 		return where.FieldByIndex(rf), nil
 	}
-	return reflect.Value{}, fmt.Errorf("Field %s does not exist in %s", name, t.Name())
+	return reflect.Value{}, FieldDoesNotExist
 }
 
 func reflectBuildRi(t reflect.Type) *reflectInfo {

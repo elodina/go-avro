@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 )
 
 // Reader is an interface that may be implemented to avoid using runtime reflection during deserialization.
@@ -23,6 +24,9 @@ type DatumReader interface {
 	// Note that it must be called before calling Read.
 	SetSchema(Schema)
 }
+
+var enumSymbolsToIndexCache map[string]map[string]int32 = make(map[string]map[string]int32)
+var enumSymbolsToIndexCacheLock sync.Mutex
 
 // Generic Avro enum representation. This is still subject to change and may be rethought.
 type GenericEnum struct {
@@ -265,8 +269,26 @@ func (this *SpecificDatumReader) mapEnum(field Schema, dec Decoder) (reflect.Val
 	if enumIndex, err := dec.ReadEnum(); err != nil {
 		return reflect.ValueOf(enumIndex), err
 	} else {
-		enum := NewGenericEnum(field.(*EnumSchema).Symbols)
-		enum.SetIndex(enumIndex)
+		schema := field.(*EnumSchema)
+		fullName := GetFullName(schema)
+
+		if enumSymbolsToIndexCache[fullName] == nil {
+			enumSymbolsToIndexCacheLock.Lock()
+			if enumSymbolsToIndexCache[fullName] == nil {
+				symbolsToIndex := make(map[string]int32)
+				for index, symbol := range schema.Symbols {
+					symbolsToIndex[symbol] = int32(index)
+				}
+				enumSymbolsToIndexCache[fullName] = symbolsToIndex
+			}
+			enumSymbolsToIndexCacheLock.Unlock()
+		}
+
+		enum := &GenericEnum{
+			Symbols:        schema.Symbols,
+			symbolsToIndex: enumSymbolsToIndexCache[fullName],
+			index:          enumIndex,
+		}
 		return reflect.ValueOf(enum), nil
 	}
 }
@@ -449,8 +471,26 @@ func (this *GenericDatumReader) mapEnum(field Schema, dec Decoder) (*GenericEnum
 	if enumIndex, err := dec.ReadEnum(); err != nil {
 		return nil, err
 	} else {
-		enum := NewGenericEnum(field.(*EnumSchema).Symbols)
-		enum.SetIndex(enumIndex)
+		schema := field.(*EnumSchema)
+		fullName := GetFullName(schema)
+
+		if enumSymbolsToIndexCache[fullName] == nil {
+			enumSymbolsToIndexCacheLock.Lock()
+			if enumSymbolsToIndexCache[fullName] == nil {
+				symbolsToIndex := make(map[string]int32)
+				for index, symbol := range schema.Symbols {
+					symbolsToIndex[symbol] = int32(index)
+				}
+				enumSymbolsToIndexCache[fullName] = symbolsToIndex
+			}
+			enumSymbolsToIndexCacheLock.Unlock()
+		}
+
+		enum := &GenericEnum{
+			Symbols:        schema.Symbols,
+			symbolsToIndex: enumSymbolsToIndexCache[fullName],
+			index:          enumIndex,
+		}
 		return enum, nil
 	}
 }

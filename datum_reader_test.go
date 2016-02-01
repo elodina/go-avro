@@ -359,6 +359,7 @@ func specificReaderComplexVal() (Schema, []byte) {
 }
 
 func specificReaderBenchComplex(b *testing.B, dest interface{}) {
+	b.ReportAllocs()
 	schema, buf := specificReaderComplexVal()
 	datumReader := NewSpecificDatumReader()
 	datumReader.SetSchema(schema)
