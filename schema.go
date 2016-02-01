@@ -597,6 +597,14 @@ func (this *EnumSchema) GetName() string {
 	return this.Name
 }
 
+func (this *EnumSchema) FullName() string {
+	if this.Namespace == "" {
+		return this.GetName()
+	}
+
+	return fmt.Sprintf("%s.%s", this.Namespace, this.Name)
+}
+
 // Gets a custom non-reserved string property from this schema and a bool representing if it exists.
 func (this *EnumSchema) Prop(key string) (string, bool) {
 	if this.Properties != nil {
