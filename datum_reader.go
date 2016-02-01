@@ -270,7 +270,7 @@ func (this *SpecificDatumReader) mapEnum(field Schema, dec Decoder) (reflect.Val
 		return reflect.ValueOf(enumIndex), err
 	} else {
 		schema := field.(*EnumSchema)
-		fullName := schema.FullName()
+		fullName := GetFullName(schema)
 
 		if enumSymbolsToIndexCache[fullName] == nil {
 			enumSymbolsToIndexCacheLock.Lock()
@@ -472,7 +472,7 @@ func (this *GenericDatumReader) mapEnum(field Schema, dec Decoder) (*GenericEnum
 		return nil, err
 	} else {
 		schema := field.(*EnumSchema)
-		fullName := schema.FullName()
+		fullName := GetFullName(schema)
 
 		if enumSymbolsToIndexCache[fullName] == nil {
 			enumSymbolsToIndexCacheLock.Lock()

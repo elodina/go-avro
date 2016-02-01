@@ -597,14 +597,6 @@ func (this *EnumSchema) GetName() string {
 	return this.Name
 }
 
-func (this *EnumSchema) FullName() string {
-	if this.Namespace == "" {
-		return this.GetName()
-	}
-
-	return fmt.Sprintf("%s.%s", this.Namespace, this.Name)
-}
-
 // Gets a custom non-reserved string property from this schema and a bool representing if it exists.
 func (this *EnumSchema) Prop(key string) (string, bool) {
 	if this.Properties != nil {
@@ -862,32 +854,29 @@ func (this *FixedSchema) MarshalJSON() ([]byte, error) {
 }
 
 func GetFullName(schema Schema) string {
-	switch schema.Type() {
-	case Record:
+	switch sch := schema.(type) {
+	case *RecordSchema:
 		{
-			recordSchema := schema.(*RecordSchema)
-			if recordSchema.Namespace == "" {
-				return recordSchema.GetName()
+			if sch.Namespace == "" {
+				return sch.GetName()
 			} else {
-				return fmt.Sprintf("%s.%s", recordSchema.Namespace, recordSchema.GetName())
+				return fmt.Sprintf("%s.%s", sch.Namespace, sch.GetName())
 			}
 		}
-	case Enum:
+	case *EnumSchema:
 		{
-			enumSchema := schema.(*EnumSchema)
-			if enumSchema.Namespace == "" {
-				return enumSchema.GetName()
+			if sch.Namespace == "" {
+				return sch.GetName()
 			} else {
-				return fmt.Sprintf("%s.%s", enumSchema.Namespace, enumSchema.GetName())
+				return fmt.Sprintf("%s.%s", sch.Namespace, sch.GetName())
 			}
 		}
-	case Fixed:
+	case *FixedSchema:
 		{
-			fixedSchema := schema.(*FixedSchema)
-			if fixedSchema.Namespace == "" {
-				return fixedSchema.GetName()
+			if sch.Namespace == "" {
+				return sch.GetName()
 			} else {
-				return fmt.Sprintf("%s.%s", fixedSchema.Namespace, fixedSchema.GetName())
+				return fmt.Sprintf("%s.%s", sch.Namespace, sch.GetName())
 			}
 		}
 	default:
