@@ -1,8 +1,8 @@
 /* Licensed to the Apache Software Foundation (ASF) under one or more
 contributor license agreements.  See the NOTICE file distributed with
-this work for additional information regarding copyright ownership.
-The ASF licenses this file to You under the Apache License, Version 2.0
-(the "License"); you may not use this file except in compliance with
+codegen work for additional information regarding copyright ownership.
+The ASF licenses codegen file to You under the Apache License, Version 2.0
+(the "License"); you may not use codegen file except in compliance with
 the License.  You may obtain a copy of the License at
 
     http://www.apache.org/licenses/LICENSE-2.0
@@ -32,7 +32,7 @@ type CodeGenerator struct {
 	schemaDefinitions *bytes.Buffer
 }
 
-// Creates a new CodeGenerator for given Avro schemas.
+// NewCodeGenerator creates a new CodeGenerator for given Avro schemas.
 func NewCodeGenerator(schemas []string) *CodeGenerator {
 	return &CodeGenerator{
 		rawSchemas:        schemas,
@@ -80,11 +80,11 @@ func newEnumSchemaInfo(schema *EnumSchema) (*enumSchemaInfo, error) {
 	}, nil
 }
 
-// Generates source code for Avro schemas specified on creation.
+// Generate generates source code for Avro schemas specified on creation.
 // The ouput is Go formatted source code that contains struct definitions for all given schemas.
 // May return an error if code generation fails, e.g. due to unparsable schema.
-func (this *CodeGenerator) Generate() (string, error) {
-	for index, rawSchema := range this.rawSchemas {
+func (codegen *CodeGenerator) Generate() (string, error) {
+	for index, rawSchema := range codegen.rawSchemas {
 		parsedSchema, err := ParseSchema(rawSchema)
 		if err != nil {
 			return "", err
@@ -100,22 +100,22 @@ func (this *CodeGenerator) Generate() (string, error) {
 		}
 
 		buffer := &bytes.Buffer{}
-		this.codeSnippets = append(this.codeSnippets, buffer)
+		codegen.codeSnippets = append(codegen.codeSnippets, buffer)
 
 		// write package and import only once
 		if index == 0 {
-			this.writePackageName(schemaInfo)
+			codegen.writePackageName(schemaInfo)
 
-			this.writeImportStatement()
+			codegen.writeImportStatement()
 		}
 
-		err = this.writeStruct(schemaInfo)
+		err = codegen.writeStruct(schemaInfo)
 		if err != nil {
 			return "", err
 		}
 	}
 
-	formatted, err := format.Source([]byte(this.collectResult()))
+	formatted, err := format.Source([]byte(codegen.collectResult()))
 	if err != nil {
 		return "", err
 	}
@@ -123,18 +123,18 @@ func (this *CodeGenerator) Generate() (string, error) {
 	return string(formatted), nil
 }
 
-func (this *CodeGenerator) collectResult() string {
-	results := make([]string, len(this.codeSnippets)+1)
-	for i, snippet := range this.codeSnippets {
+func (codegen *CodeGenerator) collectResult() string {
+	results := make([]string, len(codegen.codeSnippets)+1)
+	for i, snippet := range codegen.codeSnippets {
 		results[i] = snippet.String()
 	}
-	results[len(results)-1] = this.schemaDefinitions.String()
+	results[len(results)-1] = codegen.schemaDefinitions.String()
 
 	return strings.Join(results, "\n")
 }
 
-func (this *CodeGenerator) writePackageName(info *recordSchemaInfo) {
-	buffer := this.codeSnippets[0]
+func (codegen *CodeGenerator) writePackageName(info *recordSchemaInfo) {
+	buffer := codegen.codeSnippets[0]
 	buffer.WriteString("package ")
 	if info.schema.Namespace == "" {
 		info.schema.Namespace = "avro"
@@ -144,48 +144,48 @@ func (this *CodeGenerator) writePackageName(info *recordSchemaInfo) {
 	buffer.WriteString(fmt.Sprintf("%s\n\n", packages[len(packages)-1]))
 }
 
-func (this *CodeGenerator) writeStruct(info *recordSchemaInfo) error {
+func (codegen *CodeGenerator) writeStruct(info *recordSchemaInfo) error {
 	buffer := &bytes.Buffer{}
-	if _, exists := this.structs[info.typeName]; exists {
+	if _, exists := codegen.structs[info.typeName]; exists {
 		return nil
-	} else {
-		this.codeSnippets = append(this.codeSnippets, buffer)
-		this.structs[info.typeName] = buffer
 	}
 
-	this.writeStructSchemaVar(info)
+	codegen.codeSnippets = append(codegen.codeSnippets, buffer)
+	codegen.structs[info.typeName] = buffer
 
-	this.writeDoc("", info.schema.Doc, buffer)
+	codegen.writeStructSchemaVar(info)
 
-	err := this.writeStructDefinition(info, buffer)
+	codegen.writeDoc("", info.schema.Doc, buffer)
+
+	err := codegen.writeStructDefinition(info, buffer)
 	if err != nil {
 		return err
 	}
 
 	buffer.WriteString("\n\n")
 
-	err = this.writeStructConstructor(info, buffer)
+	err = codegen.writeStructConstructor(info, buffer)
 	if err != nil {
 		return err
 	}
 
 	buffer.WriteString("\n\n")
 
-	this.writeSchemaGetter(info, buffer)
+	codegen.writeSchemaGetter(info, buffer)
 
 	return nil
 }
 
-func (this *CodeGenerator) writeEnum(info *enumSchemaInfo) error {
+func (codegen *CodeGenerator) writeEnum(info *enumSchemaInfo) error {
 	buffer := &bytes.Buffer{}
-	if _, exists := this.structs[info.typeName]; exists {
+	if _, exists := codegen.structs[info.typeName]; exists {
 		return nil
-	} else {
-		this.codeSnippets = append(this.codeSnippets, buffer)
-		this.structs[info.typeName] = buffer
 	}
 
-	err := this.writeEnumConstants(info, buffer)
+	codegen.codeSnippets = append(codegen.codeSnippets, buffer)
+	codegen.structs[info.typeName] = buffer
+
+	err := codegen.writeEnumConstants(info, buffer)
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func (this *CodeGenerator) writeEnum(info *enumSchemaInfo) error {
 	return nil
 }
 
-func (this *CodeGenerator) writeEnumConstants(info *enumSchemaInfo, buffer *bytes.Buffer) error {
+func (codegen *CodeGenerator) writeEnumConstants(info *enumSchemaInfo, buffer *bytes.Buffer) error {
 	if len(info.schema.Symbols) == 0 {
 		return nil
 	}
@@ -207,19 +207,19 @@ func (this *CodeGenerator) writeEnumConstants(info *enumSchemaInfo, buffer *byte
 	return nil
 }
 
-func (this *CodeGenerator) writeImportStatement() {
-	buffer := this.codeSnippets[0]
+func (codegen *CodeGenerator) writeImportStatement() {
+	buffer := codegen.codeSnippets[0]
 	buffer.WriteString(`import "github.com/elodina/go-avro"`)
 	buffer.WriteString("\n")
 }
 
-func (this *CodeGenerator) writeStructSchemaVar(info *recordSchemaInfo) {
-	buffer := this.schemaDefinitions
+func (codegen *CodeGenerator) writeStructSchemaVar(info *recordSchemaInfo) {
+	buffer := codegen.schemaDefinitions
 	buffer.WriteString("// Generated by codegen. Please do not modify.\n")
 	buffer.WriteString(fmt.Sprintf("var %s, %s = avro.ParseSchema(`%s`)\n\n", info.schemaVarName, info.schemaErrName, strings.Replace(info.schema.String(), "`", "'", -1)))
 }
 
-func (this *CodeGenerator) writeDoc(prefix string, doc string, buffer *bytes.Buffer) {
+func (codegen *CodeGenerator) writeDoc(prefix string, doc string, buffer *bytes.Buffer) {
 	if doc == "" {
 		return
 	}
@@ -227,11 +227,11 @@ func (this *CodeGenerator) writeDoc(prefix string, doc string, buffer *bytes.Buf
 	buffer.WriteString(fmt.Sprintf("%s/* %s */\n", prefix, doc))
 }
 
-func (this *CodeGenerator) writeStructDefinition(info *recordSchemaInfo, buffer *bytes.Buffer) error {
+func (codegen *CodeGenerator) writeStructDefinition(info *recordSchemaInfo, buffer *bytes.Buffer) error {
 	buffer.WriteString(fmt.Sprintf("type %s struct {\n", info.typeName))
 
 	for i := 0; i < len(info.schema.Fields); i++ {
-		err := this.writeStructField(info.schema.Fields[i], buffer)
+		err := codegen.writeStructField(info.schema.Fields[i], buffer)
 		if err != nil {
 			return err
 		}
@@ -242,15 +242,15 @@ func (this *CodeGenerator) writeStructDefinition(info *recordSchemaInfo, buffer 
 	return nil
 }
 
-func (this *CodeGenerator) writeStructField(field *SchemaField, buffer *bytes.Buffer) error {
-	this.writeDoc("\t", field.Doc, buffer)
+func (codegen *CodeGenerator) writeStructField(field *SchemaField, buffer *bytes.Buffer) error {
+	codegen.writeDoc("\t", field.Doc, buffer)
 	if field.Name == "" {
 		return errors.New("Empty field name.")
 	}
 
 	buffer.WriteString(fmt.Sprintf("\t%s%s ", strings.ToUpper(field.Name[:1]), field.Name[1:]))
 
-	err := this.writeStructFieldType(field.Type, buffer)
+	err := codegen.writeStructFieldType(field.Type, buffer)
 	if err != nil {
 		return err
 	}
@@ -260,7 +260,7 @@ func (this *CodeGenerator) writeStructField(field *SchemaField, buffer *bytes.Bu
 	return nil
 }
 
-func (this *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buffer) error {
+func (codegen *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buffer) error {
 	switch schema.Type() {
 	case Null:
 		buffer.WriteString("interface{}")
@@ -281,7 +281,7 @@ func (this *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buf
 	case Array:
 		{
 			buffer.WriteString("[]")
-			err := this.writeStructFieldType(schema.(*ArraySchema).Items, buffer)
+			err := codegen.writeStructFieldType(schema.(*ArraySchema).Items, buffer)
 			if err != nil {
 				return err
 			}
@@ -289,7 +289,7 @@ func (this *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buf
 	case Map:
 		{
 			buffer.WriteString("map[string]")
-			err := this.writeStructFieldType(schema.(*MapSchema).Values, buffer)
+			err := codegen.writeStructFieldType(schema.(*MapSchema).Values, buffer)
 			if err != nil {
 				return err
 			}
@@ -304,11 +304,11 @@ func (this *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buf
 
 			buffer.WriteString("*avro.GenericEnum")
 
-			return this.writeEnum(info)
+			return codegen.writeEnum(info)
 		}
 	case Union:
 		{
-			err := this.writeStructUnionType(schema.(*UnionSchema), buffer)
+			err := codegen.writeStructUnionType(schema.(*UnionSchema), buffer)
 			if err != nil {
 				return err
 			}
@@ -327,7 +327,7 @@ func (this *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buf
 
 			buffer.WriteString(schemaInfo.typeName)
 
-			return this.writeStruct(schemaInfo)
+			return codegen.writeStruct(schemaInfo)
 		}
 	case Recursive:
 		{
@@ -339,7 +339,7 @@ func (this *CodeGenerator) writeStructFieldType(schema Schema, buffer *bytes.Buf
 	return nil
 }
 
-func (this *CodeGenerator) writeStructUnionType(schema *UnionSchema, buffer *bytes.Buffer) error {
+func (codegen *CodeGenerator) writeStructUnionType(schema *UnionSchema, buffer *bytes.Buffer) error {
 	var unionType Schema
 	if schema.Types[0].Type() == Null {
 		unionType = schema.Types[1]
@@ -347,15 +347,15 @@ func (this *CodeGenerator) writeStructUnionType(schema *UnionSchema, buffer *byt
 		unionType = schema.Types[0]
 	}
 
-	if unionType != nil && this.isNullable(unionType) {
-		return this.writeStructFieldType(unionType, buffer)
+	if unionType != nil && codegen.isNullable(unionType) {
+		return codegen.writeStructFieldType(unionType, buffer)
 	}
 
 	buffer.WriteString("interface{}")
 	return nil
 }
 
-func (this *CodeGenerator) isNullable(schema Schema) bool {
+func (codegen *CodeGenerator) isNullable(schema Schema) bool {
 	switch schema.(type) {
 	case *BooleanSchema, *IntSchema, *LongSchema, *FloatSchema, *DoubleSchema, *StringSchema:
 		return false
@@ -364,11 +364,11 @@ func (this *CodeGenerator) isNullable(schema Schema) bool {
 	}
 }
 
-func (this *CodeGenerator) writeStructConstructor(info *recordSchemaInfo, buffer *bytes.Buffer) error {
+func (codegen *CodeGenerator) writeStructConstructor(info *recordSchemaInfo, buffer *bytes.Buffer) error {
 	buffer.WriteString(fmt.Sprintf("func New%s() *%s {\n\treturn &%s{\n", info.typeName, info.typeName, info.typeName))
 
 	for i := 0; i < len(info.schema.Fields); i++ {
-		err := this.writeStructConstructorField(info, info.schema.Fields[i], buffer)
+		err := codegen.writeStructConstructorField(info, info.schema.Fields[i], buffer)
 		if err != nil {
 			return err
 		}
@@ -379,20 +379,20 @@ func (this *CodeGenerator) writeStructConstructor(info *recordSchemaInfo, buffer
 	return nil
 }
 
-func (this *CodeGenerator) writeStructConstructorField(info *recordSchemaInfo, field *SchemaField, buffer *bytes.Buffer) error {
-	if !this.needWriteField(field) {
+func (codegen *CodeGenerator) writeStructConstructorField(info *recordSchemaInfo, field *SchemaField, buffer *bytes.Buffer) error {
+	if !codegen.needWriteField(field) {
 		return nil
 	}
 
-	this.writeStructConstructorFieldName(field, buffer)
-	this.writeStructConstructorFieldValue(info, field, buffer)
+	codegen.writeStructConstructorFieldName(field, buffer)
+	codegen.writeStructConstructorFieldValue(info, field, buffer)
 
 	buffer.WriteString(",\n")
 
 	return nil
 }
 
-func (this *CodeGenerator) writeStructConstructorFieldValue(info *recordSchemaInfo, field *SchemaField, buffer *bytes.Buffer) error {
+func (codegen *CodeGenerator) writeStructConstructorFieldValue(info *recordSchemaInfo, field *SchemaField, buffer *bytes.Buffer) error {
 	switch field.Type.(type) {
 	case *NullSchema:
 		buffer.WriteString("nil")
@@ -441,7 +441,7 @@ func (this *CodeGenerator) writeStructConstructorFieldValue(info *recordSchemaIn
 	case *ArraySchema:
 		{
 			buffer.WriteString("make(")
-			err := this.writeStructFieldType(field.Type, buffer)
+			err := codegen.writeStructFieldType(field.Type, buffer)
 			if err != nil {
 				return err
 			}
@@ -450,7 +450,7 @@ func (this *CodeGenerator) writeStructConstructorFieldValue(info *recordSchemaIn
 	case *MapSchema:
 		{
 			buffer.WriteString("make(")
-			err := this.writeStructFieldType(field.Type, buffer)
+			err := codegen.writeStructFieldType(field.Type, buffer)
 			if err != nil {
 				return err
 			}
@@ -473,7 +473,7 @@ func (this *CodeGenerator) writeStructConstructorFieldValue(info *recordSchemaIn
 			unionField := &SchemaField{}
 			*unionField = *field
 			unionField.Type = union.Types[0]
-			return this.writeStructConstructorFieldValue(info, unionField, buffer)
+			return codegen.writeStructConstructorFieldValue(info, unionField, buffer)
 		}
 	case *FixedSchema:
 		{
@@ -492,7 +492,7 @@ func (this *CodeGenerator) writeStructConstructorFieldValue(info *recordSchemaIn
 	return nil
 }
 
-func (this *CodeGenerator) needWriteField(field *SchemaField) bool {
+func (codegen *CodeGenerator) needWriteField(field *SchemaField) bool {
 	if field.Default != nil {
 		return true
 	}
@@ -505,15 +505,15 @@ func (this *CodeGenerator) needWriteField(field *SchemaField) bool {
 	return false
 }
 
-func (this *CodeGenerator) writeStructConstructorFieldName(field *SchemaField, buffer *bytes.Buffer) {
+func (codegen *CodeGenerator) writeStructConstructorFieldName(field *SchemaField, buffer *bytes.Buffer) {
 	buffer.WriteString("\t\t")
 	fieldName := fmt.Sprintf("%s%s", strings.ToUpper(field.Name[:1]), field.Name[1:])
 	buffer.WriteString(fieldName)
 	buffer.WriteString(": ")
 }
 
-func (this *CodeGenerator) writeSchemaGetter(info *recordSchemaInfo, buffer *bytes.Buffer) {
-	buffer.WriteString(fmt.Sprintf("func (this *%s) Schema() avro.Schema {\n\t", info.typeName))
+func (codegen *CodeGenerator) writeSchemaGetter(info *recordSchemaInfo, buffer *bytes.Buffer) {
+	buffer.WriteString(fmt.Sprintf("func (o *%s) Schema() avro.Schema {\n\t", info.typeName))
 	buffer.WriteString(fmt.Sprintf("if %s != nil {\n\t\tpanic(%s)\n\t}\n\t", info.schemaErrName, info.schemaErrName))
 	buffer.WriteString(fmt.Sprintf("return %s\n}", info.schemaVarName))
 }
