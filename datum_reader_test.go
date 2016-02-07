@@ -359,8 +359,61 @@ func specificReaderComplexVal() (Schema, []byte) {
 }
 
 func specificReaderBenchComplex(b *testing.B, dest interface{}) {
-	b.ReportAllocs()
 	schema, buf := specificReaderComplexVal()
+	specificDecoderBench(b, schema, buf, dest)
+}
+
+/////// BIG ARRAYS
+
+var bigArraysSchema = MustParseSchema(`{
+    "type": "record",
+    "name": "bigArrays",
+    "fields": [
+        {"name": "ints", "type": {"type": "array", "items": "int"}},
+        {"name": "strings", "type": {"type": "array", "items": "string"}}
+    ]
+}`)
+
+type bigArrays struct {
+	Ints    []int32  `avro:"ints"`
+	Strings []string `avro:"strings"`
+}
+
+func BenchmarkSpecificDatumReader_bigArrays(b *testing.B) {
+	big := &bigArrays{}
+	for i := 0; i < 2000; i++ {
+		big.Ints = append(big.Ints, int32(i+1))
+	}
+	buf := testEncodeBytes(bigArraysSchema, big)
+
+	var dest bigArrays
+	specificDecoderBench(b, bigArraysSchema, buf, &dest)
+}
+
+func BenchmarkSpecificDatumReader_segmented_bigArrays(b *testing.B) {
+	// go-avro doesn't create segmented arrays by default. Make one ourselves.
+	var buf bytes.Buffer
+	encoder := NewBinaryEncoder(&buf)
+	for i := 0; i < 2000; i += 100 {
+		if i == 0 {
+			encoder.WriteArrayStart(100)
+		} else {
+			encoder.WriteArrayNext(100)
+		}
+		for j := i; j < i+100; j++ {
+			encoder.WriteInt(int32(j + 1))
+		}
+	}
+	encoder.WriteArrayNext(0)
+	encoder.WriteArrayStart(0)
+	var dest bigArrays
+	specificDecoderBench(b, bigArraysSchema, buf.Bytes(), &dest)
+}
+
+/////// UTILITIES
+
+func specificDecoderBench(b *testing.B, schema Schema, buf []byte, dest interface{}) {
+	b.ReportAllocs()
 	datumReader := NewSpecificDatumReader()
 	datumReader.SetSchema(schema)
 

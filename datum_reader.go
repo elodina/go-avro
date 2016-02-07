@@ -193,6 +193,7 @@ func (this *SpecificDatumReader) mapArray(field Schema, reflectField reflect.Val
 		return reflect.ValueOf(arrayLength), err
 	} else {
 		array := reflect.MakeSlice(reflectField.Type(), 0, 0)
+		pointer := reflectField.Type().Elem().Kind() == reflect.Ptr
 		for {
 			if arrayLength == 0 {
 				break
@@ -201,25 +202,25 @@ func (this *SpecificDatumReader) mapArray(field Schema, reflectField reflect.Val
 			arrayPart := reflect.MakeSlice(reflectField.Type(), int(arrayLength), int(arrayLength))
 			var i int64 = 0
 			for ; i < arrayLength; i++ {
-				val, err := this.readValue(field.(*ArraySchema).Items, arrayPart.Index(int(i)), dec)
+				current := arrayPart.Index(int(i))
+				val, err := this.readValue(field.(*ArraySchema).Items, current, dec)
 				if err != nil {
 					return reflect.ValueOf(arrayLength), err
 				}
-
-				pointer := reflectField.Type().Elem().Kind() == reflect.Ptr
 
 				if pointer && val.Kind() != reflect.Ptr {
 					val = val.Addr()
 				} else if !pointer && val.Kind() == reflect.Ptr {
 					val = val.Elem()
 				}
-				arrayPart.Index(int(i)).Set(val)
+				current.Set(val)
 			}
 			//concatenate arrays
-			concatArray := reflect.MakeSlice(reflectField.Type(), array.Len()+int(arrayLength), array.Cap()+int(arrayLength))
-			reflect.Copy(concatArray, array)
-			reflect.Copy(concatArray, arrayPart)
-			array = concatArray
+			if array.Len() == 0 {
+				array = arrayPart
+			} else {
+				array = reflect.AppendSlice(array, arrayPart)
+			}
 			arrayLength, err = dec.ArrayNext()
 			if err != nil {
 				return reflect.ValueOf(arrayLength), err
