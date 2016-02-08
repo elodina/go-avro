@@ -3,6 +3,7 @@ package avro
 import (
 	"bytes"
 	"fmt"
+	"sync"
 	"testing"
 )
 
@@ -328,6 +329,53 @@ func TestGenericDatumReaderEmptyArray(t *testing.T) {
 	}
 
 	assert(t, rec.Get("map1"), nil)
+}
+
+var schemaEnumA = MustParseSchema(`
+	{"type": "record", "name": "PlayingCard",
+	 "fields": [
+        {"name": "type", "type": {"type": "enum", "name": "Type", "symbols":["HEART", "SPADE", "CLUB"]}}
+     ]}`)
+var schemaEnumB = MustParseSchema(`
+	{"type": "record", "name": "Car",
+	 "fields": [
+        {"name": "drive", "type": {"type": "enum", "name": "DriveSystem", "symbols":["FWD", "RWD", "AWD"]}}
+     ]}`)
+
+func TestEnumCachingRace(t *testing.T) {
+	enumRaceTest(t, []Schema{schemaEnumA})
+}
+
+func TestEnumCachingRace2(t *testing.T) {
+	enumRaceTest(t, []Schema{schemaEnumA, schemaEnumB})
+}
+
+func enumRaceTest(t *testing.T, schemas []Schema) {
+	var buf bytes.Buffer
+	enc := NewBinaryEncoder(&buf)
+	enc.WriteInt(2)
+
+	parallelF(20, 100, func(routine, loop int) {
+		var dest GenericRecord
+		schema := schemas[routine%len(schemas)]
+		reader := NewGenericDatumReader()
+		reader.SetSchema(schema)
+		reader.Read(&dest, NewBinaryDecoder(buf.Bytes()))
+	})
+
+}
+
+func parallelF(numRoutines, numLoops int, f func(routine, loop int)) {
+	var wg sync.WaitGroup
+	wg.Add(numRoutines)
+	for i := 0; i < numRoutines; i++ {
+		go func(routine int) {
+			defer wg.Done()
+			for loop := 0; loop < numLoops; loop++ {
+				f(routine, loop)
+			}
+		}(i)
+	}
 }
 
 func BenchmarkSpecificDatumReader_complex(b *testing.B) {

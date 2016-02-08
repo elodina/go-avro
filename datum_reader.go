@@ -272,21 +272,17 @@ func (this *SpecificDatumReader) mapEnum(field Schema, dec Decoder) (reflect.Val
 		schema := field.(*EnumSchema)
 		fullName := GetFullName(schema)
 
-		if enumSymbolsToIndexCache[fullName] == nil {
-			enumSymbolsToIndexCacheLock.Lock()
-			if enumSymbolsToIndexCache[fullName] == nil {
-				symbolsToIndex := make(map[string]int32)
-				for index, symbol := range schema.Symbols {
-					symbolsToIndex[symbol] = int32(index)
-				}
-				enumSymbolsToIndexCache[fullName] = symbolsToIndex
-			}
-			enumSymbolsToIndexCacheLock.Unlock()
+		var symbolsToIndex map[string]int32
+		enumSymbolsToIndexCacheLock.Lock()
+		if symbolsToIndex = enumSymbolsToIndexCache[fullName]; symbolsToIndex == nil {
+			symbolsToIndex = NewGenericEnum(schema.Symbols).symbolsToIndex
+			enumSymbolsToIndexCache[fullName] = symbolsToIndex
 		}
+		enumSymbolsToIndexCacheLock.Unlock()
 
 		enum := &GenericEnum{
 			Symbols:        schema.Symbols,
-			symbolsToIndex: enumSymbolsToIndexCache[fullName],
+			symbolsToIndex: symbolsToIndex,
 			index:          enumIndex,
 		}
 		return reflect.ValueOf(enum), nil
@@ -474,21 +470,17 @@ func (this *GenericDatumReader) mapEnum(field Schema, dec Decoder) (*GenericEnum
 		schema := field.(*EnumSchema)
 		fullName := GetFullName(schema)
 
-		if enumSymbolsToIndexCache[fullName] == nil {
-			enumSymbolsToIndexCacheLock.Lock()
-			if enumSymbolsToIndexCache[fullName] == nil {
-				symbolsToIndex := make(map[string]int32)
-				for index, symbol := range schema.Symbols {
-					symbolsToIndex[symbol] = int32(index)
-				}
-				enumSymbolsToIndexCache[fullName] = symbolsToIndex
-			}
-			enumSymbolsToIndexCacheLock.Unlock()
+		var symbolsToIndex map[string]int32
+		enumSymbolsToIndexCacheLock.Lock()
+		if symbolsToIndex = enumSymbolsToIndexCache[fullName]; symbolsToIndex == nil {
+			symbolsToIndex = NewGenericEnum(schema.Symbols).symbolsToIndex
+			enumSymbolsToIndexCache[fullName] = symbolsToIndex
 		}
+		enumSymbolsToIndexCacheLock.Unlock()
 
 		enum := &GenericEnum{
 			Symbols:        schema.Symbols,
-			symbolsToIndex: enumSymbolsToIndexCache[fullName],
+			symbolsToIndex: symbolsToIndex,
 			index:          enumIndex,
 		}
 		return enum, nil
