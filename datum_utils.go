@@ -18,6 +18,7 @@ package avro
 import (
 	"reflect"
 	"strings"
+	"sync"
 )
 
 func findField(where reflect.Value, name string) (reflect.Value, error) {
@@ -25,7 +26,10 @@ func findField(where reflect.Value, name string) (reflect.Value, error) {
 		where = where.Elem()
 	}
 	t := where.Type()
+
+	reflectMapLock.RLock()
 	rm := reflectMap[t]
+	reflectMapLock.RUnlock()
 	if rm == nil {
 		rm = reflectBuildRi(t)
 	}
@@ -52,17 +56,14 @@ func reflectBuildRi(t reflect.Type) *reflectInfo {
 		}
 	}
 
-	// copy the map instead of dealing with locking
-	m := make(map[reflect.Type]*reflectInfo, len(reflectMap)+1)
-	for k, v := range reflectMap {
-		m[k] = v
-	}
-	m[t] = rm
-	reflectMap = m
+	reflectMapLock.Lock()
+	reflectMap[t] = rm
+	reflectMapLock.Unlock()
 	return rm
 }
 
-var reflectMap map[reflect.Type]*reflectInfo
+var reflectMap map[reflect.Type]*reflectInfo = make(map[reflect.Type]*reflectInfo)
+var reflectMapLock sync.RWMutex
 
 type reflectInfo struct {
 	names map[string][]int
