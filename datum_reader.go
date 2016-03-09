@@ -114,7 +114,10 @@ func (reader *SpecificDatumReader) Read(v interface{}, dec Decoder) error {
 	sch := reader.schema.(*RecordSchema)
 	for i := 0; i < len(sch.Fields); i++ {
 		field := sch.Fields[i]
-		reader.findAndSet(v, field, dec)
+		err := reader.findAndSet(v, field, dec)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -324,7 +327,10 @@ func (reader *SpecificDatumReader) mapRecord(field Schema, reflectField reflect.
 
 	recordSchema := field.(*RecordSchema)
 	for i := 0; i < len(recordSchema.Fields); i++ {
-		reader.findAndSet(record, recordSchema.Fields[i], dec)
+		err := reader.findAndSet(record, recordSchema.Fields[i], dec)
+		if err != nil {
+			return reflectField, err
+		}
 	}
 
 	return reflect.ValueOf(record), nil

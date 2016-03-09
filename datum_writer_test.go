@@ -27,7 +27,8 @@ func TestSpecificDatumWriterPrimitives(t *testing.T) {
 	r.SetSchema(sch)
 
 	out := &primitive{}
-	r.Read(out, dec)
+	err = r.Read(out, dec)
+	assert(t, err, nil)
 
 	assert(t, out.BooleanField, in.BooleanField)
 	assert(t, out.IntField, in.IntField)
@@ -154,7 +155,8 @@ func TestSpecificDatumTags(t *testing.T) {
 	r.SetSchema(sch)
 
 	out := &Tagged{}
-	r.Read(out, dec)
+	err = r.Read(out, dec)
+	assert(t, err, nil)
 
 	assert(t, out.Bool, in.Bool)
 	assert(t, out.Int, in.Int)
@@ -294,7 +296,7 @@ func BenchmarkSpecificDatumWriter(b *testing.B) {
 	buf.Reset()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		w.Write(c, NewBinaryEncoder(&buf))
+		_ = w.Write(c, NewBinaryEncoder(&buf))
 		buf.Reset()
 	}
 }

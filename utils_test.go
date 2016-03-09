@@ -17,7 +17,7 @@ func assert(t *testing.T, actual interface{}, expected interface{}) {
 
 func randomBytes(n int) []byte {
 	b := make([]byte, n)
-	crand.Read(b)
+	_, _ = crand.Read(b)
 	return b
 }
 

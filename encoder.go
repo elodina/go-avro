@@ -71,51 +71,51 @@ func (be *BinaryEncoder) WriteNull(_ interface{}) {
 // WriteBoolean writes a boolean value.
 func (be *BinaryEncoder) WriteBoolean(x bool) {
 	if x {
-		be.buffer.Write([]byte{0x01})
+		_, _ = be.buffer.Write([]byte{0x01})
 	} else {
-		be.buffer.Write([]byte{0x00})
+		_, _ = be.buffer.Write([]byte{0x00})
 	}
 }
 
 // WriteInt writes an int value.
 func (be *BinaryEncoder) WriteInt(x int32) {
-	be.buffer.Write(be.encodeVarint32(x))
+	_, _ = be.buffer.Write(be.encodeVarint32(x))
 }
 
 // WriteLong writes a long value.
 func (be *BinaryEncoder) WriteLong(x int64) {
-	be.buffer.Write(be.encodeVarint64(x))
+	_, _ = be.buffer.Write(be.encodeVarint64(x))
 }
 
 // WriteFloat writes a float value.
 func (be *BinaryEncoder) WriteFloat(x float32) {
 	bytes := make([]byte, 4)
 	binary.LittleEndian.PutUint32(bytes, math.Float32bits(x))
-	be.buffer.Write(bytes)
+	_, _ = be.buffer.Write(bytes)
 }
 
 // WriteDouble writes a double value.
 func (be *BinaryEncoder) WriteDouble(x float64) {
 	bytes := make([]byte, 8)
 	binary.LittleEndian.PutUint64(bytes, math.Float64bits(x))
-	be.buffer.Write(bytes)
+	_, _ = be.buffer.Write(bytes)
 }
 
 // WriteRaw writes raw bytes to this Encoder.
 func (be *BinaryEncoder) WriteRaw(x []byte) {
-	be.buffer.Write(x)
+	_, _ = be.buffer.Write(x)
 }
 
 // WriteBytes writes a bytes value.
 func (be *BinaryEncoder) WriteBytes(x []byte) {
 	be.WriteLong(int64(len(x)))
-	be.buffer.Write(x)
+	_, _ = be.buffer.Write(x)
 }
 
 // WriteString writes a string value.
 func (be *BinaryEncoder) WriteString(x string) {
 	be.WriteLong(int64(len(x)))
-	be.buffer.Write([]byte(x))
+	_, _ = be.buffer.Write([]byte(x))
 }
 
 // WriteArrayStart should be called when starting to serialize an array providing it with a number of items in

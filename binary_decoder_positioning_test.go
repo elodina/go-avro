@@ -59,7 +59,7 @@ func TestPositioning(t *testing.T) {
 				position := bd.Tell()
 				value, err := bd.ReadBytes()
 				if err != nil {
-					t.Fatal("Unexpected error during decoding bytes: %v", err)
+					t.Fatal(err)
 				}
 				for i := 0; i < len(value); i++ {
 					if value[i] != bytes[position+int64(i)+int64(1)] {

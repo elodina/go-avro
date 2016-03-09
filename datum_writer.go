@@ -193,8 +193,11 @@ func (writer *SpecificDatumWriter) writeMap(v reflect.Value, enc Encoder, s Sche
 	//TODO should probably write blocks of some length
 	enc.WriteMapStart(int64(v.Len()))
 	for _, key := range v.MapKeys() {
-		writer.writeString(key, enc, &StringSchema{})
-		if err := writer.write(v.MapIndex(key), enc, s.(*MapSchema).Values); err != nil {
+		err := writer.writeString(key, enc, &StringSchema{})
+		if err != nil {
+			return err
+		}
+		if err = writer.write(v.MapIndex(key), enc, s.(*MapSchema).Values); err != nil {
 			return err
 		}
 	}
@@ -409,7 +412,10 @@ func (writer *GenericDatumWriter) writeArray(v interface{}, enc Encoder, s Schem
 	//TODO should probably write blocks of some length
 	enc.WriteArrayStart(int64(rv.Len()))
 	for i := 0; i < rv.Len(); i++ {
-		writer.write(rv.Index(i).Interface(), enc, s.(*ArraySchema).Items)
+		err := writer.write(rv.Index(i).Interface(), enc, s.(*ArraySchema).Items)
+		if err != nil {
+			return err
+		}
 	}
 	enc.WriteArrayNext(0)
 
@@ -430,8 +436,14 @@ func (writer *GenericDatumWriter) writeMap(v interface{}, enc Encoder, s Schema)
 	//TODO should probably write blocks of some length
 	enc.WriteMapStart(int64(rv.Len()))
 	for _, key := range rv.MapKeys() {
-		writer.writeString(key.Interface(), enc)
-		writer.write(rv.MapIndex(key).Interface(), enc, s.(*MapSchema).Values)
+		err := writer.writeString(key.Interface(), enc)
+		if err != nil {
+			return err
+		}
+		err = writer.write(rv.MapIndex(key).Interface(), enc, s.(*MapSchema).Values)
+		if err != nil {
+			return err
+		}
 	}
 	enc.WriteMapNext(0)
 
@@ -445,7 +457,10 @@ func (writer *GenericDatumWriter) writeEnum(v interface{}, enc Encoder, s Schema
 			rs := s.(*EnumSchema)
 			for i := range rs.Symbols {
 				if rs.Name == rs.Symbols[i] {
-					writer.writeInt(i, enc)
+					err := writer.writeInt(i, enc)
+					if err != nil {
+						return err
+					}
 					break
 				}
 			}

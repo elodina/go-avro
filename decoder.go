@@ -205,7 +205,7 @@ func (bd *BinaryDecoder) ReadBytes() ([]byte, error) {
 	if length < 0 {
 		return nil, NegativeBytesLength
 	}
-	if err := checkEOF(bd.buf, bd.pos, int(length)); err != nil {
+	if err = checkEOF(bd.buf, bd.pos, int(length)); err != nil {
 		return nil, EOF
 	}
 
@@ -314,7 +314,10 @@ func (bd *BinaryDecoder) readItemCount() (int64, error) {
 	}
 
 	if count < 0 {
-		bd.ReadLong()
+		_, err = bd.ReadLong()
+		if err != nil {
+			return 0, err
+		}
 		count = -count
 	}
 	return count, err

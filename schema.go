@@ -1010,7 +1010,7 @@ func parseEnumSchema(v map[string]interface{}, registry map[string]Schema, names
 	setOptionalField(&schema.Doc, v, schemaDocField)
 	schema.Properties = getProperties(v)
 
-	return addSchema(getFullName(v[schemaNameField].(string), namespace), schema, registry)
+	return addSchema(getFullName(v[schemaNameField].(string), namespace), schema, registry), nil
 }
 
 func parseFixedSchema(v map[string]interface{}, registry map[string]Schema, namespace string) (Schema, error) {
@@ -1021,7 +1021,7 @@ func parseFixedSchema(v map[string]interface{}, registry map[string]Schema, name
 
 	schema := &FixedSchema{Name: v[schemaNameField].(string), Size: int(size), Properties: getProperties(v)}
 	setOptionalField(&schema.Namespace, v, schemaNamespaceField)
-	return addSchema(getFullName(v[schemaNameField].(string), namespace), schema, registry)
+	return addSchema(getFullName(v[schemaNameField].(string), namespace), schema, registry), nil
 }
 
 func parseUnionSchema(v []interface{}, registry map[string]Schema, namespace string) (Schema, error) {
@@ -1105,16 +1105,16 @@ func setOptionalField(where *string, v map[string]interface{}, fieldName string)
 	}
 }
 
-func addSchema(name string, schema Schema, schemas map[string]Schema) (Schema, error) {
+func addSchema(name string, schema Schema, schemas map[string]Schema) Schema {
 	if schemas != nil {
 		if sch, ok := schemas[name]; ok {
-			return sch, nil
+			return sch
 		}
 
 		schemas[name] = schema
 	}
 
-	return schema, nil
+	return schema
 }
 
 func getFullName(name string, namespace string) string {

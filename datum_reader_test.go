@@ -360,7 +360,8 @@ func enumRaceTest(t *testing.T, schemas []Schema) {
 		schema := schemas[routine%len(schemas)]
 		reader := NewGenericDatumReader()
 		reader.SetSchema(schema)
-		reader.Read(&dest, NewBinaryDecoder(buf.Bytes()))
+		err := reader.Read(&dest, NewBinaryDecoder(buf.Bytes()))
+		assert(t, err, nil)
 	})
 
 }

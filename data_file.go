@@ -173,9 +173,15 @@ func (reader *DataFileReader) NextBlock() error {
 	block.BlockRemaining = blockCount
 	block.NumEntries = blockCount
 	block.BlockSize = int(blockSize)
-	reader.dec.ReadFixedWithBounds(block.Data, 0, int(block.BlockSize))
+	err = reader.dec.ReadFixedWithBounds(block.Data, 0, int(block.BlockSize))
+	if err != nil {
+		return err
+	}
 	syncBuffer := make([]byte, syncSize)
-	reader.dec.ReadFixed(syncBuffer)
+	err = reader.dec.ReadFixed(syncBuffer)
+	if err != nil {
+		return err
+	}
 	if !bytes.Equal(syncBuffer, reader.header.Sync) {
 		return InvalidSync
 	}

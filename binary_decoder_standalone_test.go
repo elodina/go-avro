@@ -55,7 +55,7 @@ func TestBytes(t *testing.T) {
 		bytes := goodBytes[index]
 		actual, err := NewBinaryDecoder(bytes).ReadBytes()
 		if err != nil {
-			t.Fatal("Unexpected error during decoding bytes: %v", err)
+			t.Fatal(err)
 		}
 		for i := 0; i < len(actual); i++ {
 			if actual[i] != bytes[i+1] {
