@@ -2,7 +2,6 @@ package avro
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -23,13 +22,13 @@ const objHeaderSchemaRaw = `{"type": "record", "name": "org.apache.avro.file.Hea
 var objHeaderSchema = MustParseSchema(objHeaderSchemaRaw)
 
 const (
-	version    byte = 1
-	sync_size       = 16
-	schema_key      = "avro.schema"
-	codec_key       = "avro.codec"
+	version   byte = 1
+	syncSize       = 16
+	schemaKey      = "avro.schema"
+	codecKey       = "avro.codec"
 )
 
-var magic []byte = []byte{'O', 'b', 'j', version}
+var magic = []byte{'O', 'b', 'j', version}
 
 // DataFileReader is a reader for Avro Object Container Files.
 // More here: https://avro.apache.org/docs/current/spec.html#Object+Container+Files
@@ -57,14 +56,15 @@ func readObjFileHeader(dec *BinaryDecoder) (*objFileHeader, error) {
 	return header, err
 }
 
-// Creates a new DataFileReader for a given file and using the given DatumReader to read the data from that file.
+// NewDataFileReader creates a new DataFileReader for a given file and using the given DatumReader to read the data from that file.
 // May return an error if the file contains invalid data or is just missing.
 func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReader, error) {
-	if buf, err := ioutil.ReadFile(filename); err != nil {
+	buf, err := ioutil.ReadFile(filename)
+	if err != nil {
 		return nil, err
-	} else {
-		return newDataFileReaderBytes(buf, datumReader)
 	}
+
+	return newDataFileReaderBytes(buf, datumReader)
 }
 
 // separated out mainly for testing currently, will be refactored later for io.Reader paradigm
@@ -86,7 +86,7 @@ func newDataFileReaderBytes(buf []byte, datumReader DatumReader) (reader *DataFi
 		return nil, err
 	}
 
-	schema, err := ParseSchema(string(reader.header.Meta[schema_key]))
+	schema, err := ParseSchema(string(reader.header.Meta[schemaKey]))
 	if err != nil {
 		return nil, err
 	}
@@ -102,18 +102,18 @@ func newDataFileReaderBytes(buf []byte, datumReader DatumReader) (reader *DataFi
 	return reader, nil
 }
 
-// Switches the reading position in this DataFileReader to a provided value.
-func (this *DataFileReader) Seek(pos int64) {
-	this.dec.Seek(pos)
+// Seek switches the reading position in this DataFileReader to a provided value.
+func (reader *DataFileReader) Seek(pos int64) {
+	reader.dec.Seek(pos)
 }
 
-func (this *DataFileReader) hasNext() (bool, error) {
-	if this.block.BlockRemaining == 0 {
-		if int64(this.block.BlockSize) != this.blockDecoder.Tell() {
+func (reader *DataFileReader) hasNext() (bool, error) {
+	if reader.block.BlockRemaining == 0 {
+		if int64(reader.block.BlockSize) != reader.blockDecoder.Tell() {
 			return false, BlockNotFinished
 		}
-		if this.hasNextBlock() {
-			if err := this.NextBlock(); err != nil {
+		if reader.hasNextBlock() {
+			if err := reader.NextBlock(); err != nil {
 				return false, err
 			}
 		} else {
@@ -123,60 +123,70 @@ func (this *DataFileReader) hasNext() (bool, error) {
 	return true, nil
 }
 
-func (this *DataFileReader) hasNextBlock() bool {
-	return int64(len(this.data)) > this.dec.Tell()
+func (reader *DataFileReader) hasNextBlock() bool {
+	return int64(len(reader.data)) > reader.dec.Tell()
 }
 
-// Reads the next value from file and fills the given value with data.
+// Next reads the next value from file and fills the given value with data.
 // First return value indicates whether the read was successful.
 // Second return value indicates whether there was an error while reading data.
 // Returns (false, nil) when no more data left to read.
-func (this *DataFileReader) Next(v interface{}) (bool, error) {
-	if hasNext, err := this.hasNext(); err != nil {
+func (reader *DataFileReader) Next(v interface{}) (bool, error) {
+	hasNext, err := reader.hasNext()
+	if err != nil {
 		return false, err
-	} else {
-		if hasNext {
-			err := this.datum.Read(v, this.blockDecoder)
-			if err != nil {
-				return false, err
-			}
-			this.block.BlockRemaining--
-			return true, nil
-		} else {
-			return false, nil
-		}
 	}
+
+	if hasNext {
+		err := reader.datum.Read(v, reader.blockDecoder)
+		if err != nil {
+			return false, err
+		}
+		reader.block.BlockRemaining--
+		return true, nil
+	}
+
+	return false, nil
 }
 
-// Tells this DataFileReader to skip current block and move to next one.
+// NextBlock tells this DataFileReader to skip current block and move to next one.
 // May return an error if the block is malformed or no more blocks left to read.
-func (this *DataFileReader) NextBlock() error {
-	if blockCount, err := this.dec.ReadLong(); err != nil {
+func (reader *DataFileReader) NextBlock() error {
+	blockCount, err := reader.dec.ReadLong()
+	if err != nil {
 		return err
-	} else {
-		if blockSize, err := this.dec.ReadLong(); err != nil {
-			return err
-		} else {
-			if blockSize > math.MaxInt32 || blockSize < 0 {
-				return errors.New(fmt.Sprintf("Block size invalid or too large: %d", blockSize))
-			}
-
-			block := this.block
-			if block.Data == nil || int64(len(block.Data)) < blockSize {
-				block.Data = make([]byte, blockSize)
-			}
-			block.BlockRemaining = blockCount
-			block.NumEntries = blockCount
-			block.BlockSize = int(blockSize)
-			this.dec.ReadFixedWithBounds(block.Data, 0, int(block.BlockSize))
-			syncBuffer := make([]byte, sync_size)
-			this.dec.ReadFixed(syncBuffer)
-			if !bytes.Equal(syncBuffer, this.header.Sync) {
-				return InvalidSync
-			}
-			this.blockDecoder.SetBlock(this.block)
-		}
 	}
+
+	blockSize, err := reader.dec.ReadLong()
+	if err != nil {
+		return err
+	}
+
+	if blockSize > math.MaxInt32 || blockSize < 0 {
+		return fmt.Errorf("Block size invalid or too large: %d", blockSize)
+	}
+
+	block := reader.block
+	if block.Data == nil || int64(len(block.Data)) < blockSize {
+		block.Data = make([]byte, blockSize)
+	}
+	block.BlockRemaining = blockCount
+	block.NumEntries = blockCount
+	block.BlockSize = int(blockSize)
+	err = reader.dec.ReadFixedWithBounds(block.Data, 0, int(block.BlockSize))
+	if err != nil {
+		return err
+	}
+	syncBuffer := make([]byte, syncSize)
+	err = reader.dec.ReadFixed(syncBuffer)
+	if err != nil {
+		return err
+	}
+	if !bytes.Equal(syncBuffer, reader.header.Sync) {
+		return InvalidSync
+	}
+	reader.blockDecoder.SetBlock(reader.block)
+
 	return nil
 }
 
@@ -195,6 +205,8 @@ type DataFileWriter struct {
 	blockEnc   *BinaryEncoder
 }
 
+// NewDataFileWriter creates a new DataFileWriter for given output and schema using the given DatumWriter to write the data to that Writer.
+// May return an error if writing fails.
 func NewDataFileWriter(output io.Writer, schema Schema, datumWriter DatumWriter) (writer *DataFileWriter, err error) {
 	encoder := NewBinaryEncoder(output)
 	datumWriter.SetSchema(schema)
@@ -203,8 +215,8 @@ func NewDataFileWriter(output io.Writer, schema Schema, datumWriter DatumWriter)
 	header := &objFileHeader{
 		Magic: magic,
 		Meta: map[string][]byte{
-			schema_key: []byte(schema.String()),
-			codec_key:  []byte("null"),
+			schemaKey: []byte(schema.String()),
+			codecKey:  []byte("null"),
 		},
 		Sync: sync,
 	}

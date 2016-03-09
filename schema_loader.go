@@ -22,7 +22,7 @@ import (
 
 const schemaExtension = ".avsc"
 
-// Loads and parses a schema file or directory.
+// LoadSchemas loads and parses a schema file or directory.
 // Directory names MUST end with "/"
 func LoadSchemas(path string) map[string]Schema {
 	files := getFiles(path, make([]string, 0))
@@ -77,15 +77,14 @@ func addFile(path string, files []string) []string {
 }
 
 func loadSchema(basePath, avscPath string, schemas map[string]Schema) (Schema, error) {
-	avscJson, err := ioutil.ReadFile(avscPath)
-
+	avscJSON, err := ioutil.ReadFile(avscPath)
 	if err != nil {
 		return nil, err
 	}
 
 	var sch Schema
 	for {
-		sch, err = ParseSchemaWithRegistry(string(avscJson), schemas)
+		sch, err = ParseSchemaWithRegistry(string(avscJSON), schemas)
 
 		if err != nil {
 			text := err.Error()

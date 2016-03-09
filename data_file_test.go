@@ -52,8 +52,10 @@ func TestDataFileWriter(t *testing.T) {
 		t.Fatal(err)
 	}
 	var p primitive
-	dfr.Next(&p)
+	_, err = dfr.Next(&p)
+	assert(t, err, nil)
 	assert(t, p.LongField, int64(0))
-	dfr.Next(&p)
+	_, err = dfr.Next(&p)
+	assert(t, err, nil)
 	assert(t, p.LongField, int64(1))
 }

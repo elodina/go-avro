@@ -44,6 +44,9 @@ var InvalidValueType = errors.New("Invalid array or map value type")
 // Happens when avro schema contains a union within union.
 var NestedUnionsNotAllowed = errors.New("Nested unions are not allowed")
 
+// UnionTypeOverflow happens when the numeric index of the union type is invalid.
+var UnionTypeOverflow = errors.New("Union type overflow")
+
 // Happens when avro schema is unparsable or is invalid in any other way.
 var InvalidSchema = errors.New("Invalid schema")
 

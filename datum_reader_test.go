@@ -22,14 +22,14 @@ type primitive struct {
 //TODO replace with encoder <-> decoder tests when decoder is available
 //primitive values predefined test data
 var (
-	primitive_bool   bool        = true
-	primitive_int    int32       = 7498
-	primitive_long   int64       = 7921326876135578931
-	primitive_float  float32     = 87612736.5124367
-	primitive_double float64     = 98671578.12563891
-	primitive_bytes  []byte      = []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09}
-	primitive_string string      = "A very long and cute string here!"
-	primitive_null   interface{} = nil
+	primitiveBool           = true
+	primitiveInt    int32   = 7498
+	primitiveLong   int64   = 7921326876135578931
+	primitiveFloat  float32 = 87612736.5124367
+	primitiveDouble         = 98671578.12563891
+	primitiveBytes          = []byte{0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09}
+	primitiveString         = "A very long and cute string here!"
+	primitiveNull   interface{}
 )
 
 func TestPrimitiveBinding(t *testing.T) {
@@ -47,14 +47,14 @@ func TestPrimitiveBinding(t *testing.T) {
 			}
 			break
 		} else {
-			assert(t, p.BooleanField, primitive_bool)
-			assert(t, p.IntField, primitive_int)
-			assert(t, p.LongField, primitive_long)
-			assert(t, p.FloatField, primitive_float)
-			assert(t, p.DoubleField, primitive_double)
-			assert(t, p.BytesField, primitive_bytes)
-			assert(t, p.StringField, primitive_string)
-			assert(t, p.NullField, primitive_null)
+			assert(t, p.BooleanField, primitiveBool)
+			assert(t, p.IntField, primitiveInt)
+			assert(t, p.LongField, primitiveLong)
+			assert(t, p.FloatField, primitiveFloat)
+			assert(t, p.DoubleField, primitiveDouble)
+			assert(t, p.BytesField, primitiveBytes)
+			assert(t, p.StringField, primitiveString)
+			assert(t, p.NullField, primitiveNull)
 		}
 	}
 }
@@ -80,12 +80,12 @@ type testRecord struct {
 //TODO replace with encoder <-> decoder tests when decoder is available
 //predefined test data for complex types
 var (
-	complex_union         string  = "union value"
-	complex_fixed         []byte  = []byte{0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04}
-	complex_record_long   int64   = 1925639126735
-	complex_record_string string  = "I am a test record"
-	complex_record_int    int32   = 666
-	complex_record_float  float32 = 7171.17
+	complexUnion                = "union value"
+	complexFixed                = []byte{0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04}
+	complexRecordLong   int64   = 1925639126735
+	complexRecordString         = "I am a test record"
+	complexRecordInt    int32   = 666
+	complexRecordFloat  float32 = 7171.17
 )
 
 func TestComplexBinding(t *testing.T) {
@@ -143,15 +143,15 @@ func TestComplexBinding(t *testing.T) {
 				}
 			}
 
-			if c.UnionField != complex_union {
-				t.Errorf("Invalid union value: expected %v, actual %v", complex_union, c.UnionField)
+			if c.UnionField != complexUnion {
+				t.Errorf("Invalid union value: expected %v, actual %v", complexUnion, c.UnionField)
 			}
 
-			assert(t, c.FixedField, complex_fixed)
-			assert(t, c.RecordField.LongRecordField, complex_record_long)
-			assert(t, c.RecordField.StringRecordField, complex_record_string)
-			assert(t, c.RecordField.IntRecordField, complex_record_int)
-			assert(t, c.RecordField.FloatRecordField, complex_record_float)
+			assert(t, c.FixedField, complexFixed)
+			assert(t, c.RecordField.LongRecordField, complexRecordLong)
+			assert(t, c.RecordField.StringRecordField, complexRecordString)
+			assert(t, c.RecordField.IntRecordField, complexRecordInt)
+			assert(t, c.RecordField.FloatRecordField, complexRecordFloat)
 		}
 	}
 }
@@ -360,7 +360,8 @@ func enumRaceTest(t *testing.T, schemas []Schema) {
 		schema := schemas[routine%len(schemas)]
 		reader := NewGenericDatumReader()
 		reader.SetSchema(schema)
-		reader.Read(&dest, NewBinaryDecoder(buf.Bytes()))
+		err := reader.Read(&dest, NewBinaryDecoder(buf.Bytes()))
+		assert(t, err, nil)
 	})
 
 }

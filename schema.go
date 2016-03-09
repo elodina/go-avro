@@ -57,34 +57,34 @@ const (
 )
 
 const (
-	type_record  = "record"
-	type_union   = "union"
-	type_enum    = "enum"
-	type_array   = "array"
-	type_map     = "map"
-	type_fixed   = "fixed"
-	type_string  = "string"
-	type_bytes   = "bytes"
-	type_int     = "int"
-	type_long    = "long"
-	type_float   = "float"
-	type_double  = "double"
-	type_boolean = "boolean"
-	type_null    = "null"
+	typeRecord  = "record"
+	typeUnion   = "union"
+	typeEnum    = "enum"
+	typeArray   = "array"
+	typeMap     = "map"
+	typeFixed   = "fixed"
+	typeString  = "string"
+	typeBytes   = "bytes"
+	typeInt     = "int"
+	typeLong    = "long"
+	typeFloat   = "float"
+	typeDouble  = "double"
+	typeBoolean = "boolean"
+	typeNull    = "null"
 )
 
 const (
-	schema_aliasesField   = "aliases"
-	schema_defaultField   = "default"
-	schema_docField       = "doc"
-	schema_fieldsField    = "fields"
-	schema_itemsField     = "items"
-	schema_nameField      = "name"
-	schema_namespaceField = "namespace"
-	schema_sizeField      = "size"
-	schema_symbolsField   = "symbols"
-	schema_typeField      = "type"
-	schema_valuesField    = "values"
+	schemaAliasesField   = "aliases"
+	schemaDefaultField   = "default"
+	schemaDocField       = "doc"
+	schemaFieldsField    = "fields"
+	schemaItemsField     = "items"
+	schemaNameField      = "name"
+	schemaNamespaceField = "namespace"
+	schemaSizeField      = "size"
+	schemaSymbolsField   = "symbols"
+	schemaTypeField      = "type"
+	schemaValuesField    = "values"
 )
 
 // Schema is an interface representing a single Avro schema (both primitive and complex).
@@ -113,94 +113,97 @@ func (*StringSchema) String() string {
 	return `{"type": "string"}`
 }
 
-// Returns a type constant for this StringSchema.
+// Type returns a type constant for this StringSchema.
 func (*StringSchema) Type() int {
 	return String
 }
 
-// Returns a type name for this StringSchema.
+// GetName returns a type name for this StringSchema.
 func (*StringSchema) GetName() string {
-	return type_string
+	return typeString
 }
 
-// Doesn't return anything valuable for StringSchema.
+// Prop doesn't return anything valuable for StringSchema.
 func (*StringSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
+// Validate checks whether the given value is writeable to this schema.
 func (*StringSchema) Validate(v reflect.Value) bool {
 	_, ok := dereference(v).Interface().(string)
 	return ok
 }
 
-func (this *StringSchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON. Never returns an error.
+func (*StringSchema) MarshalJSON() ([]byte, error) {
 	return []byte(`"string"`), nil
 }
 
 // BytesSchema implements Schema and represents Avro bytes type.
 type BytesSchema struct{}
 
-// Returns a JSON representation of BytesSchema.
+// String returns a JSON representation of BytesSchema.
 func (*BytesSchema) String() string {
 	return `{"type": "bytes"}`
 }
 
-// Returns a type constant for this BytesSchema.
+// Type returns a type constant for this BytesSchema.
 func (*BytesSchema) Type() int {
 	return Bytes
 }
 
-// Returns a type name for this BytesSchema.
+// GetName returns a type name for this BytesSchema.
 func (*BytesSchema) GetName() string {
-	return type_bytes
+	return typeBytes
 }
 
-// Doesn't return anything valuable for BytesSchema.
+// Prop doesn't return anything valuable for BytesSchema.
 func (*BytesSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
+// Validate checks whether the given value is writeable to this schema.
 func (*BytesSchema) Validate(v reflect.Value) bool {
 	v = dereference(v)
 
 	return v.Kind() == reflect.Slice && v.Type().Elem().Kind() == reflect.Uint8
 }
 
-func (this *BytesSchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON. Never returns an error.
+func (*BytesSchema) MarshalJSON() ([]byte, error) {
 	return []byte(`"bytes"`), nil
 }
 
 // IntSchema implements Schema and represents Avro int type.
 type IntSchema struct{}
 
-// Returns a JSON representation of IntSchema.
+// String returns a JSON representation of IntSchema.
 func (*IntSchema) String() string {
 	return `{"type": "int"}`
 }
 
-// Returns a type constant for this IntSchema.
+// Type returns a type constant for this IntSchema.
 func (*IntSchema) Type() int {
 	return Int
 }
 
-// Returns a type name for this IntSchema.
+// GetName returns a type name for this IntSchema.
 func (*IntSchema) GetName() string {
-	return type_int
+	return typeInt
 }
 
-// Doesn't return anything valuable for IntSchema.
+// Prop doesn't return anything valuable for IntSchema.
 func (*IntSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
+// Validate checks whether the given value is writeable to this schema.
 func (*IntSchema) Validate(v reflect.Value) bool {
 	return reflect.TypeOf(dereference(v).Interface()).Kind() == reflect.Int32
 }
 
-func (this *IntSchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON. Never returns an error.
+func (*IntSchema) MarshalJSON() ([]byte, error) {
 	return []byte(`"int"`), nil
 }
 
@@ -212,59 +215,61 @@ func (*LongSchema) String() string {
 	return `{"type": "long"}`
 }
 
-// Returns a type constant for this LongSchema.
+// Type returns a type constant for this LongSchema.
 func (*LongSchema) Type() int {
 	return Long
 }
 
-// Returns a type name for this LongSchema.
+// GetName returns a type name for this LongSchema.
 func (*LongSchema) GetName() string {
-	return type_long
+	return typeLong
 }
 
-// Doesn't return anything valuable for LongSchema.
+// Prop doesn't return anything valuable for LongSchema.
 func (*LongSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
+// Validate checks whether the given value is writeable to this schema.
 func (*LongSchema) Validate(v reflect.Value) bool {
 	return reflect.TypeOf(dereference(v).Interface()).Kind() == reflect.Int64
 }
 
-func (this *LongSchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON. Never returns an error.
+func (*LongSchema) MarshalJSON() ([]byte, error) {
 	return []byte(`"long"`), nil
 }
 
 // FloatSchema implements Schema and represents Avro float type.
 type FloatSchema struct{}
 
-// Returns a JSON representation of FloatSchema.
+// String returns a JSON representation of FloatSchema.
 func (*FloatSchema) String() string {
 	return `{"type": "float"}`
 }
 
-// Returns a type constant for this FloatSchema.
+// Type returns a type constant for this FloatSchema.
 func (*FloatSchema) Type() int {
 	return Float
 }
 
-// Returns a type name for this FloatSchema.
+// GetName returns a type name for this FloatSchema.
 func (*FloatSchema) GetName() string {
-	return type_float
+	return typeFloat
 }
 
-// Doesn't return anything valuable for FloatSchema.
+// Prop doesn't return anything valuable for FloatSchema.
 func (*FloatSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
+// Validate checks whether the given value is writeable to this schema.
 func (*FloatSchema) Validate(v reflect.Value) bool {
 	return reflect.TypeOf(dereference(v).Interface()).Kind() == reflect.Float32
 }
 
-func (this *FloatSchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON. Never returns an error.
+func (*FloatSchema) MarshalJSON() ([]byte, error) {
 	return []byte(`"float"`), nil
 }
 
@@ -276,86 +281,88 @@ func (*DoubleSchema) String() string {
 	return `{"type": "double"}`
 }
 
-// Returns a type constant for this DoubleSchema.
+// Type returns a type constant for this DoubleSchema.
 func (*DoubleSchema) Type() int {
 	return Double
 }
 
-// Returns a type name for this DoubleSchema.
+// GetName returns a type name for this DoubleSchema.
 func (*DoubleSchema) GetName() string {
-	return type_double
+	return typeDouble
 }
 
-// Doesn't return anything valuable for DoubleSchema.
+// Prop doesn't return anything valuable for DoubleSchema.
 func (*DoubleSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
+// Validate checks whether the given value is writeable to this schema.
 func (*DoubleSchema) Validate(v reflect.Value) bool {
 	return reflect.TypeOf(dereference(v).Interface()).Kind() == reflect.Float64
 }
 
-func (this *DoubleSchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON. Never returns an error.
+func (*DoubleSchema) MarshalJSON() ([]byte, error) {
 	return []byte(`"double"`), nil
 }
 
 // BooleanSchema implements Schema and represents Avro boolean type.
 type BooleanSchema struct{}
 
-// Returns a JSON representation of BooleanSchema.
+// String returns a JSON representation of BooleanSchema.
 func (*BooleanSchema) String() string {
 	return `{"type": "boolean"}`
 }
 
-// Returns a type constant for this BooleanSchema.
+// Type returns a type constant for this BooleanSchema.
 func (*BooleanSchema) Type() int {
 	return Boolean
 }
 
-// Returns a type name for this BooleanSchema.
+// GetName returns a type name for this BooleanSchema.
 func (*BooleanSchema) GetName() string {
-	return type_boolean
+	return typeBoolean
 }
 
-// Doesn't return anything valuable for BooleanSchema.
+// Prop doesn't return anything valuable for BooleanSchema.
 func (*BooleanSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
+// Validate checks whether the given value is writeable to this schema.
 func (*BooleanSchema) Validate(v reflect.Value) bool {
 	return dereference(v).Kind() == reflect.Bool
 }
 
-func (this *BooleanSchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON. Never returns an error.
+func (*BooleanSchema) MarshalJSON() ([]byte, error) {
 	return []byte(`"boolean"`), nil
 }
 
 // NullSchema implements Schema and represents Avro null type.
 type NullSchema struct{}
 
-// Returns a JSON representation of NullSchema.
+// String returns a JSON representation of NullSchema.
 func (*NullSchema) String() string {
 	return `{"type": "null"}`
 }
 
-// Returns a type constant for this NullSchema.
+// Type returns a type constant for this NullSchema.
 func (*NullSchema) Type() int {
 	return Null
 }
 
-// Returns a type name for this NullSchema.
+// GetName returns a type name for this NullSchema.
 func (*NullSchema) GetName() string {
-	return type_null
+	return typeNull
 }
 
-// Doesn't return anything valuable for NullSchema.
+// Prop doesn't return anything valuable for NullSchema.
 func (*NullSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
+// Validate checks whether the given value is writeable to this schema.
 func (*NullSchema) Validate(v reflect.Value) bool {
 	// Check if the value is something that can be null
 	switch v.Kind() {
@@ -385,7 +392,8 @@ func (*NullSchema) Validate(v reflect.Value) bool {
 	return false
 }
 
-func (this *NullSchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON. Never returns an error.
+func (*NullSchema) MarshalJSON() ([]byte, error) {
 	return []byte(`"null"`), nil
 }
 
@@ -399,9 +407,9 @@ type RecordSchema struct {
 	Fields     []*SchemaField `json:"fields"`
 }
 
-// Returns a JSON representation of RecordSchema.
-func (this *RecordSchema) String() string {
-	bytes, err := json.MarshalIndent(this, "", "    ")
+// String returns a JSON representation of RecordSchema.
+func (s *RecordSchema) String() string {
+	bytes, err := json.MarshalIndent(s, "", "    ")
 	if err != nil {
 		panic(err)
 	}
@@ -409,7 +417,8 @@ func (this *RecordSchema) String() string {
 	return string(bytes)
 }
 
-func (this *RecordSchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON.
+func (s *RecordSchema) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Type      string         `json:"type,omitempty"`
 		Namespace string         `json:"namespace,omitempty"`
@@ -419,28 +428,28 @@ func (this *RecordSchema) MarshalJSON() ([]byte, error) {
 		Fields    []*SchemaField `json:"fields"`
 	}{
 		Type:      "record",
-		Namespace: this.Namespace,
-		Name:      this.Name,
-		Doc:       this.Doc,
-		Aliases:   this.Aliases,
-		Fields:    this.Fields,
+		Namespace: s.Namespace,
+		Name:      s.Name,
+		Doc:       s.Doc,
+		Aliases:   s.Aliases,
+		Fields:    s.Fields,
 	})
 }
 
-// Returns a type constant for this RecordSchema.
+// Type returns a type constant for this RecordSchema.
 func (*RecordSchema) Type() int {
 	return Record
 }
 
-// Returns a record name for this RecordSchema.
-func (this *RecordSchema) GetName() string {
-	return this.Name
+// GetName returns a record name for this RecordSchema.
+func (s *RecordSchema) GetName() string {
+	return s.Name
 }
 
-// Gets a custom non-reserved string property from this schema and a bool representing if it exists.
-func (this *RecordSchema) Prop(key string) (interface{}, bool) {
-	if this.Properties != nil {
-		if prop, ok := this.Properties[key]; ok {
+// Prop gets a custom non-reserved property from this schema and a bool representing if it exists.
+func (s *RecordSchema) Prop(key string) (interface{}, bool) {
+	if s.Properties != nil {
+		if prop, ok := s.Properties[key]; ok {
 			return prop, true
 		}
 	}
@@ -448,8 +457,8 @@ func (this *RecordSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
-func (rs *RecordSchema) Validate(v reflect.Value) bool {
+// Validate checks whether the given value is writeable to this schema.
+func (s *RecordSchema) Validate(v reflect.Value) bool {
 	v = dereference(v)
 	if v.Kind() != reflect.Struct || !v.CanAddr() || !v.CanInterface() {
 		return false
@@ -461,17 +470,17 @@ func (rs *RecordSchema) Validate(v reflect.Value) bool {
 		return v.Kind() == reflect.Struct
 	}
 
-	field_count := 0
+	fieldCount := 0
 	for key, val := range rec.fields {
-		for idx := range rs.Fields {
+		for idx := range s.Fields {
 			// key.Name must have rs.Fields[idx].Name as a suffix
-			if len(rs.Fields[idx].Name) <= len(key) {
-				lhs := key[len(key)-len(rs.Fields[idx].Name) : len(key)]
-				if lhs == rs.Fields[idx].Name {
-					if !rs.Fields[idx].Type.Validate(reflect.ValueOf(val)) {
+			if len(s.Fields[idx].Name) <= len(key) {
+				lhs := key[len(key)-len(s.Fields[idx].Name) : len(key)]
+				if lhs == s.Fields[idx].Name {
+					if !s.Fields[idx].Type.Validate(reflect.ValueOf(val)) {
 						return false
 					}
-					field_count++
+					fieldCount++
 					break
 				}
 			}
@@ -479,7 +488,7 @@ func (rs *RecordSchema) Validate(v reflect.Value) bool {
 	}
 
 	// All of the fields set must be accounted for in the union.
-	if field_count < len(rec.fields) {
+	if fieldCount < len(rec.fields) {
 		return false
 	}
 
@@ -497,33 +506,34 @@ func newRecursiveSchema(parent *RecordSchema) *RecursiveSchema {
 	}
 }
 
-// Returns a JSON representation of RecursiveSchema.
-func (this *RecursiveSchema) String() string {
-	return fmt.Sprintf(`{"type": "%s"}`, this.Actual.GetName())
+// String returns a JSON representation of RecursiveSchema.
+func (s *RecursiveSchema) String() string {
+	return fmt.Sprintf(`{"type": "%s"}`, s.Actual.GetName())
 }
 
-// Returns a type constant for this RecursiveSchema.
+// Type returns a type constant for this RecursiveSchema.
 func (*RecursiveSchema) Type() int {
 	return Recursive
 }
 
-// Returns a record name for enclosed RecordSchema.
-func (this *RecursiveSchema) GetName() string {
-	return this.Actual.GetName()
+// GetName returns a record name for enclosed RecordSchema.
+func (s *RecursiveSchema) GetName() string {
+	return s.Actual.GetName()
 }
 
-// Doesn't return anything valuable for RecursiveSchema.
+// Prop doesn't return anything valuable for RecursiveSchema.
 func (*RecursiveSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
-func (this *RecursiveSchema) Validate(v reflect.Value) bool {
-	return this.Actual.Validate(v)
+// Validate checks whether the given value is writeable to this schema.
+func (s *RecursiveSchema) Validate(v reflect.Value) bool {
+	return s.Actual.Validate(v)
 }
 
-func (this *RecursiveSchema) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, this.Actual.GetName())), nil
+// MarshalJSON serializes the given schema as JSON. Never returns an error.
+func (s *RecursiveSchema) MarshalJSON() ([]byte, error) {
+	return []byte(fmt.Sprintf(`"%s"`, s.Actual.GetName())), nil
 }
 
 // SchemaField represents a schema field for Avro record.
@@ -545,37 +555,38 @@ func (this *SchemaField) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-func (this *SchemaField) MarshalJSON() ([]byte, error) {
-	if this.Type.Type() == Null || (this.Type.Type() == Union && this.Type.(*UnionSchema).Types[0].Type() == Null) {
+// MarshalJSON serializes the given schema field as JSON.
+func (s *SchemaField) MarshalJSON() ([]byte, error) {
+	if s.Type.Type() == Null || (s.Type.Type() == Union && s.Type.(*UnionSchema).Types[0].Type() == Null) {
 		return json.Marshal(struct {
 			Name    string      `json:"name,omitempty"`
 			Doc     string      `json:"doc,omitempty"`
 			Default interface{} `json:"default"`
 			Type    Schema      `json:"type,omitempty"`
 		}{
-			Name:    this.Name,
-			Doc:     this.Doc,
-			Default: this.Default,
-			Type:    this.Type,
-		})
-	} else {
-		return json.Marshal(struct {
-			Name    string      `json:"name,omitempty"`
-			Doc     string      `json:"doc,omitempty"`
-			Default interface{} `json:"default,omitempty"`
-			Type    Schema      `json:"type,omitempty"`
-		}{
-			Name:    this.Name,
-			Doc:     this.Doc,
-			Default: this.Default,
-			Type:    this.Type,
+			Name:    s.Name,
+			Doc:     s.Doc,
+			Default: s.Default,
+			Type:    s.Type,
 		})
 	}
+
+	return json.Marshal(struct {
+		Name    string      `json:"name,omitempty"`
+		Doc     string      `json:"doc,omitempty"`
+		Default interface{} `json:"default,omitempty"`
+		Type    Schema      `json:"type,omitempty"`
+	}{
+		Name:    s.Name,
+		Doc:     s.Doc,
+		Default: s.Default,
+		Type:    s.Type,
+	})
 }
 
-// Returns a JSON representation of SchemaField.
-func (this *SchemaField) String() string {
-	return fmt.Sprintf("[SchemaField: Name: %s, Doc: %s, Default: %v, Type: %s]", this.Name, this.Doc, this.Default, this.Type)
+// String returns a JSON representation of SchemaField.
+func (s *SchemaField) String() string {
+	return fmt.Sprintf("[SchemaField: Name: %s, Doc: %s, Default: %v, Type: %s]", s.Name, s.Doc, s.Default, s.Type)
 }
 
 // EnumSchema implements Schema and represents Avro enum type.
@@ -588,9 +599,9 @@ type EnumSchema struct {
 	Properties map[string]interface{}
 }
 
-// Returns a JSON representation of EnumSchema.
-func (this *EnumSchema) String() string {
-	bytes, err := json.MarshalIndent(this, "", "    ")
+// String returns a JSON representation of EnumSchema.
+func (s *EnumSchema) String() string {
+	bytes, err := json.MarshalIndent(s, "", "    ")
 	if err != nil {
 		panic(err)
 	}
@@ -598,20 +609,20 @@ func (this *EnumSchema) String() string {
 	return string(bytes)
 }
 
-// Returns a type constant for this EnumSchema.
+// Type returns a type constant for this EnumSchema.
 func (*EnumSchema) Type() int {
 	return Enum
 }
 
-// Returns an enum name for this EnumSchema.
-func (this *EnumSchema) GetName() string {
-	return this.Name
+// GetName returns an enum name for this EnumSchema.
+func (s *EnumSchema) GetName() string {
+	return s.Name
 }
 
-// Gets a custom non-reserved property from this schema and a bool representing if it exists.
-func (this *EnumSchema) Prop(key string) (interface{}, bool) {
-	if this.Properties != nil {
-		if prop, ok := this.Properties[key]; ok {
+// Prop gets a custom non-reserved property from this schema and a bool representing if it exists.
+func (s *EnumSchema) Prop(key string) (interface{}, bool) {
+	if s.Properties != nil {
+		if prop, ok := s.Properties[key]; ok {
 			return prop, true
 		}
 	}
@@ -619,13 +630,14 @@ func (this *EnumSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
-func (this *EnumSchema) Validate(v reflect.Value) bool {
+// Validate checks whether the given value is writeable to this schema.
+func (*EnumSchema) Validate(v reflect.Value) bool {
 	//TODO implement
 	return true
 }
 
-func (this *EnumSchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON.
+func (s *EnumSchema) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Type      string   `json:"type,omitempty"`
 		Namespace string   `json:"namespace,omitempty"`
@@ -634,10 +646,10 @@ func (this *EnumSchema) MarshalJSON() ([]byte, error) {
 		Symbols   []string `json:"symbols,omitempty"`
 	}{
 		Type:      "enum",
-		Namespace: this.Namespace,
-		Name:      this.Name,
-		Doc:       this.Doc,
-		Symbols:   this.Symbols,
+		Namespace: s.Namespace,
+		Name:      s.Name,
+		Doc:       s.Doc,
+		Symbols:   s.Symbols,
 	})
 }
 
@@ -647,9 +659,9 @@ type ArraySchema struct {
 	Properties map[string]interface{}
 }
 
-// Returns a JSON representation of ArraySchema.
-func (this *ArraySchema) String() string {
-	bytes, err := json.MarshalIndent(this, "", "    ")
+// String returns a JSON representation of ArraySchema.
+func (s *ArraySchema) String() string {
+	bytes, err := json.MarshalIndent(s, "", "    ")
 	if err != nil {
 		panic(err)
 	}
@@ -657,20 +669,20 @@ func (this *ArraySchema) String() string {
 	return string(bytes)
 }
 
-// Returns a type constant for this ArraySchema.
+// Type returns a type constant for this ArraySchema.
 func (*ArraySchema) Type() int {
 	return Array
 }
 
-// Returns a type name for this ArraySchema.
+// GetName returns a type name for this ArraySchema.
 func (*ArraySchema) GetName() string {
-	return type_array
+	return typeArray
 }
 
-// Gets a custom non-reserved string property from this schema and a bool representing if it exists.
-func (this *ArraySchema) Prop(key string) (interface{}, bool) {
-	if this.Properties != nil {
-		if prop, ok := this.Properties[key]; ok {
+// Prop gets a custom non-reserved property from this schema and a bool representing if it exists.
+func (s *ArraySchema) Prop(key string) (interface{}, bool) {
+	if s.Properties != nil {
+		if prop, ok := s.Properties[key]; ok {
 			return prop, true
 		}
 	}
@@ -678,21 +690,22 @@ func (this *ArraySchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
-func (this *ArraySchema) Validate(v reflect.Value) bool {
+// Validate checks whether the given value is writeable to this schema.
+func (s *ArraySchema) Validate(v reflect.Value) bool {
 	v = dereference(v)
 
 	// This needs to be a slice
 	return v.Kind() == reflect.Slice || v.Kind() == reflect.Array
 }
 
-func (this *ArraySchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON.
+func (s *ArraySchema) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Type  string `json:"type,omitempty"`
 		Items Schema `json:"items,omitempty"`
 	}{
 		Type:  "array",
-		Items: this.Items,
+		Items: s.Items,
 	})
 }
 
@@ -702,9 +715,9 @@ type MapSchema struct {
 	Properties map[string]interface{}
 }
 
-// Returns a JSON representation of MapSchema.
-func (this *MapSchema) String() string {
-	bytes, err := json.MarshalIndent(this, "", "    ")
+// String returns a JSON representation of MapSchema.
+func (s *MapSchema) String() string {
+	bytes, err := json.MarshalIndent(s, "", "    ")
 	if err != nil {
 		panic(err)
 	}
@@ -712,40 +725,41 @@ func (this *MapSchema) String() string {
 	return string(bytes)
 }
 
-// Returns a type constant for this MapSchema.
+// Type returns a type constant for this MapSchema.
 func (*MapSchema) Type() int {
 	return Map
 }
 
-// Returns a type name for this MapSchema.
+// GetName returns a type name for this MapSchema.
 func (*MapSchema) GetName() string {
-	return type_map
+	return typeMap
 }
 
-// Gets a custom non-reserved string property from this schema and a bool representing if it exists.
-func (this *MapSchema) Prop(key string) (interface{}, bool) {
-	if this.Properties != nil {
-		if prop, ok := this.Properties[key]; ok {
+// Prop gets a custom non-reserved property from this schema and a bool representing if it exists.
+func (s *MapSchema) Prop(key string) (interface{}, bool) {
+	if s.Properties != nil {
+		if prop, ok := s.Properties[key]; ok {
 			return prop, true
 		}
 	}
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
-func (this *MapSchema) Validate(v reflect.Value) bool {
+// Validate checks whether the given value is writeable to this schema.
+func (s *MapSchema) Validate(v reflect.Value) bool {
 	v = dereference(v)
 
 	return v.Kind() == reflect.Map && v.Type().Key().Kind() == reflect.String
 }
 
-func (this *MapSchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON.
+func (s *MapSchema) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Type   string `json:"type,omitempty"`
 		Values Schema `json:"values,omitempty"`
 	}{
 		Type:   "map",
-		Values: this.Values,
+		Values: s.Values,
 	})
 }
 
@@ -754,9 +768,9 @@ type UnionSchema struct {
 	Types []Schema
 }
 
-// Returns a JSON representation of UnionSchema.
-func (this *UnionSchema) String() string {
-	bytes, err := json.MarshalIndent(this, "", "    ")
+// String returns a JSON representation of UnionSchema.
+func (s *UnionSchema) String() string {
+	bytes, err := json.MarshalIndent(s, "", "    ")
 	if err != nil {
 		panic(err)
 	}
@@ -764,25 +778,26 @@ func (this *UnionSchema) String() string {
 	return fmt.Sprintf(`{"type": %s}`, string(bytes))
 }
 
-// Returns a type constant for this UnionSchema.
+// Type returns a type constant for this UnionSchema.
 func (*UnionSchema) Type() int {
 	return Union
 }
 
-// Returns a type name for this UnionSchema.
+// GetName returns a type name for this UnionSchema.
 func (*UnionSchema) GetName() string {
-	return type_union
+	return typeUnion
 }
 
-// Doesn't return anything valuable for UnionSchema.
+// Prop doesn't return anything valuable for UnionSchema.
 func (*UnionSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
-func (this *UnionSchema) GetType(v reflect.Value) int {
-	if this.Types != nil {
-		for i := range this.Types {
-			if t := this.Types[i]; t.Validate(v) {
+// GetType gets the index of actual union type for a given value.
+func (s *UnionSchema) GetType(v reflect.Value) int {
+	if s.Types != nil {
+		for i := range s.Types {
+			if t := s.Types[i]; t.Validate(v) {
 				return i
 			}
 		}
@@ -791,11 +806,11 @@ func (this *UnionSchema) GetType(v reflect.Value) int {
 	return -1
 }
 
-// Checks whether the given value is writeable to this schema.
-func (this *UnionSchema) Validate(v reflect.Value) bool {
+// Validate checks whether the given value is writeable to this schema.
+func (s *UnionSchema) Validate(v reflect.Value) bool {
 	v = dereference(v)
-	for i := range this.Types {
-		if t := this.Types[i]; t.Validate(v) {
+	for i := range s.Types {
+		if t := s.Types[i]; t.Validate(v) {
 			return true
 		}
 	}
@@ -803,8 +818,9 @@ func (this *UnionSchema) Validate(v reflect.Value) bool {
 	return false
 }
 
-func (this *UnionSchema) MarshalJSON() ([]byte, error) {
-	return json.Marshal(this.Types)
+// MarshalJSON serializes the given schema as JSON.
+func (s *UnionSchema) MarshalJSON() ([]byte, error) {
+	return json.Marshal(s.Types)
 }
 
 // FixedSchema implements Schema and represents Avro fixed type.
@@ -815,9 +831,9 @@ type FixedSchema struct {
 	Properties map[string]interface{}
 }
 
-// Returns a JSON representation of FixedSchema.
-func (this *FixedSchema) String() string {
-	bytes, err := json.MarshalIndent(this, "", "    ")
+// String returns a JSON representation of FixedSchema.
+func (s *FixedSchema) String() string {
+	bytes, err := json.MarshalIndent(s, "", "    ")
 	if err != nil {
 		panic(err)
 	}
@@ -825,77 +841,61 @@ func (this *FixedSchema) String() string {
 	return string(bytes)
 }
 
-// Returns a type constant for this FixedSchema.
+// Type returns a type constant for this FixedSchema.
 func (*FixedSchema) Type() int {
 	return Fixed
 }
 
-// Returns a fixed name for this FixedSchema.
-func (this *FixedSchema) GetName() string {
-	return this.Name
+// GetName returns a fixed name for this FixedSchema.
+func (s *FixedSchema) GetName() string {
+	return s.Name
 }
 
-// Gets a custom non-reserved string property from this schema and a bool representing if it exists.
-func (this *FixedSchema) Prop(key string) (interface{}, bool) {
-	if this.Properties != nil {
-		if prop, ok := this.Properties[key]; ok {
+// Prop gets a custom non-reserved property from this schema and a bool representing if it exists.
+func (s *FixedSchema) Prop(key string) (interface{}, bool) {
+	if s.Properties != nil {
+		if prop, ok := s.Properties[key]; ok {
 			return prop, true
 		}
 	}
 	return nil, false
 }
 
-// Checks whether the given value is writeable to this schema.
-func (this *FixedSchema) Validate(v reflect.Value) bool {
+// Validate checks whether the given value is writeable to this schema.
+func (s *FixedSchema) Validate(v reflect.Value) bool {
 	v = dereference(v)
 
-	return (v.Kind() == reflect.Array || v.Kind() == reflect.Slice) && v.Type().Elem().Kind() == reflect.Uint8 && v.Len() == this.Size
+	return (v.Kind() == reflect.Array || v.Kind() == reflect.Slice) && v.Type().Elem().Kind() == reflect.Uint8 && v.Len() == s.Size
 }
 
-func (this *FixedSchema) MarshalJSON() ([]byte, error) {
+// MarshalJSON serializes the given schema as JSON.
+func (s *FixedSchema) MarshalJSON() ([]byte, error) {
 	return json.Marshal(struct {
 		Type string `json:"type,omitempty"`
 		Size int    `json:"size,omitempty"`
 		Name string `json:"name,omitempty"`
 	}{
 		Type: "fixed",
-		Size: this.Size,
-		Name: this.Name,
+		Size: s.Size,
+		Name: s.Name,
 	})
 }
 
+// GetFullName returns a fully-qualified name for a schema if possible. The format is namespace.name.
 func GetFullName(schema Schema) string {
 	switch sch := schema.(type) {
 	case *RecordSchema:
-		{
-			if sch.Namespace == "" {
-				return sch.GetName()
-			} else {
-				return fmt.Sprintf("%s.%s", sch.Namespace, sch.GetName())
-			}
-		}
+		return getFullName(sch.GetName(), sch.Namespace)
 	case *EnumSchema:
-		{
-			if sch.Namespace == "" {
-				return sch.GetName()
-			} else {
-				return fmt.Sprintf("%s.%s", sch.Namespace, sch.GetName())
-			}
-		}
+		return getFullName(sch.GetName(), sch.Namespace)
 	case *FixedSchema:
-		{
-			if sch.Namespace == "" {
-				return sch.GetName()
-			} else {
-				return fmt.Sprintf("%s.%s", sch.Namespace, sch.GetName())
-			}
-		}
+		return getFullName(sch.GetName(), sch.Namespace)
 	default:
 		return schema.GetName()
 	}
 }
 
-// Parses a given file.
+// ParseSchemaFile parses a given file.
 // May return an error if schema is not parsable or file does not exist.
 func ParseSchemaFile(file string) (Schema, error) {
 	fileContents, err := ioutil.ReadFile(file)
@@ -906,14 +906,14 @@ func ParseSchemaFile(file string) (Schema, error) {
 	return ParseSchema(string(fileContents))
 }
 
-// Parses a given schema without provided schemas to reuse.
+// ParseSchema parses a given schema without provided schemas to reuse.
 // Equivalent to call ParseSchemaWithResistry(rawSchema, make(map[string]Schema))
 // May return an error if schema is not parsable or has insufficient information about any type.
 func ParseSchema(rawSchema string) (Schema, error) {
 	return ParseSchemaWithRegistry(rawSchema, make(map[string]Schema))
 }
 
-// Parses a given schema using the provided registry for type lookup.
+// ParseSchemaWithRegistry parses a given schema using the provided registry for type lookup.
 // Registry will be filled up during parsing.
 // May return an error if schema is not parsable or has insufficient information about any type.
 func ParseSchemaWithRegistry(rawSchema string, schemas map[string]Schema) (Schema, error) {
@@ -925,8 +925,7 @@ func ParseSchemaWithRegistry(rawSchema string, schemas map[string]Schema) (Schem
 	return schemaByType(schema, schemas, "")
 }
 
-// MustParseSchema is like ParseSchema, but panics if the given schema
-// cannot be parsed.
+// MustParseSchema is like ParseSchema, but panics if the given schema cannot be parsed.
 func MustParseSchema(rawSchema string) Schema {
 	s, err := ParseSchema(rawSchema)
 	if err != nil {
@@ -941,21 +940,21 @@ func schemaByType(i interface{}, registry map[string]Schema, namespace string) (
 		return new(NullSchema), nil
 	case string:
 		switch v {
-		case type_null:
+		case typeNull:
 			return new(NullSchema), nil
-		case type_boolean:
+		case typeBoolean:
 			return new(BooleanSchema), nil
-		case type_int:
+		case typeInt:
 			return new(IntSchema), nil
-		case type_long:
+		case typeLong:
 			return new(LongSchema), nil
-		case type_float:
+		case typeFloat:
 			return new(FloatSchema), nil
-		case type_double:
+		case typeDouble:
 			return new(DoubleSchema), nil
-		case type_bytes:
+		case typeBytes:
 			return new(BytesSchema), nil
-		case type_string:
+		case typeString:
 			return new(StringSchema), nil
 		default:
 			schema, ok := registry[getFullName(v, namespace)]
@@ -966,42 +965,42 @@ func schemaByType(i interface{}, registry map[string]Schema, namespace string) (
 			return schema, nil
 		}
 	case map[string][]interface{}:
-		return parseUnionSchema(v[schema_typeField], registry, namespace)
+		return parseUnionSchema(v[schemaTypeField], registry, namespace)
 	case map[string]interface{}:
-		switch v[schema_typeField] {
-		case type_null:
+		switch v[schemaTypeField] {
+		case typeNull:
 			return new(NullSchema), nil
-		case type_boolean:
+		case typeBoolean:
 			return new(BooleanSchema), nil
-		case type_int:
+		case typeInt:
 			return new(IntSchema), nil
-		case type_long:
+		case typeLong:
 			return new(LongSchema), nil
-		case type_float:
+		case typeFloat:
 			return new(FloatSchema), nil
-		case type_double:
+		case typeDouble:
 			return new(DoubleSchema), nil
-		case type_bytes:
+		case typeBytes:
 			return new(BytesSchema), nil
-		case type_string:
+		case typeString:
 			return new(StringSchema), nil
-		case type_array:
-			items, err := schemaByType(v[schema_itemsField], registry, namespace)
+		case typeArray:
+			items, err := schemaByType(v[schemaItemsField], registry, namespace)
 			if err != nil {
 				return nil, err
 			}
 			return &ArraySchema{Items: items, Properties: getProperties(v)}, nil
-		case type_map:
-			values, err := schemaByType(v[schema_valuesField], registry, namespace)
+		case typeMap:
+			values, err := schemaByType(v[schemaValuesField], registry, namespace)
 			if err != nil {
 				return nil, err
 			}
 			return &MapSchema{Values: values, Properties: getProperties(v)}, nil
-		case type_enum:
+		case typeEnum:
 			return parseEnumSchema(v, registry, namespace)
-		case type_fixed:
+		case typeFixed:
 			return parseFixedSchema(v, registry, namespace)
-		case type_record:
+		case typeRecord:
 			return parseRecordSchema(v, registry, namespace)
 		}
 	case []interface{}:
@@ -1012,27 +1011,28 @@ func schemaByType(i interface{}, registry map[string]Schema, namespace string) (
 }
 
 func parseEnumSchema(v map[string]interface{}, registry map[string]Schema, namespace string) (Schema, error) {
-	symbols := make([]string, len(v[schema_symbolsField].([]interface{})))
-	for i, symbol := range v[schema_symbolsField].([]interface{}) {
+	symbols := make([]string, len(v[schemaSymbolsField].([]interface{})))
+	for i, symbol := range v[schemaSymbolsField].([]interface{}) {
 		symbols[i] = symbol.(string)
 	}
 
-	schema := &EnumSchema{Name: v[schema_nameField].(string), Symbols: symbols}
-	setOptionalField(&schema.Namespace, v, schema_namespaceField)
-	setOptionalField(&schema.Doc, v, schema_docField)
+	schema := &EnumSchema{Name: v[schemaNameField].(string), Symbols: symbols}
+	setOptionalField(&schema.Namespace, v, schemaNamespaceField)
+	setOptionalField(&schema.Doc, v, schemaDocField)
 	schema.Properties = getProperties(v)
 
-	return addSchema(getFullName(v[schema_nameField].(string), namespace), schema, registry)
+	return addSchema(getFullName(v[schemaNameField].(string), namespace), schema, registry), nil
 }
 
 func parseFixedSchema(v map[string]interface{}, registry map[string]Schema, namespace string) (Schema, error) {
-	if size, ok := v[schema_sizeField].(float64); !ok {
+	size, ok := v[schemaSizeField].(float64)
+	if !ok {
 		return nil, InvalidFixedSize
-	} else {
-		schema := &FixedSchema{Name: v[schema_nameField].(string), Size: int(size), Properties: getProperties(v)}
-		setOptionalField(&schema.Namespace, v, schema_namespaceField)
-		return addSchema(getFullName(v[schema_nameField].(string), namespace), schema, registry)
 	}
+
+	schema := &FixedSchema{Name: v[schemaNameField].(string), Size: int(size), Properties: getProperties(v)}
+	setOptionalField(&schema.Namespace, v, schemaNamespaceField)
+	return addSchema(getFullName(v[schemaNameField].(string), namespace), schema, registry), nil
 }
 
 func parseUnionSchema(v []interface{}, registry map[string]Schema, namespace string) (Schema, error) {
@@ -1048,14 +1048,14 @@ func parseUnionSchema(v []interface{}, registry map[string]Schema, namespace str
 }
 
 func parseRecordSchema(v map[string]interface{}, registry map[string]Schema, namespace string) (Schema, error) {
-	schema := &RecordSchema{Name: v[schema_nameField].(string)}
-	setOptionalField(&schema.Namespace, v, schema_namespaceField)
-	setOptionalField(&namespace, v, schema_namespaceField)
-	setOptionalField(&schema.Doc, v, schema_docField)
-	addSchema(getFullName(v[schema_nameField].(string), namespace), newRecursiveSchema(schema), registry)
-	fields := make([]*SchemaField, len(v[schema_fieldsField].([]interface{})))
+	schema := &RecordSchema{Name: v[schemaNameField].(string)}
+	setOptionalField(&schema.Namespace, v, schemaNamespaceField)
+	setOptionalField(&namespace, v, schemaNamespaceField)
+	setOptionalField(&schema.Doc, v, schemaDocField)
+	addSchema(getFullName(v[schemaNameField].(string), namespace), newRecursiveSchema(schema), registry)
+	fields := make([]*SchemaField, len(v[schemaFieldsField].([]interface{})))
 	for i := range fields {
-		field, err := parseSchemaField(v[schema_fieldsField].([]interface{})[i], registry, namespace)
+		field, err := parseSchemaField(v[schemaFieldsField].([]interface{})[i], registry, namespace)
 		if err != nil {
 			return nil, err
 		}
@@ -1070,30 +1070,30 @@ func parseRecordSchema(v map[string]interface{}, registry map[string]Schema, nam
 func parseSchemaField(i interface{}, registry map[string]Schema, namespace string) (*SchemaField, error) {
 	switch v := i.(type) {
 	case map[string]interface{}:
-		name, ok := v[schema_nameField].(string)
+		name, ok := v[schemaNameField].(string)
 		if !ok {
 			return nil, fmt.Errorf("Schema field name missing")
 		}
 		schemaField := &SchemaField{Name: name, Properties: getProperties(v)}
-		setOptionalField(&schemaField.Doc, v, schema_docField)
-		fieldType, err := schemaByType(v[schema_typeField], registry, namespace)
+		setOptionalField(&schemaField.Doc, v, schemaDocField)
+		fieldType, err := schemaByType(v[schemaTypeField], registry, namespace)
 		if err != nil {
 			return nil, err
 		}
 		schemaField.Type = fieldType
-		if def, exists := v[schema_defaultField]; exists {
+		if def, exists := v[schemaDefaultField]; exists {
 			switch def.(type) {
 			case float64:
 				// JSON treats all numbers as float64 by default
 				switch schemaField.Type.Type() {
 				case Int:
-					var converted int32 = int32(def.(float64))
+					var converted = int32(def.(float64))
 					schemaField.Default = converted
 				case Long:
-					var converted int64 = int64(def.(float64))
+					var converted = int64(def.(float64))
 					schemaField.Default = converted
 				case Float:
-					var converted float32 = float32(def.(float64))
+					var converted = float32(def.(float64))
 					schemaField.Default = converted
 
 				default:
@@ -1115,24 +1115,24 @@ func setOptionalField(where *string, v map[string]interface{}, fieldName string)
 	}
 }
 
-func addSchema(name string, schema Schema, schemas map[string]Schema) (Schema, error) {
+func addSchema(name string, schema Schema, schemas map[string]Schema) Schema {
 	if schemas != nil {
 		if sch, ok := schemas[name]; ok {
-			return sch, nil
-		} else {
-			schemas[name] = schema
+			return sch
 		}
+
+		schemas[name] = schema
 	}
 
-	return schema, nil
+	return schema
 }
 
 func getFullName(name string, namespace string) string {
 	if len(namespace) > 0 {
 		return namespace + "." + name
-	} else {
-		return name
 	}
+
+	return name
 }
 
 // gets custom string properties from a given schema
@@ -1148,8 +1148,8 @@ func getProperties(v map[string]interface{}) map[string]interface{} {
 
 func isReserved(name string) bool {
 	switch name {
-	case schema_aliasesField, schema_docField, schema_fieldsField, schema_itemsField, schema_nameField,
-		schema_namespaceField, schema_sizeField, schema_symbolsField, schema_typeField, schema_valuesField:
+	case schemaAliasesField, schemaDocField, schemaFieldsField, schemaItemsField, schemaNameField,
+		schemaNamespaceField, schemaSizeField, schemaSymbolsField, schemaTypeField, schemaValuesField:
 		return true
 	}
 
