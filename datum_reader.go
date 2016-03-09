@@ -190,45 +190,46 @@ func (reader *SpecificDatumReader) mapPrimitive(readerFunc func() (interface{}, 
 }
 
 func (reader *SpecificDatumReader) mapArray(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
-	if arrayLength, err := dec.ReadArrayStart(); err != nil {
+	arrayLength, err := dec.ReadArrayStart()
+	if err != nil {
 		return reflect.ValueOf(arrayLength), err
-	} else {
-		array := reflect.MakeSlice(reflectField.Type(), 0, 0)
-		pointer := reflectField.Type().Elem().Kind() == reflect.Ptr
-		for {
-			if arrayLength == 0 {
-				break
-			}
+	}
 
-			arrayPart := reflect.MakeSlice(reflectField.Type(), int(arrayLength), int(arrayLength))
-			var i int64 = 0
-			for ; i < arrayLength; i++ {
-				current := arrayPart.Index(int(i))
-				val, err := reader.readValue(field.(*ArraySchema).Items, current, dec)
-				if err != nil {
-					return reflect.ValueOf(arrayLength), err
-				}
+	array := reflect.MakeSlice(reflectField.Type(), 0, 0)
+	pointer := reflectField.Type().Elem().Kind() == reflect.Ptr
+	for {
+		if arrayLength == 0 {
+			break
+		}
 
-				if pointer && val.Kind() != reflect.Ptr {
-					val = val.Addr()
-				} else if !pointer && val.Kind() == reflect.Ptr {
-					val = val.Elem()
-				}
-				current.Set(val)
-			}
-			//concatenate arrays
-			if array.Len() == 0 {
-				array = arrayPart
-			} else {
-				array = reflect.AppendSlice(array, arrayPart)
-			}
-			arrayLength, err = dec.ArrayNext()
+		arrayPart := reflect.MakeSlice(reflectField.Type(), int(arrayLength), int(arrayLength))
+		var i int64
+		for ; i < arrayLength; i++ {
+			current := arrayPart.Index(int(i))
+			val, err := reader.readValue(field.(*ArraySchema).Items, current, dec)
 			if err != nil {
 				return reflect.ValueOf(arrayLength), err
 			}
+
+			if pointer && val.Kind() != reflect.Ptr {
+				val = val.Addr()
+			} else if !pointer && val.Kind() == reflect.Ptr {
+				val = val.Elem()
+			}
+			current.Set(val)
 		}
-		return array, nil
+		//concatenate arrays
+		if array.Len() == 0 {
+			array = arrayPart
+		} else {
+			array = reflect.AppendSlice(array, arrayPart)
+		}
+		arrayLength, err = dec.ArrayNext()
+		if err != nil {
+			return reflect.ValueOf(arrayLength), err
+		}
 	}
+	return array, nil
 }
 
 func (reader *SpecificDatumReader) mapMap(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
@@ -269,27 +270,28 @@ func (reader *SpecificDatumReader) mapMap(field Schema, reflectField reflect.Val
 }
 
 func (reader *SpecificDatumReader) mapEnum(field Schema, dec Decoder) (reflect.Value, error) {
-	if enumIndex, err := dec.ReadEnum(); err != nil {
+	enumIndex, err := dec.ReadEnum()
+	if err != nil {
 		return reflect.ValueOf(enumIndex), err
-	} else {
-		schema := field.(*EnumSchema)
-		fullName := GetFullName(schema)
-
-		var symbolsToIndex map[string]int32
-		enumSymbolsToIndexCacheLock.Lock()
-		if symbolsToIndex = enumSymbolsToIndexCache[fullName]; symbolsToIndex == nil {
-			symbolsToIndex = NewGenericEnum(schema.Symbols).symbolsToIndex
-			enumSymbolsToIndexCache[fullName] = symbolsToIndex
-		}
-		enumSymbolsToIndexCacheLock.Unlock()
-
-		enum := &GenericEnum{
-			Symbols:        schema.Symbols,
-			symbolsToIndex: symbolsToIndex,
-			index:          enumIndex,
-		}
-		return reflect.ValueOf(enum), nil
 	}
+
+	schema := field.(*EnumSchema)
+	fullName := GetFullName(schema)
+
+	var symbolsToIndex map[string]int32
+	enumSymbolsToIndexCacheLock.Lock()
+	if symbolsToIndex = enumSymbolsToIndexCache[fullName]; symbolsToIndex == nil {
+		symbolsToIndex = NewGenericEnum(schema.Symbols).symbolsToIndex
+		enumSymbolsToIndexCache[fullName] = symbolsToIndex
+	}
+	enumSymbolsToIndexCacheLock.Unlock()
+
+	enum := &GenericEnum{
+		Symbols:        schema.Symbols,
+		symbolsToIndex: symbolsToIndex,
+		index:          enumIndex,
+	}
+	return reflect.ValueOf(enum), nil
 }
 
 func (reader *SpecificDatumReader) mapUnion(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
@@ -469,27 +471,28 @@ func (reader *GenericDatumReader) mapArray(field Schema, dec Decoder) ([]interfa
 }
 
 func (reader *GenericDatumReader) mapEnum(field Schema, dec Decoder) (*GenericEnum, error) {
-	if enumIndex, err := dec.ReadEnum(); err != nil {
+	enumIndex, err := dec.ReadEnum()
+	if err != nil {
 		return nil, err
-	} else {
-		schema := field.(*EnumSchema)
-		fullName := GetFullName(schema)
-
-		var symbolsToIndex map[string]int32
-		enumSymbolsToIndexCacheLock.Lock()
-		if symbolsToIndex = enumSymbolsToIndexCache[fullName]; symbolsToIndex == nil {
-			symbolsToIndex = NewGenericEnum(schema.Symbols).symbolsToIndex
-			enumSymbolsToIndexCache[fullName] = symbolsToIndex
-		}
-		enumSymbolsToIndexCacheLock.Unlock()
-
-		enum := &GenericEnum{
-			Symbols:        schema.Symbols,
-			symbolsToIndex: symbolsToIndex,
-			index:          enumIndex,
-		}
-		return enum, nil
 	}
+
+	schema := field.(*EnumSchema)
+	fullName := GetFullName(schema)
+
+	var symbolsToIndex map[string]int32
+	enumSymbolsToIndexCacheLock.Lock()
+	if symbolsToIndex = enumSymbolsToIndexCache[fullName]; symbolsToIndex == nil {
+		symbolsToIndex = NewGenericEnum(schema.Symbols).symbolsToIndex
+		enumSymbolsToIndexCache[fullName] = symbolsToIndex
+	}
+	enumSymbolsToIndexCacheLock.Unlock()
+
+	enum := &GenericEnum{
+		Symbols:        schema.Symbols,
+		symbolsToIndex: symbolsToIndex,
+		index:          enumIndex,
+	}
+	return enum, nil
 }
 
 func (reader *GenericDatumReader) mapMap(field Schema, dec Decoder) (map[string]interface{}, error) {

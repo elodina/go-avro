@@ -41,7 +41,7 @@ var output = flag.String("out", "", "Output file name.")
 func main() {
 	parseAndValidateArgs()
 
-	schemas := make([]string, 0)
+	var schemas []string
 	for _, schema := range schema {
 		contents, err := ioutil.ReadFile(schema)
 		checkErr(err)

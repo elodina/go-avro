@@ -62,7 +62,7 @@ func reflectBuildRi(t reflect.Type) *reflectInfo {
 	return rm
 }
 
-var reflectMap map[reflect.Type]*reflectInfo = make(map[reflect.Type]*reflectInfo)
+var reflectMap = make(map[reflect.Type]*reflectInfo)
 var reflectMapLock sync.RWMutex
 
 type reflectInfo struct {

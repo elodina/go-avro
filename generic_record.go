@@ -17,7 +17,9 @@ package avro
 
 import "encoding/json"
 
+// AvroRecord is an interface for anything that has an Avro schema and can be serialized/deserialized by this library.
 type AvroRecord interface {
+	// Schema returns an Avro schema for this AvroRecord.
 	Schema() Schema
 }
 
@@ -28,7 +30,7 @@ type GenericRecord struct {
 	schema Schema
 }
 
-// Creates a new GenericRecord.
+// NewGenericRecord creates a new GenericRecord.
 func NewGenericRecord(schema Schema) *GenericRecord {
 	return &GenericRecord{
 		fields: make(map[string]interface{}),
@@ -36,24 +38,24 @@ func NewGenericRecord(schema Schema) *GenericRecord {
 	}
 }
 
-// Gets a value by its name.
-func (this *GenericRecord) Get(name string) interface{} {
-	return this.fields[name]
+// Get gets a value by its name.
+func (gr *GenericRecord) Get(name string) interface{} {
+	return gr.fields[name]
 }
 
-// Sets a value for a given name.
-func (this *GenericRecord) Set(name string, value interface{}) {
-	this.fields[name] = value
+// Set sets a value for a given name.
+func (gr *GenericRecord) Set(name string, value interface{}) {
+	gr.fields[name] = value
 }
 
-// Returns a schema for this GenericRecord.
-func (this *GenericRecord) Schema() Schema {
-	return this.schema
+// Schema returns a schema for this GenericRecord.
+func (gr *GenericRecord) Schema() Schema {
+	return gr.schema
 }
 
-// Returns a JSON representation of this GenericRecord.
-func (this *GenericRecord) String() string {
-	m := this.Map()
+// String returns a JSON representation of this GenericRecord.
+func (gr *GenericRecord) String() string {
+	m := gr.Map()
 	buf, err := json.Marshal(m)
 	if err != nil {
 		panic(err)
@@ -61,10 +63,10 @@ func (this *GenericRecord) String() string {
 	return string(buf)
 }
 
-// Returns a map representation of this GenericRecord.
-func (this *GenericRecord) Map() map[string]interface{} {
+// Map returns a map representation of this GenericRecord.
+func (gr *GenericRecord) Map() map[string]interface{} {
 	m := make(map[string]interface{})
-	for k, v := range this.fields {
+	for k, v := range gr.fields {
 		if r, ok := v.(*GenericRecord); ok {
 			v = (r)
 		}

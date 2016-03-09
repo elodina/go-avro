@@ -9,7 +9,7 @@ import (
 )
 
 //this tests whether the decoder is able to sequentially read values and keep track of his position normally
-var primitives = []string{type_boolean, type_int, type_long, type_float, type_double, type_bytes, type_string}
+var primitives = []string{typeBoolean, typeInt, typeLong, typeFloat, typeDouble, typeBytes, typeString}
 
 func TestPositioning(t *testing.T) {
 	bytes, types, expected := getTestData()
@@ -19,42 +19,42 @@ func TestPositioning(t *testing.T) {
 		currentExpected := expected[i]
 
 		switch currentType {
-		case type_boolean:
+		case typeBoolean:
 			{
 				value, _ := bd.ReadBoolean()
 				if value != currentExpected.(bool) {
 					t.Fatalf("Unexpected boolean: expected %v, actual %v\n", currentExpected, value)
 				}
 			}
-		case type_int:
+		case typeInt:
 			{
 				value, _ := bd.ReadInt()
 				if value != currentExpected.(int32) {
 					t.Fatalf("Unexpected int: expected %v, actual %v\n", currentExpected, value)
 				}
 			}
-		case type_long:
+		case typeLong:
 			{
 				value, _ := bd.ReadLong()
 				if value != currentExpected.(int64) {
 					t.Fatalf("Unexpected long: expected %v, actual %v\n", currentExpected, value)
 				}
 			}
-		case type_float:
+		case typeFloat:
 			{
 				value, _ := bd.ReadFloat()
 				if value != currentExpected.(float32) {
 					t.Fatalf("Unexpected float: expected %v, actual %v\n", currentExpected, value)
 				}
 			}
-		case type_double:
+		case typeDouble:
 			{
 				value, _ := bd.ReadDouble()
 				if value != currentExpected.(float64) {
 					t.Fatalf("Unexpected double: expected %v, actual %v\n", currentExpected, value)
 				}
 			}
-		case type_bytes:
+		case typeBytes:
 			{
 				position := bd.Tell()
 				value, err := bd.ReadBytes()
@@ -67,7 +67,7 @@ func TestPositioning(t *testing.T) {
 					}
 				}
 			}
-		case type_string:
+		case typeString:
 			{
 				value, _ := bd.ReadString()
 				if value != currentExpected.(string) {
@@ -101,7 +101,7 @@ func getTestData() ([]byte, []string, []interface{}) {
 func getRandomFromMap(mapType string) ([]byte, interface{}) {
 	i := 0
 	switch mapType {
-	case type_boolean:
+	case typeBoolean:
 		{
 			random := rand.Intn(len(goodBooleans))
 			for value, bytes := range goodBooleans {
@@ -111,7 +111,7 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 				i++
 			}
 		}
-	case type_int:
+	case typeInt:
 		{
 			random := rand.Intn(len(goodInts))
 			for value, bytes := range goodInts {
@@ -121,7 +121,7 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 				i++
 			}
 		}
-	case type_long:
+	case typeLong:
 		{
 			random := rand.Intn(len(goodLongs))
 			for value, bytes := range goodLongs {
@@ -131,7 +131,7 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 				i++
 			}
 		}
-	case type_float:
+	case typeFloat:
 		{
 			random := rand.Intn(len(goodFloats))
 			for value, bytes := range goodFloats {
@@ -141,7 +141,7 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 				i++
 			}
 		}
-	case type_double:
+	case typeDouble:
 		{
 			random := rand.Intn(len(goodDoubles))
 			for value, bytes := range goodDoubles {
@@ -151,11 +151,11 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 				i++
 			}
 		}
-	case type_bytes:
+	case typeBytes:
 		{
 			return goodBytes[rand.Intn(len(goodBytes))], "1"
 		}
-	case type_string:
+	case typeString:
 		{
 			random := rand.Intn(len(goodStrings))
 			for value, bytes := range goodStrings {

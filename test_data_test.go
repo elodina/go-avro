@@ -1,15 +1,15 @@
 package avro
 
-var goodBooleans map[bool][]byte = map[bool][]byte{
+var goodBooleans = map[bool][]byte{
 	false: []byte{0x00},
 	true:  []byte{0x01},
 }
 
-var badBooleans map[error][]byte = map[error][]byte{
+var badBooleans = map[error][]byte{
 	InvalidBool: []byte{0x02},
 }
 
-var goodInts map[int32][]byte = map[int32][]byte{
+var goodInts = map[int32][]byte{
 	27:        []byte{0x36},
 	-8:        []byte{0x0F},
 	-1:        []byte{0x01},
@@ -21,7 +21,7 @@ var goodInts map[int32][]byte = map[int32][]byte{
 	987654321: []byte{0xE2, 0xA2, 0xF3, 0xAD, 0x07},
 }
 
-var goodLongs map[int64][]byte = map[int64][]byte{
+var goodLongs = map[int64][]byte{
 	27:                   []byte{0x36},
 	-8:                   []byte{0x0F},
 	-1:                   []byte{0x01},
@@ -36,7 +36,7 @@ var goodLongs map[int64][]byte = map[int64][]byte{
 	-5468631321897454687: []byte{0xBD, 0xB1, 0xAE, 0xD4, 0xD2, 0xCD, 0xBD, 0xE4, 0x97, 0x01},
 }
 
-var goodFloats map[float32][]byte = map[float32][]byte{
+var goodFloats = map[float32][]byte{
 	0.0:            []byte{0x00, 0x00, 0x00, 0x00},
 	1.0:            []byte{0x00, 0x00, 0x80, 0x3F},
 	1.15:           []byte{0x33, 0x33, 0x93, 0x3F},
@@ -45,7 +45,7 @@ var goodFloats map[float32][]byte = map[float32][]byte{
 	987654.111115:  []byte{0x62, 0x20, 0x71, 0x49},
 }
 
-var goodDoubles map[float64][]byte = map[float64][]byte{
+var goodDoubles = map[float64][]byte{
 	0.0:                                  []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 	1.0:                                  []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F},
 	1.15:                                 []byte{0x66, 0x66, 0x66, 0x66, 0x66, 0x66, 0xF2, 0x3F},
@@ -65,13 +65,13 @@ var goodBytes = [][]byte{
 	[]byte{0x0C, 0xAC, 0xDC, 0x01, 0x00, 0x10, 0x0F},
 }
 
-var badBytes [][]interface{} = [][]interface{}{
+var badBytes = [][]interface{}{
 	[]interface{}{EOF, []byte(nil)},                                    //empty array with no length
 	[]interface{}{NegativeBytesLength, []byte{0x05, 0x03, 0xFF, 0x0A}}, //negative length
 	[]interface{}{EOF, []byte{0x08, 0xFF}},                             //length > array size
 }
 
-var goodStrings map[string][]byte = map[string][]byte{
+var goodStrings = map[string][]byte{
 	"":                     []byte{0x00},
 	"foo":                  []byte{0x06, 0x66, 0x6F, 0x6F},
 	"avro":                 []byte{0x08, 0x61, 0x76, 0x72, 0x6F},
@@ -82,7 +82,7 @@ var goodStrings map[string][]byte = map[string][]byte{
 	"!№;%:?*\"()@#$^&":     []byte{0x22, 0x21, 0xE2, 0x84, 0x96, 0x3B, 0x25, 0x3A, 0x3F, 0x2A, 0x22, 0x28, 0x29, 0x40, 0x23, 0x24, 0x5E, 0x26},
 }
 
-var badStrings [][]interface{} = [][]interface{}{
+var badStrings = [][]interface{}{
 	[]interface{}{EOF, []byte(nil)},                                          //empty array with no length
 	[]interface{}{InvalidStringLength, []byte{0x05, 0x66, 0x6F, 0x6F, 0x6F}}, //negative length
 	[]interface{}{EOF, []byte{0x08, 0x66}},                                   //length > array size
