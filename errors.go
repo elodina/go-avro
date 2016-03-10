@@ -55,3 +55,6 @@ var SchemaNotSet = errors.New("Schema not set")
 
 // FieldDoesNotExist happens when a struct does not have a necessary field.
 var FieldDoesNotExist = errors.New("Field does not exist")
+
+// ErrInvalidUnionValue happens when a structure attempts to serialize a value that is not in union.
+var ErrInvalidUnionValue = errors.New("Invalid union value")

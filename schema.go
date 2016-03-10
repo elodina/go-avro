@@ -101,6 +101,9 @@ type Schema interface {
 	// Converts this schema to its JSON representation.
 	String() string
 
+	// GoType returns Golang type this schema should correspond to.
+	GoType() string
+
 	// Checks whether the given value is writeable to this schema.
 	Validate(v reflect.Value) bool
 }
@@ -121,6 +124,11 @@ func (*StringSchema) Type() int {
 // GetName returns a type name for this StringSchema.
 func (*StringSchema) GetName() string {
 	return typeString
+}
+
+// GoType returns Golang type this schema should correspond to.
+func (*StringSchema) GoType() string {
+	return "string"
 }
 
 // Prop doesn't return anything valuable for StringSchema.
@@ -162,6 +170,11 @@ func (*BytesSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
+// GoType returns Golang type this schema should correspond to.
+func (*BytesSchema) GoType() string {
+	return "[]byte"
+}
+
 // Validate checks whether the given value is writeable to this schema.
 func (*BytesSchema) Validate(v reflect.Value) bool {
 	v = dereference(v)
@@ -197,6 +210,11 @@ func (*IntSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
+// GoType returns Golang type this schema should correspond to.
+func (*IntSchema) GoType() string {
+	return "int32"
+}
+
 // Validate checks whether the given value is writeable to this schema.
 func (*IntSchema) Validate(v reflect.Value) bool {
 	return reflect.TypeOf(dereference(v).Interface()).Kind() == reflect.Int32
@@ -228,6 +246,11 @@ func (*LongSchema) GetName() string {
 // Prop doesn't return anything valuable for LongSchema.
 func (*LongSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
+}
+
+// GoType returns Golang type this schema should correspond to.
+func (*LongSchema) GoType() string {
+	return "int64"
 }
 
 // Validate checks whether the given value is writeable to this schema.
@@ -263,6 +286,11 @@ func (*FloatSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
+// GoType returns Golang type this schema should correspond to.
+func (*FloatSchema) GoType() string {
+	return "float32"
+}
+
 // Validate checks whether the given value is writeable to this schema.
 func (*FloatSchema) Validate(v reflect.Value) bool {
 	return reflect.TypeOf(dereference(v).Interface()).Kind() == reflect.Float32
@@ -294,6 +322,11 @@ func (*DoubleSchema) GetName() string {
 // Prop doesn't return anything valuable for DoubleSchema.
 func (*DoubleSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
+}
+
+// GoType returns Golang type this schema should correspond to.
+func (*DoubleSchema) GoType() string {
+	return "float64"
 }
 
 // Validate checks whether the given value is writeable to this schema.
@@ -329,6 +362,11 @@ func (*BooleanSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
+// GoType returns Golang type this schema should correspond to.
+func (*BooleanSchema) GoType() string {
+	return "bool"
+}
+
 // Validate checks whether the given value is writeable to this schema.
 func (*BooleanSchema) Validate(v reflect.Value) bool {
 	return dereference(v).Kind() == reflect.Bool
@@ -360,6 +398,11 @@ func (*NullSchema) GetName() string {
 // Prop doesn't return anything valuable for NullSchema.
 func (*NullSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
+}
+
+// GoType returns Golang type this schema should correspond to.
+func (*NullSchema) GoType() string {
+	return "interface{}"
 }
 
 // Validate checks whether the given value is writeable to this schema.
@@ -457,6 +500,11 @@ func (s *RecordSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
+// GoType returns Golang type this schema should correspond to.
+func (s *RecordSchema) GoType() string {
+	return fmt.Sprintf("*%s", exportedName(s.Name))
+}
+
 // Validate checks whether the given value is writeable to this schema.
 func (s *RecordSchema) Validate(v reflect.Value) bool {
 	v = dereference(v)
@@ -524,6 +572,11 @@ func (s *RecursiveSchema) GetName() string {
 // Prop doesn't return anything valuable for RecursiveSchema.
 func (*RecursiveSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
+}
+
+// GoType returns Golang type this schema should correspond to.
+func (s *RecursiveSchema) GoType() string {
+	return s.Actual.GoType()
 }
 
 // Validate checks whether the given value is writeable to this schema.
@@ -630,6 +683,11 @@ func (s *EnumSchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
+// GoType returns Golang type this schema should correspond to.
+func (*EnumSchema) GoType() string {
+	return "*avro.GenericEnum"
+}
+
 // Validate checks whether the given value is writeable to this schema.
 func (*EnumSchema) Validate(v reflect.Value) bool {
 	//TODO implement
@@ -690,6 +748,11 @@ func (s *ArraySchema) Prop(key string) (interface{}, bool) {
 	return nil, false
 }
 
+// GoType returns Golang type this schema should correspond to.
+func (s *ArraySchema) GoType() string {
+	return fmt.Sprintf("[]%s", s.Items.GoType())
+}
+
 // Validate checks whether the given value is writeable to this schema.
 func (s *ArraySchema) Validate(v reflect.Value) bool {
 	v = dereference(v)
@@ -743,6 +806,11 @@ func (s *MapSchema) Prop(key string) (interface{}, bool) {
 		}
 	}
 	return nil, false
+}
+
+// GoType returns Golang type this schema should correspond to.
+func (s *MapSchema) GoType() string {
+	return fmt.Sprintf("map[string]%s", s.Values.GoType())
 }
 
 // Validate checks whether the given value is writeable to this schema.
@@ -806,6 +874,22 @@ func (s *UnionSchema) GetType(v reflect.Value) int {
 	return -1
 }
 
+// GoType returns Golang type this schema should correspond to.
+func (s *UnionSchema) GoType() string {
+	var unionType Schema
+	if s.Types[0].Type() == Null {
+		unionType = s.Types[1]
+	} else if s.Types[1].Type() == Null {
+		unionType = s.Types[0]
+	}
+
+	if unionType != nil && isNullable(unionType) {
+		return unionType.GoType()
+	}
+
+	return "interface{}"
+}
+
 // Validate checks whether the given value is writeable to this schema.
 func (s *UnionSchema) Validate(v reflect.Value) bool {
 	v = dereference(v)
@@ -859,6 +943,11 @@ func (s *FixedSchema) Prop(key string) (interface{}, bool) {
 		}
 	}
 	return nil, false
+}
+
+// GoType returns Golang type this schema should correspond to.
+func (*FixedSchema) GoType() string {
+	return "[]byte"
 }
 
 // Validate checks whether the given value is writeable to this schema.

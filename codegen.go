@@ -25,7 +25,8 @@ import (
 
 // CodeGenerator is a code generation tool for structs from given Avro schemas.
 type CodeGenerator struct {
-	rawSchemas []string
+	writerGenerator *codeWriterGenerator
+	rawSchemas      []string
 
 	structs           map[string]*bytes.Buffer
 	codeSnippets      []*bytes.Buffer
@@ -35,6 +36,7 @@ type CodeGenerator struct {
 // NewCodeGenerator creates a new CodeGenerator for given Avro schemas.
 func NewCodeGenerator(schemas []string) *CodeGenerator {
 	return &CodeGenerator{
+		writerGenerator:   new(codeWriterGenerator),
 		rawSchemas:        schemas,
 		structs:           make(map[string]*bytes.Buffer),
 		codeSnippets:      make([]*bytes.Buffer, 0),
@@ -54,7 +56,7 @@ func newRecordSchemaInfo(schema *RecordSchema) (*recordSchemaInfo, error) {
 		return nil, errors.New("Name not set.")
 	}
 
-	typeName := fmt.Sprintf("%s%s", strings.ToUpper(schema.Name[:1]), schema.Name[1:])
+	typeName := exportedName(schema.Name)
 
 	return &recordSchemaInfo{
 		schema:        schema,
@@ -76,7 +78,7 @@ func newEnumSchemaInfo(schema *EnumSchema) (*enumSchemaInfo, error) {
 
 	return &enumSchemaInfo{
 		schema:   schema,
-		typeName: fmt.Sprintf("%s%s", strings.ToUpper(schema.Name[:1]), schema.Name[1:]),
+		typeName: exportedName(schema.Name),
 	}, nil
 }
 
@@ -121,6 +123,7 @@ func (codegen *CodeGenerator) Generate() (string, error) {
 		}
 	}
 
+	fmt.Println(codegen.collectResult())
 	formatted, err := format.Source([]byte(codegen.collectResult()))
 	if err != nil {
 		return "", err
@@ -194,6 +197,11 @@ func (codegen *CodeGenerator) writeStruct(info *recordSchemaInfo) error {
 	}
 
 	_, err = buffer.WriteString("\n\n")
+	if err != nil {
+		return err
+	}
+
+	err = codegen.writerGenerator.writeStructWriter(info, buffer)
 	if err != nil {
 		return err
 	}
@@ -298,7 +306,7 @@ func (codegen *CodeGenerator) writeStructField(field *SchemaField, buffer *bytes
 		return errors.New("Empty field name.")
 	}
 
-	_, err = buffer.WriteString(fmt.Sprintf("\t%s%s ", strings.ToUpper(field.Name[:1]), field.Name[1:]))
+	_, err = buffer.WriteString(fmt.Sprintf("\t%s ", exportedName(field.Name)))
 	if err != nil {
 		return err
 	}
@@ -409,21 +417,12 @@ func (codegen *CodeGenerator) writeStructUnionType(schema *UnionSchema, buffer *
 		unionType = schema.Types[0]
 	}
 
-	if unionType != nil && codegen.isNullable(unionType) {
+	if unionType != nil && isNullable(unionType) {
 		return codegen.writeStructFieldType(unionType, buffer)
 	}
 
 	_, err := buffer.WriteString("interface{}")
 	return err
-}
-
-func (codegen *CodeGenerator) isNullable(schema Schema) bool {
-	switch schema.(type) {
-	case *BooleanSchema, *IntSchema, *LongSchema, *FloatSchema, *DoubleSchema, *StringSchema:
-		return false
-	default:
-		return true
-	}
 }
 
 func (codegen *CodeGenerator) writeStructConstructor(info *recordSchemaInfo, buffer *bytes.Buffer) error {
@@ -599,8 +598,7 @@ func (codegen *CodeGenerator) writeStructConstructorFieldName(field *SchemaField
 	if err != nil {
 		return err
 	}
-	fieldName := fmt.Sprintf("%s%s", strings.ToUpper(field.Name[:1]), field.Name[1:])
-	_, err = buffer.WriteString(fieldName)
+	_, err = buffer.WriteString(exportedName(field.Name))
 	if err != nil {
 		return err
 	}
@@ -619,4 +617,17 @@ func (codegen *CodeGenerator) writeSchemaGetter(info *recordSchemaInfo, buffer *
 	}
 	_, err = buffer.WriteString(fmt.Sprintf("return %s\n}", info.schemaVarName))
 	return err
+}
+
+func isNullable(schema Schema) bool {
+	switch schema.(type) {
+	case *BooleanSchema, *IntSchema, *LongSchema, *FloatSchema, *DoubleSchema, *StringSchema:
+		return false
+	default:
+		return true
+	}
+}
+
+func exportedName(unexported string) string {
+	return fmt.Sprintf("%s%s", strings.ToUpper(unexported[:1]), unexported[1:])
 }
