@@ -380,17 +380,42 @@ func parallelF(numRoutines, numLoops int, f func(routine, loop int)) {
 }
 
 func BenchmarkSpecificDatumReader_complex(b *testing.B) {
-	var dest complex
-	specificReaderBenchComplex(b, &dest)
+	schema, buf := specificReaderComplexVal()
+	specificDecoderBench(b, schema, buf, func() interface{} {
+		var dest complex
+		return &dest
+	})
+}
+
+func BenchmarkSpecificDatumReader_complex_prepared(b *testing.B) {
+	schema, buf := specificReaderComplexVal()
+	specificDecoderBench(b, Prepare(schema), buf, func() interface{} {
+		var dest complex
+		return &dest
+	})
+}
+
+type Complex _complex
+type Primitive primitive
+
+type hugeval struct {
+	complex
+	primitive
+	testRecord
 }
 
 func BenchmarkSpecificDatumReader_hugeval(b *testing.B) {
-	var dest struct {
-		complex
-		primitive
-		testRecord
-	}
-	specificReaderBenchComplex(b, &dest)
+	schema, buf := specificReaderComplexVal()
+	specificDecoderBench(b, schema, buf, func() interface{} {
+		return &hugeval{}
+	})
+}
+
+func BenchmarkSpecificDatumReader_hugeval_prepared(b *testing.B) {
+	schema, buf := specificReaderComplexVal()
+	specificDecoderBench(b, Prepare(schema), buf, func() interface{} {
+		return &hugeval{}
+	})
 }
 
 func specificReaderComplexVal() (Schema, []byte) {
@@ -405,11 +430,6 @@ func specificReaderComplexVal() (Schema, []byte) {
 	c.FixedField = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
 	buf := testEncodeBytes(schema, c)
 	return schema, buf
-}
-
-func specificReaderBenchComplex(b *testing.B, dest interface{}) {
-	schema, buf := specificReaderComplexVal()
-	specificDecoderBench(b, schema, buf, dest)
 }
 
 /////// BIG ARRAYS
@@ -435,8 +455,9 @@ func BenchmarkSpecificDatumReader_bigArrays(b *testing.B) {
 	}
 	buf := testEncodeBytes(bigArraysSchema, big)
 
-	var dest bigArrays
-	specificDecoderBench(b, bigArraysSchema, buf, &dest)
+	specificDecoderBench(b, bigArraysSchema, buf, func() interface{} {
+		return &bigArrays{}
+	})
 }
 
 func BenchmarkSpecificDatumReader_segmented_bigArrays(b *testing.B) {
@@ -455,26 +476,29 @@ func BenchmarkSpecificDatumReader_segmented_bigArrays(b *testing.B) {
 	}
 	encoder.WriteArrayNext(0)
 	encoder.WriteArrayStart(0)
-	var dest bigArrays
-	specificDecoderBench(b, bigArraysSchema, buf.Bytes(), &dest)
+	specificDecoderBench(b, bigArraysSchema, buf.Bytes(), func() interface{} {
+		return &bigArrays{}
+	})
 }
 
 /////// UTILITIES
 
-func specificDecoderBench(b *testing.B, schema Schema, buf []byte, dest interface{}) {
+func specificDecoderBench(b *testing.B, schema Schema, buf []byte, destFunc func() interface{}) {
 	b.ReportAllocs()
 	datumReader := NewSpecificDatumReader()
 	datumReader.SetSchema(schema)
 
 	b.ResetTimer()
-
-	for i := 0; i < b.N; i++ {
-		dec := NewBinaryDecoder(buf)
-		err := datumReader.Read(dest, dec)
-		if err != nil {
-			b.Fatal(err)
+	b.RunParallel(func(pb *testing.PB) {
+		dest := destFunc()
+		for pb.Next() {
+			dec := NewBinaryDecoder(buf)
+			err := datumReader.Read(dest, dec)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
-	}
+	})
 }
 
 func testEncodeBytes(schema Schema, rec interface{}) []byte {

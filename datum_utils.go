@@ -25,36 +25,28 @@ func findField(where reflect.Value, name string) (reflect.Value, error) {
 	if where.Kind() == reflect.Ptr {
 		where = where.Elem()
 	}
-	t := where.Type()
-
-	reflectMapLock.RLock()
-	rm := reflectMap[t]
-	reflectMapLock.RUnlock()
-	if rm == nil {
-		rm = reflectBuildRi(t)
-	}
+	rm := reflectEnsureRi(where.Type())
 	if rf, ok := rm.names[name]; ok {
 		return where.FieldByIndex(rf), nil
 	}
 	return reflect.Value{}, FieldDoesNotExist
 }
 
+func reflectEnsureRi(t reflect.Type) *reflectInfo {
+	reflectMapLock.RLock()
+	rm := reflectMap[t]
+	reflectMapLock.RUnlock()
+	if rm == nil {
+		rm = reflectBuildRi(t)
+	}
+	return rm
+}
+
 func reflectBuildRi(t reflect.Type) *reflectInfo {
 	rm := &reflectInfo{
 		names: make(map[string][]int),
 	}
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
-		if strings.ToLower(f.Name[:1]) != f.Name[:1] {
-			tag := f.Tag.Get("avro")
-			if tag != "" {
-				rm.names[tag] = f.Index
-			} else {
-				rm.names[f.Name] = f.Index
-				rm.names[strings.ToLower(f.Name[:1])+f.Name[1:]] = f.Index
-			}
-		}
-	}
+	rm.fill(t, nil)
 
 	reflectMapLock.Lock()
 	reflectMap[t] = rm
@@ -67,4 +59,43 @@ var reflectMapLock sync.RWMutex
 
 type reflectInfo struct {
 	names map[string][]int
+}
+
+// fill the given reflect info with the field names mapped.
+//
+// fill will recurse into anonymous structs incrementing the index prefix
+// so that untagged anonymous structs can be used as the source of truth.
+func (rm *reflectInfo) fill(t reflect.Type, indexPrefix []int) {
+	// simple infinite recursion preventer: stop when we are >10 deep.
+	if len(indexPrefix) > 10 {
+		return
+	}
+
+	fillName := func(tag string, idx []int) {
+		if _, ok := rm.names[tag]; !ok {
+			rm.names[tag] = idx
+		}
+	}
+	// these are anonymous structs to investigate (tail recursion)
+	var toInvestigate [][]int
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
+		tag := f.Tag.Get("avro")
+		idx := append(append([]int{}, indexPrefix...), f.Index...)
+
+		if f.Anonymous && tag == "" && f.Type.Kind() == reflect.Struct {
+			toInvestigate = append(toInvestigate, idx)
+		} else if strings.ToLower(f.Name[:1]) != f.Name[:1] {
+			if tag != "" {
+				fillName(tag, idx)
+			} else {
+				fillName(f.Name, idx)
+				fillName(strings.ToLower(f.Name[:1])+f.Name[1:], idx)
+			}
+		}
+	}
+	for _, idx := range toInvestigate {
+		// recurse into anonymous structs now that we handled the base ones.
+		rm.fill(t.Field(idx[len(idx)-1]).Type, idx)
+	}
 }
