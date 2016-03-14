@@ -245,7 +245,7 @@ func (writer *SpecificDatumWriter) writeRecord(v reflect.Value, enc Encoder, s S
 		return fmt.Errorf("Invalid record value: %v", v.Interface())
 	}
 
-	rs := s.(*RecordSchema)
+	rs := assertRecordSchema(s)
 	for i := range rs.Fields {
 		schemaField := rs.Fields[i]
 		field, err := findField(v, schemaField.Name)
@@ -526,6 +526,8 @@ func (writer *GenericDatumWriter) isWritableAs(v interface{}, s Schema) bool {
 		panic("Nested unions not supported") //this is a part of spec: http://avro.apache.org/docs/current/spec.html#binary_encode_complex
 	case *RecordSchema:
 		_, ok = v.(*GenericRecord)
+	case *preparedRecordSchema:
+		_, ok = v.(*GenericRecord)
 	}
 
 	return ok
@@ -539,7 +541,7 @@ func (writer *GenericDatumWriter) writeRecord(v interface{}, enc Encoder, s Sche
 	switch value := v.(type) {
 	case *GenericRecord:
 		{
-			rs := s.(*RecordSchema)
+			rs := assertRecordSchema(s)
 			for i := range rs.Fields {
 				schemaField := rs.Fields[i]
 				field := value.Get(schemaField.Name)

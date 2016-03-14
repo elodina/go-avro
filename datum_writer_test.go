@@ -11,7 +11,16 @@ const primitiveSchemaRaw = `{"type":"record","name":"Primitive","namespace":"exa
 func TestSpecificDatumWriterPrimitives(t *testing.T) {
 	sch, err := ParseSchema(primitiveSchemaRaw)
 	assert(t, err, nil)
+	specificDatumWriterPrimitives(t, sch)
+}
 
+func TestSpecificDatumWriterPrimitives_prepared(t *testing.T) {
+	sch, err := ParseSchema(primitiveSchemaRaw)
+	assert(t, err, nil)
+	specificDatumWriterPrimitives(t, Prepare(sch))
+}
+
+func specificDatumWriterPrimitives(t *testing.T, sch Schema) {
 	buffer := &bytes.Buffer{}
 	enc := NewBinaryEncoder(buffer)
 
@@ -20,7 +29,7 @@ func TestSpecificDatumWriterPrimitives(t *testing.T) {
 
 	in := randomPrimitiveObject()
 
-	err = w.Write(in, enc)
+	err := w.Write(in, enc)
 	assert(t, err, nil)
 	dec := NewBinaryDecoder(buffer.Bytes())
 	r := NewSpecificDatumReader()

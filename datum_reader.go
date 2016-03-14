@@ -77,6 +77,7 @@ func (enum *GenericEnum) Set(symbol string) {
 // SpecificDatumReader implements DatumReader and is used for filling Go structs with data.
 // Each value passed to Read is expected to be a pointer.
 type SpecificDatumReader struct {
+	sDatumReader
 	schema Schema
 }
 
@@ -110,21 +111,17 @@ func (reader *SpecificDatumReader) Read(v interface{}, dec Decoder) error {
 	if reader.schema == nil {
 		return SchemaNotSet
 	}
-
-	sch := reader.schema.(*RecordSchema)
-	for i := 0; i < len(sch.Fields); i++ {
-		field := sch.Fields[i]
-		err := reader.findAndSet(v, field, dec)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return reader.fillRecord(reader.schema, rv, dec)
 }
 
-func (reader *SpecificDatumReader) findAndSet(v interface{}, field *SchemaField, dec Decoder) error {
-	structField, err := findField(reflect.ValueOf(v), field.Name)
+// It turns out that SpecificDatumReader as an instance is not needed
+// once you get started on the actual decoding. It seems at first like we're just saving
+// pointer passing but it actually means more, because now we don't need access to
+// the instance and can memoize the decoding functions easier/cheaper.
+type sDatumReader struct{}
+
+func (reader sDatumReader) findAndSet(v reflect.Value, field *SchemaField, dec Decoder) error {
+	structField, err := findField(v, field.Name)
 	if err != nil {
 		return err
 	}
@@ -139,7 +136,7 @@ func (reader *SpecificDatumReader) findAndSet(v interface{}, field *SchemaField,
 	return nil
 }
 
-func (reader *SpecificDatumReader) readValue(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
+func (reader sDatumReader) readValue(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	switch field.Type() {
 	case Null:
 		return reflect.ValueOf(nil), nil
@@ -176,14 +173,14 @@ func (reader *SpecificDatumReader) readValue(field Schema, reflectField reflect.
 	return reflect.ValueOf(nil), fmt.Errorf("Unknown field type: %d", field.Type())
 }
 
-func (reader *SpecificDatumReader) setValue(field *SchemaField, where reflect.Value, what reflect.Value) {
+func (reader sDatumReader) setValue(field *SchemaField, where reflect.Value, what reflect.Value) {
 	zero := reflect.Value{}
 	if zero != what {
 		where.Set(what)
 	}
 }
 
-func (reader *SpecificDatumReader) mapPrimitive(readerFunc func() (interface{}, error)) (reflect.Value, error) {
+func (reader sDatumReader) mapPrimitive(readerFunc func() (interface{}, error)) (reflect.Value, error) {
 	value, err := readerFunc()
 	if err != nil {
 		return reflect.ValueOf(value), err
@@ -192,7 +189,7 @@ func (reader *SpecificDatumReader) mapPrimitive(readerFunc func() (interface{}, 
 	return reflect.ValueOf(value), nil
 }
 
-func (reader *SpecificDatumReader) mapArray(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
+func (reader sDatumReader) mapArray(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	arrayLength, err := dec.ReadArrayStart()
 	if err != nil {
 		return reflect.ValueOf(arrayLength), err
@@ -235,7 +232,7 @@ func (reader *SpecificDatumReader) mapArray(field Schema, reflectField reflect.V
 	return array, nil
 }
 
-func (reader *SpecificDatumReader) mapMap(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
+func (reader sDatumReader) mapMap(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	mapLength, err := dec.ReadMapStart()
 	if err != nil {
 		return reflect.ValueOf(mapLength), err
@@ -272,7 +269,7 @@ func (reader *SpecificDatumReader) mapMap(field Schema, reflectField reflect.Val
 	return resultMap, nil
 }
 
-func (reader *SpecificDatumReader) mapEnum(field Schema, dec Decoder) (reflect.Value, error) {
+func (reader sDatumReader) mapEnum(field Schema, dec Decoder) (reflect.Value, error) {
 	enumIndex, err := dec.ReadEnum()
 	if err != nil {
 		return reflect.ValueOf(enumIndex), err
@@ -297,7 +294,7 @@ func (reader *SpecificDatumReader) mapEnum(field Schema, dec Decoder) (reflect.V
 	return reflect.ValueOf(enum), nil
 }
 
-func (reader *SpecificDatumReader) mapUnion(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
+func (reader sDatumReader) mapUnion(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	unionType, err := dec.ReadInt()
 	if err != nil {
 		return reflect.ValueOf(unionType), err
@@ -307,7 +304,7 @@ func (reader *SpecificDatumReader) mapUnion(field Schema, reflectField reflect.V
 	return reader.readValue(union, reflectField, dec)
 }
 
-func (reader *SpecificDatumReader) mapFixed(field Schema, dec Decoder) (reflect.Value, error) {
+func (reader sDatumReader) mapFixed(field Schema, dec Decoder) (reflect.Value, error) {
 	fixed := make([]byte, field.(*FixedSchema).Size)
 	if err := dec.ReadFixed(fixed); err != nil {
 		return reflect.ValueOf(fixed), err
@@ -315,7 +312,7 @@ func (reader *SpecificDatumReader) mapFixed(field Schema, dec Decoder) (reflect.
 	return reflect.ValueOf(fixed), nil
 }
 
-func (reader *SpecificDatumReader) mapRecord(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
+func (reader sDatumReader) mapRecord(field Schema, reflectField reflect.Value, dec Decoder) (reflect.Value, error) {
 	var t reflect.Type
 	switch reflectField.Kind() {
 	case reflect.Ptr, reflect.Array, reflect.Map, reflect.Slice, reflect.Chan:
@@ -323,17 +320,39 @@ func (reader *SpecificDatumReader) mapRecord(field Schema, reflectField reflect.
 	default:
 		t = reflectField.Type()
 	}
-	record := reflect.New(t).Interface()
+	record := reflect.New(t)
+	err := reader.fillRecord(field, record, dec)
+	return record, err
+}
 
-	recordSchema := field.(*RecordSchema)
-	for i := 0; i < len(recordSchema.Fields); i++ {
-		err := reader.findAndSet(record, recordSchema.Fields[i], dec)
+func (this sDatumReader) fillRecord(field Schema, record reflect.Value, dec Decoder) error {
+	if pf, ok := field.(*preparedRecordSchema); ok {
+		plan, err := pf.getPlan(record.Type().Elem())
 		if err != nil {
-			return reflectField, err
+			return err
+		}
+
+		rf := record.Elem()
+		for i := range plan.decodePlan {
+			entry := &plan.decodePlan[i]
+			structField := rf.FieldByIndex(entry.index)
+			value, err := entry.dec(structField, dec)
+
+			if err != nil {
+				return err
+			}
+			if value.IsValid() {
+				structField.Set(value)
+			}
+		}
+	} else {
+		recordSchema := field.(*RecordSchema)
+		//ri := record.Interface()
+		for i := 0; i < len(recordSchema.Fields); i++ {
+			this.findAndSet(record, recordSchema.Fields[i], dec)
 		}
 	}
-
-	return reflect.ValueOf(record), nil
+	return nil
 }
 
 // GenericDatumReader implements DatumReader and is used for filling GenericRecords or other Avro supported types
@@ -557,7 +576,7 @@ func (reader *GenericDatumReader) mapFixed(field Schema, dec Decoder) ([]byte, e
 func (reader *GenericDatumReader) mapRecord(field Schema, dec Decoder) (*GenericRecord, error) {
 	record := NewGenericRecord(field)
 
-	recordSchema := field.(*RecordSchema)
+	recordSchema := assertRecordSchema(field)
 	for i := 0; i < len(recordSchema.Fields); i++ {
 		err := reader.findAndSet(record, recordSchema.Fields[i], dec)
 		if err != nil {
