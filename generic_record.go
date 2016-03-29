@@ -68,7 +68,7 @@ func (gr *GenericRecord) Map() map[string]interface{} {
 	m := make(map[string]interface{})
 	for k, v := range gr.fields {
 		if r, ok := v.(*GenericRecord); ok {
-			v = (r)
+			v = r.Map()
 		}
 		if a, ok := v.([]interface{}); ok {
 			slice := make([]interface{}, len(a))
