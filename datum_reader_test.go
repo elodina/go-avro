@@ -269,6 +269,52 @@ func TestComplexOfComplexBinding(t *testing.T) {
 	}
 }
 
+// TestSpecificArrayCrash tests against regression of a crash scenario
+// The crash occurs when an array decodes an explicitly nil value (like in a
+// type union). The type union works fine as a raw field but not in an array.
+func TestSpecificArrayCrash(t *testing.T) {
+	schema := MustParseSchema(`{
+    "type": "record",
+    "name": "Rec",
+    "fields": [{
+            "name": "a",
+            "type": {
+                "type": "array",
+                "items": ["null", "string", "long", "float"]
+            }
+        }]
+    }`)
+	type Rec struct {
+		A []interface{} `avro:"a"`
+	}
+	// Write some bytes
+	var buf bytes.Buffer
+	writer := NewSpecificDatumWriter()
+	writer.SetSchema(schema)
+	prims := []interface{}{
+		"foo",
+		nil,
+		int64(7),
+	}
+	writer.Write(&Rec{prims}, NewBinaryEncoder(&buf))
+
+	// Now do the read. This will crash if there's any null setting issue.
+	var dest Rec
+	reader := NewSpecificDatumReader()
+	reader.SetSchema(schema)
+	err := reader.Read(&dest, NewBinaryDecoder(buf.Bytes()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(dest.A) != 3 {
+		t.Fatalf("A must be 3, got %d", len(dest.A))
+	}
+	assert(t, dest.A[0], "foo")
+	assert(t, dest.A[1], nil)
+	assert(t, dest.A[2], int64(7))
+
+}
+
 func TestGenericDatumReaderEmptyMap(t *testing.T) {
 	sch, err := ParseSchema(`{
     "type": "record",

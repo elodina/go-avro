@@ -211,12 +211,16 @@ func (reader sDatumReader) mapArray(field Schema, reflectField reflect.Value, de
 				return reflect.ValueOf(arrayLength), err
 			}
 
-			if pointer && val.Kind() != reflect.Ptr {
-				val = val.Addr()
-			} else if !pointer && val.Kind() == reflect.Ptr {
-				val = val.Elem()
+			// The only time `val` would not be valid is if it's an explicit null value.
+			// Since the default value is the zero value, we can simply just not set the value
+			if val.IsValid() {
+				if pointer && val.Kind() != reflect.Ptr {
+					val = val.Addr()
+				} else if !pointer && val.Kind() == reflect.Ptr {
+					val = val.Elem()
+				}
+				current.Set(val)
 			}
-			current.Set(val)
 		}
 		//concatenate arrays
 		if array.Len() == 0 {
