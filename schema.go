@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"math"
 	"reflect"
+	"strings"
 )
 
 const (
@@ -957,7 +958,14 @@ func schemaByType(i interface{}, registry map[string]Schema, namespace string) (
 		case typeString:
 			return new(StringSchema), nil
 		default:
-			schema, ok := registry[getFullName(v, namespace)]
+			// If a name reference contains a dot, we consider it a full name reference.
+			// Otherwise, use the getFullName helper to look up the name.
+			// See https://avro.apache.org/docs/1.7.7/spec.html#Names
+			fullName := v
+			if !strings.ContainsRune(fullName, '.') {
+				fullName = getFullName(v, namespace)
+			}
+			schema, ok := registry[fullName]
 			if !ok {
 				return nil, fmt.Errorf("Unknown type name: %s", v)
 			}
@@ -1002,6 +1010,10 @@ func schemaByType(i interface{}, registry map[string]Schema, namespace string) (
 			return parseFixedSchema(v, registry, namespace)
 		case typeRecord:
 			return parseRecordSchema(v, registry, namespace)
+		default:
+			// Type references can also be done as {"type": "otherType"}.
+			// Just call back in so we can handle this scenario in the string matcher above.
+			return schemaByType(v[schemaTypeField], registry, namespace)
 		}
 	case []interface{}:
 		return parseUnionSchema(v, registry, namespace)
@@ -1128,7 +1140,7 @@ func addSchema(name string, schema Schema, schemas map[string]Schema) Schema {
 }
 
 func getFullName(name string, namespace string) string {
-	if len(namespace) > 0 {
+	if len(namespace) > 0 && !strings.ContainsRune(name, '.') {
 		return namespace + "." + name
 	}
 
