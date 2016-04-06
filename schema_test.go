@@ -260,13 +260,21 @@ func TestFixedSchema(t *testing.T) {
 }
 
 func TestSchemaRegistryMap(t *testing.T) {
-	rawSchema1 := `{"type": "record", "name": "TestRecord", "fields": [
-     	{"name": "longRecordField", "type": "long"}
-     ]}`
+	rawSchema1 := `{"type": "record", "name": "TestRecord", "namespace": "com.github.elodina", "fields": [
+		{"name": "longRecordField", "type": "long"}
+	]}`
 
-	rawSchema2 := `{"type": "record", "name": "TestRecord2", "fields": [
-     	{"name": "record", "type": ["null", "TestRecord"]}
-     ]}`
+	rawSchema2 := `{"type": "record", "name": "TestRecord2", "namespace": "com.github.elodina", "fields": [
+		{"name": "record", "type": ["null", "TestRecord"]}
+	]}`
+
+	rawSchema3 := `{"type": "record", "name": "TestRecord3", "namespace": "com.github.other", "fields": [
+		{"name": "record", "type": ["null", "com.github.elodina.TestRecord2"]}
+	]}`
+
+	rawSchema4 := `{"type": "record", "name": "TestRecord3", "namespace": "com.github.elodina", "fields": [
+		{"name": "record", "type": ["null", {"type": "TestRecord2"}, "com.github.other.TestRecord3"]}
+	]}`
 
 	registry := make(map[string]Schema)
 
@@ -279,6 +287,16 @@ func TestSchemaRegistryMap(t *testing.T) {
 	assert(t, err, nil)
 	assert(t, s2.Type(), Record)
 	assert(t, len(registry), 2)
+
+	s3, err := ParseSchemaWithRegistry(rawSchema3, registry)
+	assert(t, err, nil)
+	assert(t, s3.Type(), Record)
+	assert(t, len(registry), 3)
+
+	s4, err := ParseSchemaWithRegistry(rawSchema4, registry)
+	assert(t, err, nil)
+	assert(t, s4.Type(), Record)
+	assert(t, len(registry), 4)
 }
 
 func TestRecordCustomProps(t *testing.T) {

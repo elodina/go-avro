@@ -12,6 +12,7 @@ func assert(t *testing.T, actual interface{}, expected interface{}) {
 	if !reflect.DeepEqual(actual, expected) {
 		_, fn, line, _ := runtime.Caller(1)
 		t.Errorf("Expected %v, actual %v\n@%s:%d", expected, actual, fn, line)
+		t.FailNow()
 	}
 }
 
