@@ -34,13 +34,18 @@ func (codegen *codeWriterGenerator) writeStructWriter(info *recordSchemaInfo, bu
 		return err
 	}
 
-	_, err = buffer.WriteString("\treturn nil\n}\n\n")
+	_, err = buffer.WriteString("\treturn err\n}\n\n")
 	return err
 }
 
 func (codegen *codeWriterGenerator) writeRecordWriter(schema *RecordSchema, buffer *bytes.Buffer) error {
+	_, err := buffer.WriteString(fmt.Sprintf("\tvar err error\n"))
+	if err != nil {
+		return err
+	}
+
 	for _, field := range schema.Fields {
-		_, err := buffer.WriteString(fmt.Sprintf("\t// %s\n", field.Name))
+		_, err = buffer.WriteString(fmt.Sprintf("\t// %s\n", field.Name))
 		if err != nil {
 			return err
 		}
@@ -89,11 +94,11 @@ func (codegen *codeWriterGenerator) writeField(name string, schema Schema, buffe
 		return codegen.arrayWriter(name, schema, buffer)
 	case Enum:
 		return codegen.enumWriter(name, buffer)
-	case Record:
+	case Record, Recursive:
 		return codegen.recordWriter(name, buffer)
 	}
 
-	return nil
+	return fmt.Errorf("Unknown schema: %s", schema)
 }
 
 func (codegen *codeWriterGenerator) fieldWriter(name string, fieldType string, cast string, buffer *bytes.Buffer) error {
@@ -174,7 +179,12 @@ func (codegen *codeWriterGenerator) enumWriter(name string, buffer *bytes.Buffer
 }
 
 func (codegen *codeWriterGenerator) recordWriter(name string, buffer *bytes.Buffer) error {
-	_, err := buffer.WriteString(fmt.Sprintf("\t%s.Write(encoder)\n", name))
+	_, err := buffer.WriteString(fmt.Sprintf("\terr = %s.Write(encoder)\n", name))
+	if err != nil {
+		return err
+	}
+
+	_, err = buffer.WriteString("\tif err != nil {\n\t\treturn err\n\t}\n")
 	return err
 }
 
@@ -254,39 +264,7 @@ func (codegen *codeWriterGenerator) unionWriter(name string, schema Schema, buff
 		}
 	}
 
-	//for unionType, currentType := range schema.(*UnionSchema).Types {
-	//	_, err = buffer.WriteString("if ")
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	needsAssertion := codegen.unionNeedsAssertion(schema.(*UnionSchema))
-	//
-	//	err = codegen.unionTypeAssertion(name, schema, needsAssertion, buffer)
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	_, err = buffer.WriteString(fmt.Sprintf("{\n\t\tencoder.WriteInt(%d)\n", unionType))
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	err = codegen.writeField(name, currentType, buffer)
-	//	if err != nil {
-	//		return err
-	//	}
-	//
-	//	_, err = buffer.WriteString("} else ")
-	//	if err != nil {
-	//		return err
-	//	}
-	//}
-	//
-	//_, err = buffer.WriteString("{\n\t\treturn avro.ErrInvalidUnionValue\n\t}\n")
-	//if err != nil {
-	//	return err
-	//}
+	// TODO no "else" statement here
 
 	return nil
 }

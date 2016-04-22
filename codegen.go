@@ -26,6 +26,7 @@ import (
 // CodeGenerator is a code generation tool for structs from given Avro schemas.
 type CodeGenerator struct {
 	writerGenerator *codeWriterGenerator
+	readerGenerator *codeReaderGenerator
 	rawSchemas      []string
 
 	structs           map[string]*bytes.Buffer
@@ -37,6 +38,7 @@ type CodeGenerator struct {
 func NewCodeGenerator(schemas []string) *CodeGenerator {
 	return &CodeGenerator{
 		writerGenerator:   new(codeWriterGenerator),
+		readerGenerator:   new(codeReaderGenerator),
 		rawSchemas:        schemas,
 		structs:           make(map[string]*bytes.Buffer),
 		codeSnippets:      make([]*bytes.Buffer, 0),
@@ -202,6 +204,11 @@ func (codegen *CodeGenerator) writeStruct(info *recordSchemaInfo) error {
 	}
 
 	err = codegen.writerGenerator.writeStructWriter(info, buffer)
+	if err != nil {
+		return err
+	}
+
+	err = codegen.readerGenerator.writeStructReader(info, buffer)
 	if err != nil {
 		return err
 	}
@@ -630,4 +637,8 @@ func isNullable(schema Schema) bool {
 
 func exportedName(unexported string) string {
 	return fmt.Sprintf("%s%s", strings.ToUpper(unexported[:1]), unexported[1:])
+}
+
+func unexportedName(exported string) string {
+	return fmt.Sprintf("%s%s", strings.ToLower(exported[:1]), exported[1:])
 }
