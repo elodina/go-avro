@@ -68,12 +68,16 @@ func (be *BinaryEncoder) WriteNull(_ interface{}) {
 	//do nothing
 }
 
+// The encodings of true and false, for reuse
+var encBoolTrue = []byte{0x01}
+var encBoolFalse = []byte{0x00}
+
 // WriteBoolean writes a boolean value.
 func (be *BinaryEncoder) WriteBoolean(x bool) {
 	if x {
-		_, _ = be.buffer.Write([]byte{0x01})
+		_, _ = be.buffer.Write(encBoolTrue)
 	} else {
-		_, _ = be.buffer.Write([]byte{0x00})
+		_, _ = be.buffer.Write(encBoolFalse)
 	}
 }
 
@@ -115,7 +119,8 @@ func (be *BinaryEncoder) WriteBytes(x []byte) {
 // WriteString writes a string value.
 func (be *BinaryEncoder) WriteString(x string) {
 	be.WriteLong(int64(len(x)))
-	_, _ = be.buffer.Write([]byte(x))
+	// call writers that happen to provide WriteString to avoid extra byte allocations for a copy of a string when possible.
+	_, _ = io.WriteString(be.buffer, x)
 }
 
 // WriteArrayStart should be called when starting to serialize an array providing it with a number of items in
