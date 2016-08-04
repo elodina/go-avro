@@ -247,6 +247,40 @@ func TestGenericDatumWriterEmptyArray(t *testing.T) {
 	assert(t, buffer.Bytes(), []byte{0x00})
 }
 
+func TestGenericDatumWriterFixed(t *testing.T) {
+	schema := MustParseSchema(`{
+	    "type": "record",
+	    "name": "Rec",
+	    "fields": [
+	        {
+	            "name": "fixed",
+	            "type": {"name": "fixed5", "type": "fixed", "size": 5}
+	        }
+	    ]
+	}`)
+
+	w := NewGenericDatumWriter()
+	w.SetSchema(schema)
+
+	testit := func(rec *GenericRecord) ([]byte, error) {
+		var buf bytes.Buffer
+		err := w.Write(rec, NewBinaryEncoder(&buf))
+		return buf.Bytes(), err
+	}
+
+	rec := NewGenericRecord(schema)
+	rec.Set("fixed", []byte{1, 2, 3, 4}) // 1 byte too short, should error
+	buf, err := testit(rec)
+	assert(t, len(buf), 0)
+	assert(t, err.Error(), "Invalid fixed value: [1 2 3 4]")
+
+	rec = NewGenericRecord(schema)
+	rec.Set("fixed", []byte{1, 2, 3, 4, 5})
+	buf, err = testit(rec)
+	assert(t, len(buf), 5) // make sure we're not adding the extra padding
+	assert(t, err, nil)
+}
+
 func randomPrimitiveObject() *primitive {
 	p := &primitive{}
 	p.BooleanField = rand.Int()%2 == 0
