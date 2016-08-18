@@ -632,9 +632,21 @@ func (s *EnumSchema) Prop(key string) (interface{}, bool) {
 }
 
 // Validate checks whether the given value is writeable to this schema.
-func (*EnumSchema) Validate(v reflect.Value) bool {
-	//TODO implement
-	return true
+func (s *EnumSchema) Validate(v reflect.Value) bool {
+	v = dereference(v)
+	if v.Kind() != reflect.Struct {
+		return false
+	}
+	method := v.MethodByName("getindex")
+	if !method.IsValid() {
+		return false
+	}
+	valArr := method.Call([]reflect.Value{})
+	if len(valArr) == 0 {
+		return false
+	}
+	val := valArr[0].Interface().(int)
+	return val >= 0 && val < len(s.Symbols)
 }
 
 // MarshalJSON serializes the given schema as JSON.
