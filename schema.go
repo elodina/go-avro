@@ -637,11 +637,15 @@ func (s *EnumSchema) Validate(v reflect.Value) bool {
 	if v.Kind() != reflect.Struct {
 		return false
 	}
-	field := v.FieldByName("index")
-	if !field.IsValid() {
+	method := v.MethodByName("getindex")
+	if !method.IsValid() {
 		return false
 	}
-	val := field.Interface().(int)
+	valArr := method.Call([]reflect.Value{})
+	if len(valArr) == 0 {
+		return false
+	}
+	val := valArr[0].Interface().(int)
 	return val >= 0 && val < len(s.Symbols)
 }
 
