@@ -632,8 +632,25 @@ func (s *EnumSchema) Prop(key string) (interface{}, bool) {
 }
 
 // Validate checks whether the given value is writeable to this schema.
-func (*EnumSchema) Validate(v reflect.Value) bool {
-	//TODO implement
+func (s *EnumSchema) Validate(v reflect.Value) bool {
+	//WARNING cuz only ptr could
+	if v.Kind() != reflect.Ptr {
+		if v.CanAddr() == false {
+			return false
+		}
+		v = v.Addr()
+	}
+	ret := v.MethodByName("GetIndex").Call([]reflect.Value{})
+	if len(ret) == 0 {
+		return false
+	}
+	index := ret[0].Interface().(int32)
+	if index < 0 {
+		return false
+	}
+	if index >= int32(len(s.Symbols)) {
+		return false
+	}
 	return true
 }
 
