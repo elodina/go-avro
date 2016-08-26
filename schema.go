@@ -635,7 +635,10 @@ func (s *EnumSchema) Prop(key string) (interface{}, bool) {
 func (s *EnumSchema) Validate(v reflect.Value) bool {
 	//WARNING cuz only ptr could
 	if v.Kind() != reflect.Ptr {
-		return false
+		if v.CanAddr() == false {
+			return false
+		}
+		v = v.Addr()
 	}
 	ret := v.MethodByName("GetIndex").Call([]reflect.Value{})
 	if len(ret) == 0 {
