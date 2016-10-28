@@ -78,8 +78,8 @@ func (rm *reflectInfo) fill(t reflect.Type, indexPrefix []int) {
 	}
 	// these are anonymous structs to investigate (tail recursion)
 	var toInvestigate [][]int
-	for i := 0; i < t.NumField(); i++ {
-		f := t.Field(i)
+	for i := 0; i < safeNumFields(t); i++ {
+		f := safeField(t, i)
 		tag := f.Tag.Get("avro")
 		idx := append(append([]int{}, indexPrefix...), f.Index...)
 
@@ -96,6 +96,25 @@ func (rm *reflectInfo) fill(t reflect.Type, indexPrefix []int) {
 	}
 	for _, idx := range toInvestigate {
 		// recurse into anonymous structs now that we handled the base ones.
-		rm.fill(t.Field(idx[len(idx)-1]).Type, idx)
+		recurseType := t.Field(idx[len(idx)-1]).Type
+		if recurseType.Kind() == reflect.Ptr {
+			recurseType = recurseType.Elem()
+		}
+		rm.fill(recurseType, idx)
+
 	}
+}
+
+func safeNumFields(t reflect.Type) int {
+	if t.Kind() == reflect.Ptr {
+		return t.Elem().NumField()
+	}
+	return t.NumField()
+}
+
+func safeField(t reflect.Type, index int) reflect.StructField {
+	if t.Kind() == reflect.Ptr {
+		return t.Elem().Field(index)
+	}
+	return t.Field(index)
 }
