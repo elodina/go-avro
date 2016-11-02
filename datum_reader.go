@@ -241,8 +241,15 @@ func (reader sDatumReader) mapMap(field Schema, reflectField reflect.Value, dec 
 	if err != nil {
 		return reflect.ValueOf(mapLength), err
 	}
-
+	elemType := reflectField.Type().Elem()
+	elemIsPointer := (elemType.Kind() == reflect.Ptr)
 	resultMap := reflect.MakeMap(reflectField.Type())
+
+	// dest is an element type value used as the destination for reading values into.
+	// This is required for using non-primitive types as map values, because map values are not addressable
+	// like array values are. It can be reused because it's scratch space and it's copied into the map.
+	dest := reflect.New(elemType).Elem()
+
 	for {
 		if mapLength == 0 {
 			break
@@ -254,11 +261,11 @@ func (reader sDatumReader) mapMap(field Schema, reflectField reflect.Value, dec 
 			if err != nil {
 				return reflect.ValueOf(mapLength), err
 			}
-			val, err := reader.readValue(field.(*MapSchema).Values, reflectField, dec)
+			val, err := reader.readValue(field.(*MapSchema).Values, dest, dec)
 			if err != nil {
 				return reflect.ValueOf(mapLength), nil
 			}
-			if val.Kind() == reflect.Ptr {
+			if !elemIsPointer && val.Kind() == reflect.Ptr {
 				resultMap.SetMapIndex(key, val.Elem())
 			} else {
 				resultMap.SetMapIndex(key, val)

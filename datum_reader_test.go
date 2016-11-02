@@ -315,6 +315,67 @@ func TestSpecificArrayCrash(t *testing.T) {
 
 }
 
+func TestSpecificReaderMapOfRecords(t *testing.T) {
+	schema := MustParseSchema(`{
+    "type": "record",
+    "name": "Rec",
+    "fields": [{
+            "name": "a",
+            "type": {
+                "type": "map",
+                "values": {
+                	"type": "record", 
+                	"name": "Inner", 
+                	"fields": [
+                		{"name": "innerA", "type": "int"}
+                	]
+               	}
+            }
+        }]
+    }`)
+	type Inner struct {
+		InnerA int32
+	}
+	type PtrRec struct {
+		A map[string]*Inner `avro:"a"`
+	}
+	type ValueRec struct {
+		A map[string]Inner `avro:"a"`
+	}
+
+	// Write some bytes
+	var buf bytes.Buffer
+	writer := NewSpecificDatumWriter()
+	writer.SetSchema(schema)
+	testVal := &PtrRec{
+		A: map[string]*Inner{
+			"abc": &Inner{InnerA: 7},
+			"def": &Inner{InnerA: 9},
+		},
+	}
+	writer.Write(testVal, NewBinaryEncoder(&buf))
+	b1 := buf.Bytes()
+
+	// Now do the read. This will crash
+	var dest PtrRec
+	reader := NewSpecificDatumReader()
+	reader.SetSchema(schema)
+	err := reader.Read(&dest, NewBinaryDecoder(b1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert(t, dest.A["abc"].InnerA, int32(7))
+	assert(t, dest.A["def"].InnerA, int32(9))
+
+	var dest2 ValueRec
+	err = reader.Read(&dest2, NewBinaryDecoder(b1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert(t, dest2.A["abc"].InnerA, int32(7))
+	assert(t, dest2.A["def"].InnerA, int32(9))
+}
+
 func TestGenericDatumReaderEmptyMap(t *testing.T) {
 	sch, err := ParseSchema(`{
     "type": "record",
