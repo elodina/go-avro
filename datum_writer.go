@@ -6,6 +6,12 @@ import (
 	"reflect"
 )
 
+// ***********************
+// NOTICE this file was changed beginning in November 2016 by the team maintaining
+// https://github.com/go-avro/avro. This notice is required to be here due to the
+// terms of the Apache license, see LICENSE for details.
+// ***********************
+
 // Writer is an interface that may be implemented to avoid using runtime reflection during serialization.
 // Implementing it is optional and may be used as an optimization. Falls back to using reflection if not implemented.
 type Writer interface {

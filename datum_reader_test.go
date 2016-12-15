@@ -7,6 +7,12 @@ import (
 	"testing"
 )
 
+// ***********************
+// NOTICE this file was changed beginning in November 2016 by the team maintaining
+// https://github.com/go-avro/avro. This notice is required to be here due to the
+// terms of the Apache license, see LICENSE for details.
+// ***********************
+
 //primitives
 type primitive struct {
 	BooleanField bool
