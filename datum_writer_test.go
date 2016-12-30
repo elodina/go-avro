@@ -90,6 +90,23 @@ func TestSpecificDatumWriterComplex(t *testing.T) {
 	assert(t, decodedComplex.RecordField.StringRecordField, complex.RecordField.StringRecordField)
 }
 
+func TestSpecificDatumWriterComplexUnionBoolean(t *testing.T) {
+	complex := newComplex()
+	complex.UnionField = true
+
+	// Using the complex schema so we need to satisfy this
+	complex.FixedField = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+
+	buffer := &bytes.Buffer{}
+	enc := NewBinaryEncoder(buffer)
+
+	w := NewSpecificDatumWriter()
+	w.SetSchema(complex.Schema())
+
+	err := w.Write(complex, enc)
+	assert(t, err, nil)
+}
+
 func TestSpecificDatumWriterRecursive(t *testing.T) {
 	employee1 := newEmployee()
 	employee1.Name = "Employee 1"
@@ -441,7 +458,8 @@ var _Complex_schema, _Complex_schema_err = ParseSchema(`{
             "name": "unionField",
             "type": [
                 "null",
-                "string"
+                "string",
+                "boolean"
             ]
         },
         {
