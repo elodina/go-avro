@@ -338,7 +338,7 @@ func (*BooleanSchema) Prop(key string) (interface{}, bool) {
 
 // Validate checks whether the given value is writeable to this schema.
 func (*BooleanSchema) Validate(v reflect.Value) bool {
-	return dereference(v).Kind() == reflect.Bool
+	return reflect.TypeOf(dereference(v).Interface()).Kind() == reflect.Bool
 }
 
 // MarshalJSON serializes the given schema as JSON. Never returns an error.
