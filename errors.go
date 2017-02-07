@@ -1,6 +1,9 @@
 package avro
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 // Signals that an end of file or stream has been reached unexpectedly.
 var EOF = errors.New("End of file reached")
@@ -53,5 +56,7 @@ var InvalidSchema = errors.New("Invalid schema")
 // Happens when a datum reader has no set schema.
 var SchemaNotSet = errors.New("Schema not set")
 
-// FieldDoesNotExist happens when a struct does not have a necessary field.
-var FieldDoesNotExist = errors.New("Field does not exist")
+// Specify a custom error message for indicating which necessary field in the struct is missing.
+func NewFieldDoesNotExistError(field string) error {
+	return errors.New(fmt.Sprintf("Field does not exist: [%v]", field))
+}
