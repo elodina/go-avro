@@ -50,6 +50,12 @@ func specificDatumWriterPrimitives(t *testing.T, sch Schema) {
 }
 
 func TestSpecificDatumWriterComplex(t *testing.T) {
+	sampleTestRecord := _testRecord{
+		FloatRecordField:  14.5,
+		IntRecordField:    6,
+		LongRecordField:   23456789,
+		StringRecordField: "Trash Panda!",
+	}
 	complex := newComplex()
 	complex.StringArray = []string{"asd", "zxc", "qwe"}
 	complex.LongArray = []int64{0, 1, 2, 3, 4}
@@ -61,6 +67,10 @@ func TestSpecificDatumWriterComplex(t *testing.T) {
 	complex.RecordField.IntRecordField = 5
 	complex.RecordField.LongRecordField = 12345678
 	complex.RecordField.StringRecordField = "i am groot"
+	complex.MapOfRecord = map[string]*_testRecord{
+		"foo": &sampleTestRecord,
+		"bar": &sampleTestRecord,
+	}
 
 	buffer := &bytes.Buffer{}
 	enc := NewBinaryEncoder(buffer)
@@ -88,6 +98,8 @@ func TestSpecificDatumWriterComplex(t *testing.T) {
 	assert(t, decodedComplex.RecordField.IntRecordField, complex.RecordField.IntRecordField)
 	assert(t, decodedComplex.RecordField.LongRecordField, complex.RecordField.LongRecordField)
 	assert(t, decodedComplex.RecordField.StringRecordField, complex.RecordField.StringRecordField)
+	assert(t, decodedComplex.MapOfRecord["foo"], &sampleTestRecord)
+	assert(t, decodedComplex.MapOfRecord["bar"], &sampleTestRecord)
 }
 
 func TestSpecificDatumWriterComplexUnionBoolean(t *testing.T) {
@@ -369,6 +381,7 @@ type _complex struct {
 	UnionField  interface{}
 	FixedField  []byte
 	RecordField *_testRecord
+	MapOfRecord map[string]*_testRecord
 }
 
 func newComplex() *_complex {
@@ -378,6 +391,7 @@ func newComplex() *_complex {
 		EnumField:   NewGenericEnum([]string{"A", "B", "C", "D"}),
 		MapOfInts:   make(map[string]int32),
 		RecordField: newTestRecord(),
+		MapOfRecord: make(map[string]*_testRecord),
 	}
 }
 
@@ -493,6 +507,13 @@ var _Complex_schema, _Complex_schema_err = ParseSchema(`{
                         "type": "float"
                     }
                 ]
+            }
+        },
+        {
+            "name":"mapOfRecord",
+            "type":{
+               "type": "map",
+               "values": "TestRecord"
             }
         }
     ]
