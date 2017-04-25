@@ -39,6 +39,16 @@ func TestBooleanSerialization(t *testing.T) {
 	}
 }
 
+func BenchmarkBooleanSerialization(b *testing.B) {
+	buf := &bytes.Buffer{}
+	enc := NewBinaryEncoder(buf)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		enc.WriteBoolean(true)
+		buf.Reset()
+	}
+}
+
 func TestIntSerialization(t *testing.T) {
 	testPrimitiveSerialization(t, func(i int) interface{} {
 		r := rand.Int31() / (int32(i) * int32(i))
@@ -118,6 +128,34 @@ func TestStringSerialization(t *testing.T) {
 		NewBinaryEncoder(buf).WriteString(r.(string))
 		return NewBinaryDecoder(buf.Bytes()).ReadString()
 	})
+}
+
+func BenchmarkStringSerialization_small(b *testing.B) {
+	benchStringSerialization(b, 10)
+}
+
+func BenchmarkStringSerialization_med(b *testing.B) {
+	benchStringSerialization(b, 70)
+}
+
+func BenchmarkStringSerialization_large(b *testing.B) {
+	benchStringSerialization(b, 2000)
+}
+
+func benchStringSerialization(b *testing.B, n int) {
+	s := "abcdefghijklmnop"
+	for len(s) < n {
+		s += s
+	}
+	s = s[:n]
+
+	buf := &bytes.Buffer{}
+	enc := NewBinaryEncoder(buf)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		enc.WriteString(s)
+		buf.Reset()
+	}
 }
 
 func testPrimitiveSerialization(t *testing.T, random func(int) interface{}, serialize func(interface{}) (interface{}, error)) {
