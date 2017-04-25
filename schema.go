@@ -482,7 +482,7 @@ func (s *RecordSchema) Validate(v reflect.Value) bool {
 		for idx := range s.Fields {
 			// key.Name must have rs.Fields[idx].Name as a suffix
 			if len(s.Fields[idx].Name) <= len(key) {
-				lhs := key[len(key)-len(s.Fields[idx].Name) : len(key)]
+				lhs := key[len(key)-len(s.Fields[idx].Name):]
 				if lhs == s.Fields[idx].Name {
 					if !s.Fields[idx].Type.Validate(reflect.ValueOf(val)) {
 						return false
