@@ -119,6 +119,29 @@ func TestSpecificDatumWriterComplexUnionBoolean(t *testing.T) {
 	assert(t, err, nil)
 }
 
+func TestSpecificUnionBool(t *testing.T) {
+	schema := MustParseSchema(`
+		{"type": "record", "name":"UnionTest", "fields": [
+			{"name": "a", "type": {"type": "array", "values": ["null", "double", "long", "string", "boolean", "int", "float"]}}
+		]}`)
+
+	var v struct {
+		A []interface{} `avro:"a"`
+	}
+
+	v.A = append(v.A, int32(4))
+	v.A = append(v.A, true)
+
+	var buf bytes.Buffer
+	enc := NewBinaryEncoder(&buf)
+
+	w := NewSpecificDatumWriter()
+	w.SetSchema(schema)
+
+	err := w.Write(&v, enc)
+	assert(t, err, nil)
+}
+
 func TestSpecificDatumWriterRecursive(t *testing.T) {
 	employee1 := newEmployee()
 	employee1.Name = "Employee 1"
