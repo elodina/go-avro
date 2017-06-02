@@ -482,27 +482,27 @@ func (codegen *CodeGenerator) writeStructConstructorFieldValue(info *recordSchem
 		}
 	case *IntSchema:
 		{
-			defaultValue, ok := field.Default.(float64)
+			defaultValue, ok := field.Default.(int32)
 			if !ok {
 				return fmt.Errorf("Invalid default value for %s field of type %s", field.Name, field.Type.GetName())
 			}
-			_, err = buffer.WriteString(fmt.Sprintf("int32(%d)", int32(defaultValue)))
+			_, err = buffer.WriteString(fmt.Sprintf("int32(%d)", defaultValue))
 		}
 	case *LongSchema:
 		{
-			defaultValue, ok := field.Default.(float64)
+			defaultValue, ok := field.Default.(int64)
 			if !ok {
 				return fmt.Errorf("Invalid default value for %s field of type %s", field.Name, field.Type.GetName())
 			}
-			_, err = buffer.WriteString(fmt.Sprintf("int64(%d)", int64(defaultValue)))
+			_, err = buffer.WriteString(fmt.Sprintf("int64(%d)", defaultValue))
 		}
 	case *FloatSchema:
 		{
-			defaultValue, ok := field.Default.(float64)
+			defaultValue, ok := field.Default.(float32)
 			if !ok {
 				return fmt.Errorf("Invalid default value for %s field of type %s", field.Name, field.Type.GetName())
 			}
-			_, err = buffer.WriteString(fmt.Sprintf("float32(%f)", float32(defaultValue)))
+			_, err = buffer.WriteString(fmt.Sprintf("float32(%f)", defaultValue))
 		}
 	case *DoubleSchema:
 		{
