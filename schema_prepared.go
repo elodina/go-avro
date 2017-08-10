@@ -28,7 +28,10 @@ func (job *prepareJob) prepare(schema Schema) Schema {
 	output := schema
 	switch schema := schema.(type) {
 	case *RecordSchema:
-		output = job.prepareRecordSchema(schema)
+		output = job.seen[schema] // avoid repetetive work
+		if output == nil {
+			output = job.prepareRecordSchema(schema)
+		}
 	case *RecursiveSchema:
 		if seen := job.seen[schema.Actual]; seen != nil {
 			return seen
@@ -74,6 +77,7 @@ func (job *prepareJob) prepareRecordSchema(input *RecordSchema) *preparedRecordS
 		RecordSchema: *input,
 		pool:         sync.Pool{New: func() interface{} { return make(map[reflect.Type]*recordPlan) }},
 	}
+	job.seen[input] = output // put the in-progress output here before iterating fields, solves self-recursive and co-recursive.
 	output.Fields = nil
 	for _, field := range input.Fields {
 		output.Fields = append(output.Fields, &SchemaField{

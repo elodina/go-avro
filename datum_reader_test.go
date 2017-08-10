@@ -275,6 +275,145 @@ func TestComplexOfComplexBinding(t *testing.T) {
 	}
 }
 
+func TestSpecificSelfRecursive_NoPrepare(t *testing.T) {
+	specificSelfRecursive(t, false)
+}
+func TestSpecificSelfRecursive_Prepare(t *testing.T) {
+	specificSelfRecursive(t, true)
+}
+
+func specificSelfRecursive(t *testing.T, prepare bool) {
+	type SelfRecursive struct {
+		Label string `avro:"a"`
+		B     *SelfRecursive
+		C     []*SelfRecursive
+	}
+
+	schema := maybePrepare(prepare, MustParseSchema(`{
+	    "type": "record",
+		"name": "SelfRecursive",
+		"fields": [
+			{"name": "a", "type": "string"},
+			{"name": "b", "type": ["null", {"type": "SelfRecursive"}]},
+			{"name": "c", "type": {"type": "array", "items": {"type": "SelfRecursive"}}}
+		]
+	}`))
+
+	input := testEncodeBytes(schema, &SelfRecursive{
+		Label: "outer",
+		B:     &SelfRecursive{Label: "inner"},
+		C: []*SelfRecursive{
+			&SelfRecursive{Label: "arrayInner1"},
+			&SelfRecursive{Label: "arrayInner2", B: &SelfRecursive{Label: "inner2Child"}},
+		},
+	})
+
+	r := NewSpecificDatumReader()
+	r.SetSchema(schema)
+
+	var dest SelfRecursive
+	err := r.Read(&dest, NewBinaryDecoder(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert(t, dest.Label, "outer")
+	assert(t, dest.B.Label, "inner")
+	assert(t, len(dest.C), 2)
+	assert(t, dest.C[0].Label, "arrayInner1")
+	assert(t, dest.C[1].Label, "arrayInner2")
+	assert(t, dest.C[1].B.Label, "inner2Child")
+}
+
+func TestSpecificCoRecursive_NoPrepare(t *testing.T) {
+	specificCoRecursive(t, false)
+}
+func TestSpecificCoRecursive_Prepare(t *testing.T) {
+	specificCoRecursive(t, true)
+}
+
+type coRecursive struct {
+	A string `avro:"a"`
+	B *crFriend
+	C *crItemC
+}
+
+type crFriend struct {
+	Label string         `avro:"label"`
+	D     *coRecursive   `avro:"d"`
+	E     []*coRecursive `avro:"e"`
+}
+
+type crItemC struct {
+	Label string
+	Ref   *crFriend
+}
+
+func specificCoRecursive(t *testing.T, prepare bool) {
+
+	schema := maybePrepare(prepare, MustParseSchema(`{
+	    "type": "record",
+		"name": "CoRecursive",
+		"fields": [
+			{"name": "a", "type": "string"},
+			{"name": "b", "type": [
+				"null",
+				{
+					"type": "record",
+					"name": "Friend",
+					"fields": [
+						{"name": "label", "type": "string"},
+						{"name": "d", "type": ["null", {"type": "CoRecursive"}]},
+						{"name": "e", "type": {"type": "array", "items": {"type": "CoRecursive"}}}
+					]
+				}
+			]},
+			{"name": "c", "type": [
+				"null",
+				{
+					"type": "record",
+					"name": "ItemC",
+					"fields": [
+						{"name": "label", "type": "string"},
+						{"name": "ref", "type": {"type": "Friend"}}
+					]
+				}
+			]}
+		]
+	}`))
+
+	input := testEncodeBytes(schema, &coRecursive{
+		A: "outer",
+		B: &crFriend{
+			Label: "inner",
+			D:     &coRecursive{A: "co-inner-d"},
+			E:     []*coRecursive{&coRecursive{A: "co-inner-e"}},
+		},
+		C: &crItemC{
+			Label: "itemC",
+			Ref: &crFriend{
+				Label: "requiredCRef",
+			},
+		},
+	})
+	assert(t, len(input), 64)
+
+	r := NewSpecificDatumReader()
+	r.SetSchema(schema)
+
+	var dest coRecursive
+	err := r.Read(&dest, NewBinaryDecoder(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert(t, dest.A, "outer")
+	assert(t, dest.B.Label, "inner")
+	assert(t, dest.B.D.A, "co-inner-d")
+	assert(t, dest.B.E[0].A, "co-inner-e")
+	assert(t, dest.C.Label, "itemC")
+	assert(t, dest.C.Ref.Label, "requiredCRef")
+
+}
+
 // TestSpecificArrayCrash tests against regression of a crash scenario
 // The crash occurs when an array decodes an explicitly nil value (like in a
 // type union). The type union works fine as a raw field but not in an array.
@@ -624,4 +763,11 @@ func testEncodeBytes(schema Schema, rec interface{}) []byte {
 		panic(err)
 	}
 	return buf.Bytes()
+}
+
+func maybePrepare(prepare bool, s Schema) Schema {
+	if prepare {
+		s = Prepare(s)
+	}
+	return s
 }

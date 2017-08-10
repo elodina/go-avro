@@ -248,7 +248,7 @@ func (writer *SpecificDatumWriter) writeFixed(v reflect.Value, enc Encoder, s Sc
 
 func (writer *SpecificDatumWriter) writeRecord(v reflect.Value, enc Encoder, s Schema) error {
 	if !s.Validate(v) {
-		return fmt.Errorf("Invalid record value: %v", v.Interface())
+		return fmt.Errorf("Encoding Record %s: Invalid record value: %v", s.GetName(), v.Interface())
 	}
 
 	rs := assertRecordSchema(s)
