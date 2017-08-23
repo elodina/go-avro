@@ -18,7 +18,7 @@ package main
 import (
 	"bytes"
 	"fmt"
-	"github.com/elodina/go-avro"
+	"gopkg.in/avro.v0"
 )
 
 var rawSchema = `{
