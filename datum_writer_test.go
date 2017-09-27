@@ -364,14 +364,14 @@ func randomPrimitiveObject() *primitive {
 }
 
 func BenchmarkEncodeVarint32(b *testing.B) {
-	enc := NewBinaryEncoder(nil)
+	enc := newBinaryEncoder(nil)
 	for i := 0; i < b.N; i++ {
 		enc.encodeVarint32(int32(i))
 	}
 }
 
 func BenchmarkEncodeVarint64(b *testing.B) {
-	enc := NewBinaryEncoder(nil)
+	enc := newBinaryEncoder(nil)
 	for i := 0; i < b.N; i++ {
 		enc.encodeVarint64(int64(i))
 	}

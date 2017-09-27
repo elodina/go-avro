@@ -19,16 +19,17 @@ const objHeaderSchemaRaw = `{"type": "record", "name": "org.apache.avro.file.Hea
   ]
 }`
 
-var objHeaderSchema = MustParseSchema(objHeaderSchemaRaw)
+var objHeaderSchema = Prepare(MustParseSchema(objHeaderSchemaRaw))
 
 const (
-	version   byte = 1
-	syncSize       = 16
-	schemaKey      = "avro.schema"
-	codecKey       = "avro.codec"
+	containerMagicVersion byte = 1
+	containerSyncSize          = 16
+
+	schemaKey = "avro.schema"
+	codecKey  = "avro.codec"
 )
 
-var magic = []byte{'O', 'b', 'j', version}
+var magic = []byte{'O', 'b', 'j', containerMagicVersion}
 
 // DataFileReader is a reader for Avro Object Container Files.
 // More here: https://avro.apache.org/docs/current/spec.html#Object+Container+Files
@@ -48,7 +49,7 @@ type objFileHeader struct {
 	Sync  []byte            `avro:"sync"`
 }
 
-func readObjFileHeader(dec *BinaryDecoder) (*objFileHeader, error) {
+func readObjFileHeader(dec *binaryDecoder) (*objFileHeader, error) {
 	reader := NewSpecificDatumReader()
 	reader.SetSchema(objHeaderSchema)
 	header := &objFileHeader{}
@@ -70,7 +71,7 @@ func NewDataFileReader(filename string, datumReader DatumReader) (*DataFileReade
 // separated out mainly for testing currently, will be refactored later for io.Reader paradigm
 func newDataFileReaderBytes(buf []byte, datumReader DatumReader) (reader *DataFileReader, err error) {
 	if len(buf) < len(magic) || !bytes.Equal(magic, buf[0:4]) {
-		return nil, NotAvroFile
+		return nil, ErrNotAvroFile
 	}
 
 	dec := NewBinaryDecoder(buf)
@@ -82,7 +83,7 @@ func newDataFileReaderBytes(buf []byte, datumReader DatumReader) (reader *DataFi
 		datum:        datumReader,
 	}
 
-	if reader.header, err = readObjFileHeader(dec); err != nil {
+	if reader.header, err = readObjFileHeader(dec.(*binaryDecoder)); err != nil {
 		return nil, err
 	}
 
@@ -110,7 +111,7 @@ func (reader *DataFileReader) Seek(pos int64) {
 func (reader *DataFileReader) hasNext() (bool, error) {
 	if reader.block.BlockRemaining == 0 {
 		if int64(reader.block.BlockSize) != reader.blockDecoder.Tell() {
-			return false, BlockNotFinished
+			return false, ErrBlockNotFinished
 		}
 		if reader.hasNextBlock() {
 			if err := reader.NextBlock(); err != nil {
@@ -177,13 +178,13 @@ func (reader *DataFileReader) NextBlock() error {
 	if err != nil {
 		return err
 	}
-	syncBuffer := make([]byte, syncSize)
+	syncBuffer := make([]byte, containerSyncSize)
 	err = reader.dec.ReadFixed(syncBuffer)
 	if err != nil {
 		return err
 	}
 	if !bytes.Equal(syncBuffer, reader.header.Sync) {
-		return InvalidSync
+		return ErrInvalidSync
 	}
 	reader.blockDecoder.SetBlock(reader.block)
 
@@ -195,21 +196,27 @@ func (reader *DataFileReader) NextBlock() error {
 // DataFileWriter lets you write object container files.
 type DataFileWriter struct {
 	output      io.Writer
-	outputEnc   *BinaryEncoder
+	outputEnc   *binaryEncoder
 	datumWriter DatumWriter
 	sync        []byte
 
 	// current block is buffered until flush
 	blockBuf   *bytes.Buffer
 	blockCount int64
-	blockEnc   *BinaryEncoder
+	blockEnc   *binaryEncoder
 }
 
 // NewDataFileWriter creates a new DataFileWriter for given output and schema using the given DatumWriter to write the data to that Writer.
 // May return an error if writing fails.
 func NewDataFileWriter(output io.Writer, schema Schema, datumWriter DatumWriter) (writer *DataFileWriter, err error) {
-	encoder := NewBinaryEncoder(output)
-	datumWriter.SetSchema(schema)
+	encoder := newBinaryEncoder(output)
+	switch w := datumWriter.(type) {
+	case *SpecificDatumWriter:
+		w.SetSchema(schema)
+	case *GenericDatumWriter:
+		w.SetSchema(schema)
+	}
+
 	sync := []byte("1234567890abcdef") // TODO come up with other sync value
 
 	header := &objFileHeader{
@@ -232,7 +239,7 @@ func NewDataFileWriter(output io.Writer, schema Schema, datumWriter DatumWriter)
 		datumWriter: datumWriter,
 		sync:        sync,
 		blockBuf:    blockBuf,
-		blockEnc:    NewBinaryEncoder(blockBuf),
+		blockEnc:    newBinaryEncoder(blockBuf),
 	}
 
 	return
