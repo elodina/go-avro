@@ -24,11 +24,11 @@ type DatumReader interface {
 	// Reads a single structured entry using this DatumReader according to provided Schema.
 	// Accepts a value to fill with data and a Decoder to read from. Given value MUST be of pointer type.
 	// May return an error indicating a read failure.
-	Read(interface{}, Decoder) error
+	Read(v interface{}, dec Decoder) error
 
 	// Sets the schema for this DatumReader to know the data structure.
 	// Note that it must be called before calling Read.
-	SetSchema(Schema)
+	SetSchema(schema Schema)
 }
 
 var enumSymbolsToIndexCache = make(map[string]map[string]int32)

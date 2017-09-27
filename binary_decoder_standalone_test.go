@@ -1,6 +1,7 @@
 package avro
 
 import (
+	"bytes"
 	"encoding/hex"
 	"testing"
 )
@@ -19,17 +20,42 @@ func TestBool(t *testing.T) {
 }
 
 func TestInt(t *testing.T) {
-	for value, bytes := range goodInts {
-		if actual, _ := NewBinaryDecoder(bytes).ReadInt(); actual != value {
+	for value, buf := range goodInts {
+		if actual, _ := NewBinaryDecoder(buf).ReadInt(); actual != value {
 			t.Fatalf("Unexpected int: expected %v, actual %v\n", value, actual)
+		}
+
+		actual, err := NewBinaryDecoderReader(bytes.NewReader(buf)).ReadInt()
+		if err != nil {
+			t.Fatalf("Unexpected int ERROR: expected nil, actual %v\n", err)
+		}
+		if actual != value {
+			t.Fatalf("Unexpected int: expected %v, actual %v\n", value, actual)
+		}
+	}
+
+	for _, input := range badInts {
+		if _, err := NewBinaryDecoder(input.buf).ReadInt(); err != input.err {
+			t.Fatalf("Bytes Decoder: Expected err %v, actual %v", input.err, err)
+		}
+
+		if _, err := NewBinaryDecoderReader(input.Reader()).ReadInt(); err != input.err {
+			t.Fatalf("io.Reader decoder: Expected err %v, actual %v", input.err, err)
 		}
 	}
 }
 
 func TestLong(t *testing.T) {
-	for value, bytes := range goodLongs {
-		if actual, _ := NewBinaryDecoder(bytes).ReadLong(); actual != value {
+	for value, buf := range goodLongs {
+		if actual, _ := NewBinaryDecoder(buf).ReadLong(); actual != value {
 			t.Fatalf("Unexpected long: expected %v, actual %v\n", value, actual)
+		}
+		actual, err := NewBinaryDecoderReader(bytes.NewReader(buf)).ReadLong()
+		if err != nil {
+			t.Fatalf("Unexpected long io.Reader ERROR: expected nil, actual %v\n", err)
+		}
+		if actual != value {
+			t.Fatalf("Unexpected long io.Reader: expected %v, actual %v\n", value, actual)
 		}
 	}
 }
@@ -75,18 +101,23 @@ func TestBytes(t *testing.T) {
 }
 
 func TestString(t *testing.T) {
-	for value, bytes := range goodStrings {
-		if actual, _ := NewBinaryDecoder(bytes).ReadString(); actual != value {
-			t.Fatalf("Unexpected string: expected %v, actual %v\n", value, actual)
+	for value, buf := range goodStrings {
+		if actual, _ := NewBinaryDecoder(buf).ReadString(); actual != value {
+			t.Fatalf("Unexpected string bytes: expected %v, actual %v\n", value, actual)
+		}
+		if actual, _ := NewBinaryDecoderReader(bytes.NewReader(buf)).ReadString(); actual != value {
+			t.Fatalf("Unexpected string io.Reader: expected %v, actual %v\n", value, actual)
 		}
 	}
 
-	for index := 0; index < len(badStrings); index++ {
-		pair := badStrings[index]
-		expected := pair[0].(error)
-		arr := pair[1].([]byte)
+	for _, pair := range badStrings {
+		expected := pair.err
+		arr := pair.buf
 		if _, err := NewBinaryDecoder(arr).ReadString(); err != expected {
-			t.Fatalf("Unexpected error for string: expected %v, actual %v", expected, err)
+			t.Fatalf("Unexpected error for string []byte: expected %v, actual %v", expected, err)
+		}
+		if _, err := NewBinaryDecoderReader(pair.Reader()).ReadString(); err != expected {
+			t.Fatalf("Unexpected error for string io.Reader: expected %v, actual %v", expected, err)
 		}
 	}
 }

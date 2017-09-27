@@ -1,7 +1,9 @@
 package avro
 
 import (
+	"bufio"
 	"encoding/binary"
+	"io"
 	"math"
 )
 
@@ -87,8 +89,8 @@ type DataBlock struct {
 	BlockRemaining int64
 }
 
-var maxIntBufSize = 5
-var maxLongBufSize = 10
+const maxIntBufSize = 5
+const maxLongBufSize = 10
 
 // BinaryDecoder implements Decoder and provides low-level support for deserializing Avro values.
 type binaryDecoder struct {
@@ -96,9 +98,20 @@ type binaryDecoder struct {
 	pos int64
 }
 
+type binaryDecoderReader struct {
+	r *bufio.Reader
+	binaryDecoder
+}
+
 // NewBinaryDecoder creates a new BinaryDecoder to read from a given buffer.
 func NewBinaryDecoder(buf []byte) Decoder {
 	return &binaryDecoder{buf, 0}
+}
+
+func NewBinaryDecoderReader(r io.Reader) Decoder {
+	return &binaryDecoderReader{
+		r: bufio.NewReader(r),
+	}
 }
 
 // ReadNull reads a null value. Returns a decoded value and an error if it occurs.
@@ -122,7 +135,7 @@ func (bd *binaryDecoder) ReadInt() (int32, error) {
 		}
 
 		if bd.pos >= bufLen {
-			return 0, ErrInvalidInt
+			return 0, ErrUnexpectedEOF
 		}
 
 		b = bd.buf[bd.pos]
@@ -130,6 +143,36 @@ func (bd *binaryDecoder) ReadInt() (int32, error) {
 		bd.pos++
 		offset++
 		if b&0x80 == 0 {
+			break
+		}
+	}
+	return int32((value >> 1) ^ -(value & 1)), nil
+}
+
+func (bdr *binaryDecoderReader) ReadInt() (int32, error) {
+	var value uint32
+	var offset int
+	var dest [1]byte
+
+	for {
+		if offset == maxIntBufSize {
+			return 0, ErrIntOverflow
+		}
+
+		n, err := bdr.r.Read(dest[:])
+		if n == 0 || err == io.EOF {
+			return 0, ErrUnexpectedEOF
+		} else if err != nil {
+			return 0, err
+		}
+
+		/*		if bd.pos >= bufLen {
+				return 0, ErrInvalidInt
+			}*/
+
+		value |= uint32(dest[0]&0x7F) << uint(7*offset)
+		offset++
+		if dest[0]&0x80 == 0 {
 			break
 		}
 	}
@@ -164,6 +207,34 @@ func (bd *binaryDecoder) ReadLong() (int64, error) {
 	return int64((value >> 1) ^ -(value & 1)), nil
 }
 
+// ReadLong reads a long value. Returns a decoded value and an error if it occurs.
+func (bdr *binaryDecoderReader) ReadLong() (int64, error) {
+	var value uint64
+	var offset int
+	var dest [1]byte
+
+	for {
+		if offset == maxLongBufSize {
+			return 0, ErrLongOverflow
+		}
+
+		n, err := bdr.r.Read(dest[:])
+		if n == 0 || err == io.EOF {
+			return 0, ErrUnexpectedEOF
+		} else if err != nil {
+			return 0, err
+		}
+
+		value |= uint64(dest[0]&0x7F) << uint(7*offset)
+		offset++
+
+		if dest[0]&0x80 == 0 {
+			break
+		}
+	}
+	return int64((value >> 1) ^ -(value & 1)), nil
+}
+
 // ReadString reads a string value. Returns a decoded value and an error if it occurs.
 func (bd *binaryDecoder) ReadString() (string, error) {
 	if err := checkEOF(bd.buf, bd.pos, 1); err != nil {
@@ -179,6 +250,30 @@ func (bd *binaryDecoder) ReadString() (string, error) {
 	value := string(bd.buf[bd.pos : bd.pos+length])
 	bd.pos += length
 	return value, nil
+}
+
+func (bdr *binaryDecoderReader) ReadString() (string, error) {
+	l64, err := bdr.ReadLong()
+	if err != nil {
+		return "", err
+	} else if l64 < 0 {
+		return "", ErrInvalidStringLength
+	}
+	length := int(l64)
+
+	if buf, err := bdr.r.Peek(length); err == nil {
+		s := string(buf) // copy the buf before discarding.
+		bdr.r.Discard(length)
+		return s, nil
+	}
+
+	buf := make([]byte, length)
+	if n, err := io.ReadFull(bdr.r, buf); err != nil {
+		return "", err
+	} else if n != length {
+		return "", ErrUnexpectedEOF
+	}
+	return string(buf), nil
 }
 
 // ReadBoolean reads a boolean value. Returns a decoded value and an error if it occurs.

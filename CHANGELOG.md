@@ -15,6 +15,7 @@ API Changes:
 
 Improvements:
  - Major improvement to docs and docs coverage
+ - Add a singular `NewDatumWriter` which will become the replacement for the generic/specific types.
 
 
 #### Version 0.1 (2017-08-23)
