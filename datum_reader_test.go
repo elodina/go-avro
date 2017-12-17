@@ -760,14 +760,13 @@ func specificDecoderBenchGeneric(b *testing.B, schema Schema, buf []byte, destFu
 	if ioReader {
 		b.RunParallel(func(pb *testing.PB) {
 			dest := destFunc()
-			br := bytes.NewReader(buf)
 			for pb.Next() {
+				br := bytes.NewReader(buf)
 				dec := NewBinaryDecoderReader(br)
 				err := datumReader.Read(dest, dec)
 				if err != nil {
 					b.Fatal(err)
 				}
-				br.Reset(buf)
 			}
 		})
 	} else {

@@ -1,14 +1,14 @@
 # Changelog
 
-#### Version 0.2 (not yet released)
+#### Version 0.2 (2017-12-16)
 
 Intention: start making changes towards a 1.0 release.
 
 API Changes:
- - The `BinaryEncoder` type is now a private type. `avro.NewBinaryEncoder()` 
+ - The `BinaryEncoder` type is now a private type. `avro.NewBinaryEncoder()`
    now returns a value of the `Encoder` interface.
  - Decoder changes:
-   
+
    - The `BinaryDecoder` type is now also a private type. `avro.NewBinaryDecoder()`
      now returns a value of the `Decoder` interface.
    - Removed `ReadFixedWithBounds`, removed the use case which dictated it.
@@ -18,7 +18,6 @@ API Changes:
  - Rename the `Writer` and `Reader` interfaces to `Marshaler` and `Unmarshaler` to
    be more like the JSON encoder and also use similar method names.
  - Rename error types `FooBar` to be `ErrFooBar`
- - 
 
 Improvements:
  - Major improvement to docs and docs coverage
@@ -28,13 +27,13 @@ Improvements:
 #### Version 0.1 (2017-08-23)
 
  - First version after forking from elodina.
- - Started a semver-considering API, using the gopkg.in interface, 
+ - Started a semver-considering API, using the gopkg.in interface,
    and planning for a 1.x release.
 
 Improvements:
- - Error reporting: specify which field is missing when throwing FieldDoesNotExist 
+ - Error reporting: specify which field is missing when throwing FieldDoesNotExist
    [#5](https://github.com/go-avro/avro/pull/5)
- - Speedup encoding for strings and bools 
+ - Speedup encoding for strings and bools
    [#6](https://github.com/go-avro/avro/pull/6)
  - Can prepare schemas which are self-recursive and co-recursive.
 
