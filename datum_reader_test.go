@@ -7,6 +7,12 @@ import (
 	"testing"
 )
 
+// ***********************
+// NOTICE this file was changed beginning in November 2016 by the team maintaining
+// https://github.com/go-avro/avro. This notice is required to be here due to the
+// terms of the Apache license, see LICENSE for details.
+// ***********************
+
 //primitives
 type primitive struct {
 	BooleanField bool
@@ -38,13 +44,11 @@ func TestPrimitiveBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for {
+	for reader.HasNext() {
 		p := &primitive{}
-		ok, err := reader.Next(p)
-		if !ok {
-			if err != nil {
-				t.Fatal(err)
-			}
+		err := reader.Next(p)
+		if err != nil {
+			t.Fatal(err)
 			break
 		} else {
 			assert(t, p.BooleanField, primitiveBool)
@@ -60,7 +64,7 @@ func TestPrimitiveBinding(t *testing.T) {
 }
 
 //complex
-type complex struct {
+type Complex struct {
 	StringArray []string
 	LongArray   []int64
 	EnumField   *GenericEnum
@@ -94,22 +98,23 @@ func TestComplexBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for {
-		c := &complex{}
-		ok, err := reader.Next(c)
-		if !ok {
-			if err != nil {
-				t.Fatal(err)
-			}
+	recNum := 0
+	for reader.HasNext() {
+		recNum++
+		c := &Complex{}
+		err := reader.Next(c)
+		if err != nil {
+			t.Fatal(err)
 			break
 		} else {
+			prefix := fmt.Sprintf("Rec %d:", recNum)
 			arrayLength := 5
 			if len(c.StringArray) != arrayLength {
-				t.Errorf("Expected string array length %d, actual %d", arrayLength, len(c.StringArray))
+				t.Errorf("%s Expected string array length %d, actual %d", prefix, arrayLength, len(c.StringArray))
 			}
 			for i := 0; i < arrayLength; i++ {
 				if c.StringArray[i] != fmt.Sprintf("string%d", i+1) {
-					t.Errorf("Invalid string: expected %v, actual %v", fmt.Sprintf("string%d", i+1), c.StringArray[i])
+					t.Errorf("%s Invalid string: expected %v, actual %v", prefix, fmt.Sprintf("string%d", i+1), c.StringArray[i])
 				}
 			}
 
@@ -182,13 +187,11 @@ func TestComplexOfComplexBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for {
+	for reader.HasNext() {
 		c := &complexOfComplex{}
-		ok, err := reader.Next(c)
-		if !ok {
-			if err != nil {
-				t.Fatal(err)
-			}
+		err := reader.Next(c)
+		if err != nil {
+			t.Fatal(err)
 			break
 		} else {
 			arrayLength := 5
@@ -269,6 +272,145 @@ func TestComplexOfComplexBinding(t *testing.T) {
 	}
 }
 
+func TestSpecificSelfRecursive_NoPrepare(t *testing.T) {
+	specificSelfRecursive(t, false)
+}
+func TestSpecificSelfRecursive_Prepare(t *testing.T) {
+	specificSelfRecursive(t, true)
+}
+
+func specificSelfRecursive(t *testing.T, prepare bool) {
+	type SelfRecursive struct {
+		Label string `avro:"a"`
+		B     *SelfRecursive
+		C     []*SelfRecursive
+	}
+
+	schema := maybePrepare(prepare, MustParseSchema(`{
+	    "type": "record",
+		"name": "SelfRecursive",
+		"fields": [
+			{"name": "a", "type": "string"},
+			{"name": "b", "type": ["null", {"type": "SelfRecursive"}]},
+			{"name": "c", "type": {"type": "array", "items": {"type": "SelfRecursive"}}}
+		]
+	}`))
+
+	input := testEncodeBytes(schema, &SelfRecursive{
+		Label: "outer",
+		B:     &SelfRecursive{Label: "inner"},
+		C: []*SelfRecursive{
+			&SelfRecursive{Label: "arrayInner1"},
+			&SelfRecursive{Label: "arrayInner2", B: &SelfRecursive{Label: "inner2Child"}},
+		},
+	})
+
+	r := NewSpecificDatumReader()
+	r.SetSchema(schema)
+
+	var dest SelfRecursive
+	err := r.Read(&dest, NewBinaryDecoder(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert(t, dest.Label, "outer")
+	assert(t, dest.B.Label, "inner")
+	assert(t, len(dest.C), 2)
+	assert(t, dest.C[0].Label, "arrayInner1")
+	assert(t, dest.C[1].Label, "arrayInner2")
+	assert(t, dest.C[1].B.Label, "inner2Child")
+}
+
+func TestSpecificCoRecursive_NoPrepare(t *testing.T) {
+	specificCoRecursive(t, false)
+}
+func TestSpecificCoRecursive_Prepare(t *testing.T) {
+	specificCoRecursive(t, true)
+}
+
+type coRecursive struct {
+	A string `avro:"a"`
+	B *crFriend
+	C *crItemC
+}
+
+type crFriend struct {
+	Label string         `avro:"label"`
+	D     *coRecursive   `avro:"d"`
+	E     []*coRecursive `avro:"e"`
+}
+
+type crItemC struct {
+	Label string
+	Ref   *crFriend
+}
+
+func specificCoRecursive(t *testing.T, prepare bool) {
+
+	schema := maybePrepare(prepare, MustParseSchema(`{
+	    "type": "record",
+		"name": "CoRecursive",
+		"fields": [
+			{"name": "a", "type": "string"},
+			{"name": "b", "type": [
+				"null",
+				{
+					"type": "record",
+					"name": "Friend",
+					"fields": [
+						{"name": "label", "type": "string"},
+						{"name": "d", "type": ["null", {"type": "CoRecursive"}]},
+						{"name": "e", "type": {"type": "array", "items": {"type": "CoRecursive"}}}
+					]
+				}
+			]},
+			{"name": "c", "type": [
+				"null",
+				{
+					"type": "record",
+					"name": "ItemC",
+					"fields": [
+						{"name": "label", "type": "string"},
+						{"name": "ref", "type": {"type": "Friend"}}
+					]
+				}
+			]}
+		]
+	}`))
+
+	input := testEncodeBytes(schema, &coRecursive{
+		A: "outer",
+		B: &crFriend{
+			Label: "inner",
+			D:     &coRecursive{A: "co-inner-d"},
+			E:     []*coRecursive{&coRecursive{A: "co-inner-e"}},
+		},
+		C: &crItemC{
+			Label: "itemC",
+			Ref: &crFriend{
+				Label: "requiredCRef",
+			},
+		},
+	})
+	assert(t, len(input), 64)
+
+	r := NewSpecificDatumReader()
+	r.SetSchema(schema)
+
+	var dest coRecursive
+	err := r.Read(&dest, NewBinaryDecoder(input))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert(t, dest.A, "outer")
+	assert(t, dest.B.Label, "inner")
+	assert(t, dest.B.D.A, "co-inner-d")
+	assert(t, dest.B.E[0].A, "co-inner-e")
+	assert(t, dest.C.Label, "itemC")
+	assert(t, dest.C.Ref.Label, "requiredCRef")
+
+}
+
 // TestSpecificArrayCrash tests against regression of a crash scenario
 // The crash occurs when an array decodes an explicitly nil value (like in a
 // type union). The type union works fine as a raw field but not in an array.
@@ -313,6 +455,67 @@ func TestSpecificArrayCrash(t *testing.T) {
 	assert(t, dest.A[1], nil)
 	assert(t, dest.A[2], int64(7))
 
+}
+
+func TestSpecificReaderMapOfRecords(t *testing.T) {
+	schema := MustParseSchema(`{
+    "type": "record",
+    "name": "Rec",
+    "fields": [{
+            "name": "a",
+            "type": {
+                "type": "map",
+                "values": {
+                	"type": "record", 
+                	"name": "Inner", 
+                	"fields": [
+                		{"name": "innerA", "type": "int"}
+                	]
+               	}
+            }
+        }]
+    }`)
+	type Inner struct {
+		InnerA int32
+	}
+	type PtrRec struct {
+		A map[string]*Inner `avro:"a"`
+	}
+	type ValueRec struct {
+		A map[string]Inner `avro:"a"`
+	}
+
+	// Write some bytes
+	var buf bytes.Buffer
+	writer := NewSpecificDatumWriter()
+	writer.SetSchema(schema)
+	testVal := &PtrRec{
+		A: map[string]*Inner{
+			"abc": &Inner{InnerA: 7},
+			"def": &Inner{InnerA: 9},
+		},
+	}
+	writer.Write(testVal, NewBinaryEncoder(&buf))
+	b1 := buf.Bytes()
+
+	// Now do the read. This will crash
+	var dest PtrRec
+	reader := NewSpecificDatumReader()
+	reader.SetSchema(schema)
+	err := reader.Read(&dest, NewBinaryDecoder(b1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert(t, dest.A["abc"].InnerA, int32(7))
+	assert(t, dest.A["def"].InnerA, int32(9))
+
+	var dest2 ValueRec
+	err = reader.Read(&dest2, NewBinaryDecoder(b1))
+	if err != nil {
+		t.Fatal(err)
+	}
+	assert(t, dest2.A["abc"].InnerA, int32(7))
+	assert(t, dest2.A["def"].InnerA, int32(9))
 }
 
 func TestGenericDatumReaderEmptyMap(t *testing.T) {
@@ -428,24 +631,31 @@ func parallelF(numRoutines, numLoops int, f func(routine, loop int)) {
 func BenchmarkSpecificDatumReader_complex(b *testing.B) {
 	schema, buf := specificReaderComplexVal()
 	specificDecoderBench(b, schema, buf, func() interface{} {
-		var dest complex
+		var dest Complex
 		return &dest
 	})
 }
 
-func BenchmarkSpecificDatumReader_complex_prepared(b *testing.B) {
+func BenchmarkSpecificDatumReader_complex_prepared_bytes(b *testing.B) {
 	schema, buf := specificReaderComplexVal()
 	specificDecoderBench(b, Prepare(schema), buf, func() interface{} {
-		var dest complex
+		var dest Complex
 		return &dest
 	})
 }
 
-type Complex _complex
+func BenchmarkSpecificDatumReader_complex_prepared_ioReader(b *testing.B) {
+	schema, buf := specificReaderComplexVal()
+	specificDecoderBenchReader(b, Prepare(schema), buf, func() interface{} {
+		var dest Complex
+		return &dest
+	})
+}
+
 type Primitive primitive
 
 type hugeval struct {
-	complex
+	Complex
 	primitive
 	testRecord
 }
@@ -530,21 +740,43 @@ func BenchmarkSpecificDatumReader_segmented_bigArrays(b *testing.B) {
 /////// UTILITIES
 
 func specificDecoderBench(b *testing.B, schema Schema, buf []byte, destFunc func() interface{}) {
+	specificDecoderBenchGeneric(b, schema, buf, destFunc, false)
+}
+
+func specificDecoderBenchReader(b *testing.B, schema Schema, buf []byte, destFunc func() interface{}) {
+	specificDecoderBenchGeneric(b, schema, buf, destFunc, true)
+}
+
+func specificDecoderBenchGeneric(b *testing.B, schema Schema, buf []byte, destFunc func() interface{}, ioReader bool) {
 	b.ReportAllocs()
 	datumReader := NewSpecificDatumReader()
 	datumReader.SetSchema(schema)
 
 	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		dest := destFunc()
-		for pb.Next() {
-			dec := NewBinaryDecoder(buf)
-			err := datumReader.Read(dest, dec)
-			if err != nil {
-				b.Fatal(err)
+	if ioReader {
+		b.RunParallel(func(pb *testing.PB) {
+			dest := destFunc()
+			for pb.Next() {
+				br := bytes.NewReader(buf)
+				dec := NewBinaryDecoderReader(br)
+				err := datumReader.Read(dest, dec)
+				if err != nil {
+					b.Fatal(err)
+				}
 			}
-		}
-	})
+		})
+	} else {
+		b.RunParallel(func(pb *testing.PB) {
+			dest := destFunc()
+			for pb.Next() {
+				dec := NewBinaryDecoder(buf)
+				err := datumReader.Read(dest, dec)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
 }
 
 func testEncodeBytes(schema Schema, rec interface{}) []byte {
@@ -557,4 +789,11 @@ func testEncodeBytes(schema Schema, rec interface{}) []byte {
 		panic(err)
 	}
 	return buf.Bytes()
+}
+
+func maybePrepare(prepare bool, s Schema) Schema {
+	if prepare {
+		s = Prepare(s)
+	}
+	return s
 }

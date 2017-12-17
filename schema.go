@@ -9,6 +9,12 @@ import (
 	"strings"
 )
 
+// ***********************
+// NOTICE this file was changed beginning in November 2016 by the team maintaining
+// https://github.com/go-avro/avro. This notice is required to be here due to the
+// terms of the Apache license, see LICENSE for details.
+// ***********************
+
 const (
 	// Record schema type constant
 	Record int = iota
@@ -332,7 +338,7 @@ func (*BooleanSchema) Prop(key string) (interface{}, bool) {
 
 // Validate checks whether the given value is writeable to this schema.
 func (*BooleanSchema) Validate(v reflect.Value) bool {
-	return dereference(v).Kind() == reflect.Bool
+	return reflect.TypeOf(dereference(v).Interface()).Kind() == reflect.Bool
 }
 
 // MarshalJSON serializes the given schema as JSON. Never returns an error.
@@ -476,7 +482,7 @@ func (s *RecordSchema) Validate(v reflect.Value) bool {
 		for idx := range s.Fields {
 			// key.Name must have rs.Fields[idx].Name as a suffix
 			if len(s.Fields[idx].Name) <= len(key) {
-				lhs := key[len(key)-len(s.Fields[idx].Name) : len(key)]
+				lhs := key[len(key)-len(s.Fields[idx].Name):]
 				if lhs == s.Fields[idx].Name {
 					if !s.Fields[idx].Type.Validate(reflect.ValueOf(val)) {
 						return false
@@ -1019,7 +1025,7 @@ func schemaByType(i interface{}, registry map[string]Schema, namespace string) (
 		return parseUnionSchema(v, registry, namespace)
 	}
 
-	return nil, InvalidSchema
+	return nil, ErrInvalidSchema
 }
 
 func parseEnumSchema(v map[string]interface{}, registry map[string]Schema, namespace string) (Schema, error) {
@@ -1039,7 +1045,7 @@ func parseEnumSchema(v map[string]interface{}, registry map[string]Schema, names
 func parseFixedSchema(v map[string]interface{}, registry map[string]Schema, namespace string) (Schema, error) {
 	size, ok := v[schemaSizeField].(float64)
 	if !ok {
-		return nil, InvalidFixedSize
+		return nil, ErrInvalidFixedSize
 	}
 
 	schema := &FixedSchema{Name: v[schemaNameField].(string), Size: int(size), Properties: getProperties(v)}
@@ -1118,7 +1124,7 @@ func parseSchemaField(i interface{}, registry map[string]Schema, namespace strin
 		return schemaField, nil
 	}
 
-	return nil, InvalidSchema
+	return nil, ErrInvalidSchema
 }
 
 func setOptionalField(where *string, v map[string]interface{}, fieldName string) {

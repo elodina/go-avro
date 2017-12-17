@@ -29,7 +29,7 @@ func findField(where reflect.Value, name string) (reflect.Value, error) {
 	if rf, ok := rm.names[name]; ok {
 		return where.FieldByIndex(rf), nil
 	}
-	return reflect.Value{}, FieldDoesNotExist
+	return reflect.Value{}, NewFieldDoesNotExistError(name)
 }
 
 func reflectEnsureRi(t reflect.Type) *reflectInfo {

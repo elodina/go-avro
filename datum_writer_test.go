@@ -50,6 +50,12 @@ func specificDatumWriterPrimitives(t *testing.T, sch Schema) {
 }
 
 func TestSpecificDatumWriterComplex(t *testing.T) {
+	sampleTestRecord := _testRecord{
+		FloatRecordField:  14.5,
+		IntRecordField:    6,
+		LongRecordField:   23456789,
+		StringRecordField: "Trash Panda!",
+	}
 	complex := newComplex()
 	complex.StringArray = []string{"asd", "zxc", "qwe"}
 	complex.LongArray = []int64{0, 1, 2, 3, 4}
@@ -61,6 +67,10 @@ func TestSpecificDatumWriterComplex(t *testing.T) {
 	complex.RecordField.IntRecordField = 5
 	complex.RecordField.LongRecordField = 12345678
 	complex.RecordField.StringRecordField = "i am groot"
+	complex.MapOfRecord = map[string]*_testRecord{
+		"foo": &sampleTestRecord,
+		"bar": &sampleTestRecord,
+	}
 
 	buffer := &bytes.Buffer{}
 	enc := NewBinaryEncoder(buffer)
@@ -88,6 +98,48 @@ func TestSpecificDatumWriterComplex(t *testing.T) {
 	assert(t, decodedComplex.RecordField.IntRecordField, complex.RecordField.IntRecordField)
 	assert(t, decodedComplex.RecordField.LongRecordField, complex.RecordField.LongRecordField)
 	assert(t, decodedComplex.RecordField.StringRecordField, complex.RecordField.StringRecordField)
+	assert(t, decodedComplex.MapOfRecord["foo"], &sampleTestRecord)
+	assert(t, decodedComplex.MapOfRecord["bar"], &sampleTestRecord)
+}
+
+func TestSpecificDatumWriterComplexUnionBoolean(t *testing.T) {
+	complex := newComplex()
+	complex.UnionField = true
+
+	// Using the complex schema so we need to satisfy this
+	complex.FixedField = []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15}
+
+	buffer := &bytes.Buffer{}
+	enc := NewBinaryEncoder(buffer)
+
+	w := NewSpecificDatumWriter()
+	w.SetSchema(complex.Schema())
+
+	err := w.Write(complex, enc)
+	assert(t, err, nil)
+}
+
+func TestSpecificUnionBool(t *testing.T) {
+	schema := MustParseSchema(`
+		{"type": "record", "name":"UnionTest", "fields": [
+			{"name": "a", "type": {"type": "array", "values": ["null", "double", "long", "string", "boolean", "int", "float"]}}
+		]}`)
+
+	var v struct {
+		A []interface{} `avro:"a"`
+	}
+
+	v.A = append(v.A, int32(4))
+	v.A = append(v.A, true)
+
+	var buf bytes.Buffer
+	enc := NewBinaryEncoder(&buf)
+
+	w := NewSpecificDatumWriter()
+	w.SetSchema(schema)
+
+	err := w.Write(&v, enc)
+	assert(t, err, nil)
 }
 
 func TestSpecificDatumWriterRecursive(t *testing.T) {
@@ -247,6 +299,40 @@ func TestGenericDatumWriterEmptyArray(t *testing.T) {
 	assert(t, buffer.Bytes(), []byte{0x00})
 }
 
+func TestGenericDatumWriterFixed(t *testing.T) {
+	schema := MustParseSchema(`{
+	    "type": "record",
+	    "name": "Rec",
+	    "fields": [
+	        {
+	            "name": "fixed",
+	            "type": {"name": "fixed5", "type": "fixed", "size": 5}
+	        }
+	    ]
+	}`)
+
+	w := NewGenericDatumWriter()
+	w.SetSchema(schema)
+
+	testit := func(rec *GenericRecord) ([]byte, error) {
+		var buf bytes.Buffer
+		err := w.Write(rec, NewBinaryEncoder(&buf))
+		return buf.Bytes(), err
+	}
+
+	rec := NewGenericRecord(schema)
+	rec.Set("fixed", []byte{1, 2, 3, 4}) // 1 byte too short, should error
+	buf, err := testit(rec)
+	assert(t, len(buf), 0)
+	assert(t, err.Error(), "Invalid fixed value: [1 2 3 4]")
+
+	rec = NewGenericRecord(schema)
+	rec.Set("fixed", []byte{1, 2, 3, 4, 5})
+	buf, err = testit(rec)
+	assert(t, len(buf), 5) // make sure we're not adding the extra padding
+	assert(t, err, nil)
+}
+
 func randomPrimitiveObject() *primitive {
 	p := &primitive{}
 	p.BooleanField = rand.Int()%2 == 0
@@ -278,14 +364,14 @@ func randomPrimitiveObject() *primitive {
 }
 
 func BenchmarkEncodeVarint32(b *testing.B) {
-	enc := NewBinaryEncoder(nil)
+	enc := newBinaryEncoder(nil)
 	for i := 0; i < b.N; i++ {
 		enc.encodeVarint32(int32(i))
 	}
 }
 
 func BenchmarkEncodeVarint64(b *testing.B) {
-	enc := NewBinaryEncoder(nil)
+	enc := newBinaryEncoder(nil)
 	for i := 0; i < b.N; i++ {
 		enc.encodeVarint64(int64(i))
 	}
@@ -318,6 +404,7 @@ type _complex struct {
 	UnionField  interface{}
 	FixedField  []byte
 	RecordField *_testRecord
+	MapOfRecord map[string]*_testRecord
 }
 
 func newComplex() *_complex {
@@ -327,6 +414,7 @@ func newComplex() *_complex {
 		EnumField:   NewGenericEnum([]string{"A", "B", "C", "D"}),
 		MapOfInts:   make(map[string]int32),
 		RecordField: newTestRecord(),
+		MapOfRecord: make(map[string]*_testRecord),
 	}
 }
 
@@ -407,7 +495,8 @@ var _Complex_schema, _Complex_schema_err = ParseSchema(`{
             "name": "unionField",
             "type": [
                 "null",
-                "string"
+                "string",
+                "boolean"
             ]
         },
         {
@@ -441,6 +530,13 @@ var _Complex_schema, _Complex_schema_err = ParseSchema(`{
                         "type": "float"
                     }
                 ]
+            }
+        },
+        {
+            "name":"mapOfRecord",
+            "type":{
+               "type": "map",
+               "values": "TestRecord"
             }
         }
     ]

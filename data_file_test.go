@@ -2,6 +2,7 @@ package avro
 
 import (
 	"bytes"
+	"io"
 	"testing"
 )
 
@@ -46,16 +47,59 @@ func TestDataFileWriter(t *testing.T) {
 	assert(t, len(encoded), 1145)
 
 	// now make sure we can decode again
-	datumReader := NewSpecificDatumReader()
-	dfr, err := newDataFileReaderBytes(encoded, datumReader)
+	dfr, err := newDataFileReader(bytes.NewReader(encoded))
 	if err != nil {
 		t.Fatal(err)
 	}
 	var p primitive
-	_, err = dfr.Next(&p)
+	err = dfr.Next(&p)
 	assert(t, err, nil)
 	assert(t, p.LongField, int64(0))
-	_, err = dfr.Next(&p)
+	err = dfr.Next(&p)
 	assert(t, err, nil)
 	assert(t, p.LongField, int64(1))
+}
+
+func TestDataFileReader_deflate(t *testing.T) {
+	r, err := NewDataFileReader("test/complex7.deflate.avro")
+	if err != nil {
+		t.Fatal(err)
+	}
+	testComplex7(t, r)
+}
+
+func TestDataFileReader_null(t *testing.T) {
+	r, err := NewDataFileReader("test/complex7.null.avro")
+	if err != nil {
+		t.Fatal(err)
+	}
+	testComplex7(t, r)
+}
+
+func testComplex7(t *testing.T, reader *DataFileReader) {
+	inputs := []struct {
+		n    int
+		s    string
+		long int64
+	}{
+		{1, "string1", 11},
+		{2, "string11", 12},
+		{5, "string21", 13},
+		{4, "string31", 14},
+		{3, "string41", 15},
+		{5, "string51", 16},
+		{5, "string61", 17},
+	}
+	for _, input := range inputs {
+		var dest Complex
+		assert(t, reader.HasNext(), true)
+		assert(t, reader.Next(&dest), nil)
+		assert(t, len(dest.StringArray), input.n)
+		assert(t, dest.StringArray[0], input.s)
+		assert(t, len(dest.LongArray), input.n)
+		assert(t, dest.LongArray[0], input.long)
+	}
+	assert(t, reader.HasNext(), false)
+	assert(t, reader.Err(), nil)
+	assert(t, reader.err, io.EOF) // underlying error is EOF
 }
