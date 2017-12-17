@@ -33,9 +33,6 @@ var ErrInvalidStringLength = errors.New("Invalid string length")
 // Indicates the given file to decode does not correspond to Avro data file format.
 var ErrNotAvroFile = errors.New("Not an Avro data file")
 
-// Happens when file header's sync and block's sync do not match - indicates corrupted data.
-var ErrInvalidSync = errors.New("Invalid sync")
-
 // Happens when trying to read next block without finishing the previous one.
 var ErrBlockNotFinished = errors.New("Block read is unfinished")
 

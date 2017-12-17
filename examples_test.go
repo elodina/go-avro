@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"gopkg.in/avro.v0"
+	avro "gopkg.in/avro.v0"
 )
 
 var someSchema avro.Schema
@@ -67,4 +67,26 @@ func ExampleSpecificDatumWriter_full() {
 
 	fmt.Println(buf.Bytes())
 	// Output: [6 66 111 98 96]
+}
+
+func ExampleDataFileReader() {
+	// Create a reader open for reading on a data file.
+	reader, err := avro.NewDataFileReader("filename.avro")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer reader.Close()
+
+	for reader.HasNext() {
+		var dest SomeStruct // or a *avro.GenericRecord
+		if err := reader.Next(&dest); err != nil {
+			// Error specific to decoding a single record
+		}
+		log.Printf("Decoded record %v", dest)
+	}
+
+	// If there was any error that stopped the reader loop, this is how we know
+	if err := reader.Err(); err != nil {
+		log.Fatal(err)
+	}
 }

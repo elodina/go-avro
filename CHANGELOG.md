@@ -1,5 +1,15 @@
 # Changelog
 
+#### Version 0.3 (not yet released)
+
+API Changes:
+
+ - DataFileReader gets some major updates:
+
+   - No longer need to pass a Decoder, though one is accepted for source compat reasons.
+   - Can now decode 'deflate' codec files.
+   - Does not read the entire file into memory, for large files and streaming.
+
 #### Version 0.2 (2017-12-16)
 
 Intention: start making changes towards a 1.0 release.

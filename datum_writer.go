@@ -26,8 +26,8 @@ type DatumWriter interface {
 	Write(obj interface{}, enc Encoder) error
 }
 
-// NewDatumWriter Creates a DatumWriter that can handle both GenericRecord and also
-// aribtrary structs.
+// NewDatumWriter creates a DatumWriter that can handle both GenericRecord and
+// also aribtrary structs.
 //
 // This is the preferred implementation at this point in time.
 func NewDatumWriter(schema Schema) DatumWriter {
@@ -41,7 +41,7 @@ func NewDatumWriter(schema Schema) DatumWriter {
 	}
 }
 
-// Decides between
+// Decides between generic/specific datum writer
 type anyDatumWriter struct {
 	sdr SpecificDatumWriter
 	gdr GenericDatumWriter

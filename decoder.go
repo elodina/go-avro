@@ -57,30 +57,11 @@ type Decoder interface {
 	// Returns an error if it occurs.
 	ReadFixed([]byte) error
 
-	// SetBlock is used for Avro Object Container Files where the data is split in blocks and sets a data block
-	// for this decoder and sets the position to the start of this block.
-	SetBlock(*DataBlock)
-
 	// Seek sets the reading position of this Decoder to a given value allowing to skip items etc.
 	Seek(int64)
 
 	// Tell returns the current reading position of this Decoder.
 	Tell() int64
-}
-
-// DataBlock is a structure that holds a certain amount of entries and the actual buffer to read from.
-type DataBlock struct {
-	// Actual data
-	Data []byte
-
-	// Number of entries encoded in Data.
-	NumEntries int64
-
-	// Size of data buffer in bytes.
-	BlockSize int
-
-	// Number of unread entries in this DataBlock.
-	BlockRemaining int64
 }
 
 const maxIntBufSize = 5
@@ -403,13 +384,6 @@ func (bdr *binaryDecoderReader) ReadFixed(buf []byte) error {
 	return eofUnexpected(err)
 }
 
-// SetBlock is used for Avro Object Container Files where the data is split in blocks and sets a data block
-// for this decoder and sets the position to the start of this block.
-func (bd *binaryDecoder) SetBlock(block *DataBlock) {
-	bd.buf = block.Data
-	bd.Seek(0)
-}
-
 // Seek sets the reading position of this Decoder to a given value allowing to skip items etc.
 func (bd *binaryDecoder) Seek(pos int64) {
 	bd.pos = pos
@@ -420,9 +394,8 @@ func (bd *binaryDecoder) Tell() int64 {
 	return bd.pos
 }
 
-func (bdr *binaryDecoderReader) Seek(pos int64)            {}
-func (bdr *binaryDecoderReader) Tell() int64               { return -1 }
-func (bdr *binaryDecoderReader) SetBlock(block *DataBlock) {}
+func (bdr *binaryDecoderReader) Seek(pos int64) {}
+func (bdr *binaryDecoderReader) Tell() int64    { return -1 }
 
 func checkEOF(buf []byte, pos int64, length int) error {
 	if int64(len(buf)) < pos+int64(length) {

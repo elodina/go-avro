@@ -44,13 +44,11 @@ func TestPrimitiveBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for {
+	for reader.HasNext() {
 		p := &primitive{}
-		ok, err := reader.Next(p)
-		if !ok {
-			if err != nil {
-				t.Fatal(err)
-			}
+		err := reader.Next(p)
+		if err != nil {
+			t.Fatal(err)
 			break
 		} else {
 			assert(t, p.BooleanField, primitiveBool)
@@ -66,7 +64,7 @@ func TestPrimitiveBinding(t *testing.T) {
 }
 
 //complex
-type complex struct {
+type Complex struct {
 	StringArray []string
 	LongArray   []int64
 	EnumField   *GenericEnum
@@ -100,22 +98,23 @@ func TestComplexBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for {
-		c := &complex{}
-		ok, err := reader.Next(c)
-		if !ok {
-			if err != nil {
-				t.Fatal(err)
-			}
+	recNum := 0
+	for reader.HasNext() {
+		recNum++
+		c := &Complex{}
+		err := reader.Next(c)
+		if err != nil {
+			t.Fatal(err)
 			break
 		} else {
+			prefix := fmt.Sprintf("Rec %d:", recNum)
 			arrayLength := 5
 			if len(c.StringArray) != arrayLength {
-				t.Errorf("Expected string array length %d, actual %d", arrayLength, len(c.StringArray))
+				t.Errorf("%s Expected string array length %d, actual %d", prefix, arrayLength, len(c.StringArray))
 			}
 			for i := 0; i < arrayLength; i++ {
 				if c.StringArray[i] != fmt.Sprintf("string%d", i+1) {
-					t.Errorf("Invalid string: expected %v, actual %v", fmt.Sprintf("string%d", i+1), c.StringArray[i])
+					t.Errorf("%s Invalid string: expected %v, actual %v", prefix, fmt.Sprintf("string%d", i+1), c.StringArray[i])
 				}
 			}
 
@@ -188,13 +187,11 @@ func TestComplexOfComplexBinding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for {
+	for reader.HasNext() {
 		c := &complexOfComplex{}
-		ok, err := reader.Next(c)
-		if !ok {
-			if err != nil {
-				t.Fatal(err)
-			}
+		err := reader.Next(c)
+		if err != nil {
+			t.Fatal(err)
 			break
 		} else {
 			arrayLength := 5
@@ -634,7 +631,7 @@ func parallelF(numRoutines, numLoops int, f func(routine, loop int)) {
 func BenchmarkSpecificDatumReader_complex(b *testing.B) {
 	schema, buf := specificReaderComplexVal()
 	specificDecoderBench(b, schema, buf, func() interface{} {
-		var dest complex
+		var dest Complex
 		return &dest
 	})
 }
@@ -642,7 +639,7 @@ func BenchmarkSpecificDatumReader_complex(b *testing.B) {
 func BenchmarkSpecificDatumReader_complex_prepared_bytes(b *testing.B) {
 	schema, buf := specificReaderComplexVal()
 	specificDecoderBench(b, Prepare(schema), buf, func() interface{} {
-		var dest complex
+		var dest Complex
 		return &dest
 	})
 }
@@ -650,16 +647,15 @@ func BenchmarkSpecificDatumReader_complex_prepared_bytes(b *testing.B) {
 func BenchmarkSpecificDatumReader_complex_prepared_ioReader(b *testing.B) {
 	schema, buf := specificReaderComplexVal()
 	specificDecoderBenchReader(b, Prepare(schema), buf, func() interface{} {
-		var dest complex
+		var dest Complex
 		return &dest
 	})
 }
 
-type Complex _complex
 type Primitive primitive
 
 type hugeval struct {
-	complex
+	Complex
 	primitive
 	testRecord
 }
