@@ -49,7 +49,7 @@ type objFileHeader struct {
 	Sync  []byte            `avro:"sync"`
 }
 
-func readObjFileHeader(dec *binaryDecoder) (*objFileHeader, error) {
+func readObjFileHeader(dec Decoder) (*objFileHeader, error) {
 	reader := NewSpecificDatumReader()
 	reader.SetSchema(objHeaderSchema)
 	header := &objFileHeader{}
@@ -101,11 +101,6 @@ func newDataFileReaderBytes(buf []byte, datumReader DatumReader) (reader *DataFi
 	}
 
 	return reader, nil
-}
-
-// Seek switches the reading position in this DataFileReader to a provided value.
-func (reader *DataFileReader) Seek(pos int64) {
-	reader.dec.Seek(pos)
 }
 
 func (reader *DataFileReader) hasNext() (bool, error) {
@@ -174,7 +169,7 @@ func (reader *DataFileReader) NextBlock() error {
 	block.BlockRemaining = blockCount
 	block.NumEntries = blockCount
 	block.BlockSize = int(blockSize)
-	err = reader.dec.ReadFixedWithBounds(block.Data, 0, int(block.BlockSize))
+	err = reader.dec.ReadFixed(block.Data[:int(block.BlockSize)])
 	if err != nil {
 		return err
 	}

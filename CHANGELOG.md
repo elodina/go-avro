@@ -7,11 +7,18 @@ Intention: start making changes towards a 1.0 release.
 API Changes:
  - The `BinaryEncoder` type is now a private type. `avro.NewBinaryEncoder()` 
    now returns a value of the `Encoder` interface.
- - The `BinaryDecoder` type is now also a private type. `avro.NewBinaryDecoder()`
-   now returns a value of the `Decoder` interface.
+ - Decoder changes:
+   
+   - The `BinaryDecoder` type is now also a private type. `avro.NewBinaryDecoder()`
+     now returns a value of the `Decoder` interface.
+   - Removed `ReadFixedWithBounds`, removed the use case which dictated it.
+   - Removed `Seek`, and removed seeking from DataFileReader.
+   - Add an implementation of BinaryDecoder which can work on an io.Reader
+
  - Rename the `Writer` and `Reader` interfaces to `Marshaler` and `Unmarshaler` to
    be more like the JSON encoder and also use similar method names.
  - Rename error types `FooBar` to be `ErrFooBar`
+ - 
 
 Improvements:
  - Major improvement to docs and docs coverage

@@ -7,14 +7,22 @@ import (
 )
 
 func TestBool(t *testing.T) {
-	for value, bytes := range goodBooleans {
-		if actual, _ := NewBinaryDecoder(bytes).ReadBoolean(); actual != value {
+	for value, buf := range goodBooleans {
+		if actual, _ := NewBinaryDecoder(buf).ReadBoolean(); actual != value {
 			t.Fatalf("Unexpected boolean: expected %v, actual %v\n", value, actual)
+		}
+		if actual, err := NewBinaryDecoderReader(bytes.NewReader(buf)).ReadBoolean(); err != nil {
+			t.Fatalf("Unexpected boolean io.Reader ERROR: expected nil, actual %v\n", err)
+		} else if actual != value {
+			t.Fatalf("Unexpected boolean io.Reader: expected %v, actual %v\n", value, actual)
 		}
 	}
 	for expected, invalid := range badBooleans {
 		if _, err := NewBinaryDecoder(invalid).ReadBoolean(); err != expected {
 			t.Fatalf("Unexpected error for boolean: expected %v, actual %v", expected, err)
+		}
+		if _, err := NewBinaryDecoderReader(bytes.NewReader(invalid)).ReadBoolean(); err != expected {
+			t.Fatalf("Unexpected error for boolean io.Reader: expected %v, actual %v", expected, err)
 		}
 	}
 }
@@ -62,40 +70,59 @@ func TestLong(t *testing.T) {
 
 func TestFloat(t *testing.T) {
 	for value, bytes := range goodFloats {
-		if actual, _ := NewBinaryDecoder(bytes).ReadFloat(); actual != value {
-			t.Fatalf("Unexpected float: expected %v, actual %v\n", value, actual)
+		for prefix, decoder := range bothDecoders(bytes) {
+			if actual, err := decoder.ReadFloat(); err != nil {
+				t.Fatalf("Unexpected float %s ERR: %v", prefix, err)
+			} else if actual != value {
+				t.Fatalf("Unexpected float %s: expected %v, actual %v\n", prefix, value, actual)
+			}
+		}
+	}
+
+	for _, input := range badFloats {
+		for prefix, decoder := range bothDecoders(input.buf) {
+			if _, err := decoder.ReadFloat(); err != input.err {
+				t.Fatalf("Unexpected float %s ERR: expected %v; actual %v", prefix, input.err, err)
+			}
 		}
 	}
 }
 
 func TestDouble(t *testing.T) {
 	for value, bytes := range goodDoubles {
-		if actual, _ := NewBinaryDecoder(bytes).ReadDouble(); actual != value {
-			t.Fatalf("Unexpected double: expected %v, actual %v\n", value, actual)
+		for prefix, decoder := range bothDecoders(bytes) {
+			if actual, err := decoder.ReadDouble(); err != nil {
+				t.Fatalf("Unexpected double %s ERR: %v", prefix, err)
+			} else if actual != value {
+				t.Fatalf("Unexpected double %s: expected %v, actual %v\n", prefix, value, actual)
+			}
 		}
 	}
 }
 
 func TestBytes(t *testing.T) {
-	for index := 0; index < len(goodBytes); index++ {
-		bytes := goodBytes[index]
-		actual, err := NewBinaryDecoder(bytes).ReadBytes()
-		if err != nil {
-			t.Fatal(err)
-		}
-		for i := 0; i < len(actual); i++ {
-			if actual[i] != bytes[i+1] {
-				t.Fatalf("Unexpected byte at index %d: expected 0x%v, actual 0x%v\n", i, hex.EncodeToString([]byte{bytes[i+1]}), hex.EncodeToString([]byte{actual[i]}))
+	for _, buf := range goodBytes {
+		for prefix, decoder := range bothDecoders(buf) {
+			actual, err := decoder.ReadBytes()
+			if err != nil {
+				t.Fatalf("Unexpected err %s: %v", prefix, err)
+			}
+			for i := 0; i < len(actual); i++ {
+				if actual[i] != buf[i+1] {
+					t.Fatalf("Unexpected byte (%s) at index %d: expected 0x%v, actual 0x%v\n", prefix, i, hex.EncodeToString([]byte{buf[i+1]}), hex.EncodeToString([]byte{actual[i]}))
+				}
 			}
 		}
+
 	}
 
-	for index := 0; index < len(badBytes); index++ {
-		pair := badBytes[index]
-		expected := pair[0].(error)
-		arr := pair[1].([]byte)
-		if _, err := NewBinaryDecoder(arr).ReadBytes(); err != expected {
-			t.Fatalf("Unexpected error for bytes: expected %v, actual %v", expected, err)
+	for _, pair := range badBytes {
+		expected := pair.err
+		arr := pair.buf
+		for prefix, decoder := range bothDecoders(arr) {
+			if _, err := decoder.ReadBytes(); err != expected {
+				t.Fatalf("Unexpected error for bytes %s: expected %v, actual %v", prefix, expected, err)
+			}
 		}
 	}
 }
@@ -119,5 +146,12 @@ func TestString(t *testing.T) {
 		if _, err := NewBinaryDecoderReader(pair.Reader()).ReadString(); err != expected {
 			t.Fatalf("Unexpected error for string io.Reader: expected %v, actual %v", expected, err)
 		}
+	}
+}
+
+func bothDecoders(input []byte) map[string]Decoder {
+	return map[string]Decoder{
+		"[]byte":    NewBinaryDecoder(input),
+		"io.Reader": NewBinaryDecoderReader(bytes.NewReader(input)),
 	}
 }

@@ -639,9 +639,17 @@ func BenchmarkSpecificDatumReader_complex(b *testing.B) {
 	})
 }
 
-func BenchmarkSpecificDatumReader_complex_prepared(b *testing.B) {
+func BenchmarkSpecificDatumReader_complex_prepared_bytes(b *testing.B) {
 	schema, buf := specificReaderComplexVal()
 	specificDecoderBench(b, Prepare(schema), buf, func() interface{} {
+		var dest complex
+		return &dest
+	})
+}
+
+func BenchmarkSpecificDatumReader_complex_prepared_ioReader(b *testing.B) {
+	schema, buf := specificReaderComplexVal()
+	specificDecoderBenchReader(b, Prepare(schema), buf, func() interface{} {
 		var dest complex
 		return &dest
 	})
@@ -736,21 +744,44 @@ func BenchmarkSpecificDatumReader_segmented_bigArrays(b *testing.B) {
 /////// UTILITIES
 
 func specificDecoderBench(b *testing.B, schema Schema, buf []byte, destFunc func() interface{}) {
+	specificDecoderBenchGeneric(b, schema, buf, destFunc, false)
+}
+
+func specificDecoderBenchReader(b *testing.B, schema Schema, buf []byte, destFunc func() interface{}) {
+	specificDecoderBenchGeneric(b, schema, buf, destFunc, true)
+}
+
+func specificDecoderBenchGeneric(b *testing.B, schema Schema, buf []byte, destFunc func() interface{}, ioReader bool) {
 	b.ReportAllocs()
 	datumReader := NewSpecificDatumReader()
 	datumReader.SetSchema(schema)
 
 	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		dest := destFunc()
-		for pb.Next() {
-			dec := NewBinaryDecoder(buf)
-			err := datumReader.Read(dest, dec)
-			if err != nil {
-				b.Fatal(err)
+	if ioReader {
+		b.RunParallel(func(pb *testing.PB) {
+			dest := destFunc()
+			br := bytes.NewReader(buf)
+			for pb.Next() {
+				dec := NewBinaryDecoderReader(br)
+				err := datumReader.Read(dest, dec)
+				if err != nil {
+					b.Fatal(err)
+				}
+				br.Reset(buf)
 			}
-		}
-	})
+		})
+	} else {
+		b.RunParallel(func(pb *testing.PB) {
+			dest := destFunc()
+			for pb.Next() {
+				dec := NewBinaryDecoder(buf)
+				err := datumReader.Read(dest, dec)
+				if err != nil {
+					b.Fatal(err)
+				}
+			}
+		})
+	}
 }
 
 func testEncodeBytes(schema Schema, rec interface{}) []byte {

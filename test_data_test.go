@@ -11,13 +11,14 @@ var goodBooleans = map[bool][]byte{
 }
 
 var badBooleans = map[error][]byte{
-	ErrInvalidBool: []byte{0x02},
+	ErrInvalidBool:   []byte{0x02},
+	ErrUnexpectedEOF: []byte{},
 }
 
 var goodInts = map[int32][]byte{
 	27:        []byte{0x36},
 	-8:        []byte{0x0F},
-	-1:        []byte{0x01, 0x02},
+	-1:        []byte{0x01},
 	0:         []byte{0x00},
 	1:         []byte{0x02},
 	-64:       []byte{0x7F},
@@ -64,6 +65,10 @@ var goodFloats = map[float32][]byte{
 	987654.111115:  []byte{0x62, 0x20, 0x71, 0x49},
 }
 
+var badFloats = []badInput{
+	{ErrUnexpectedEOF, []byte{}},
+}
+
 var goodDoubles = map[float64][]byte{
 	0.0:                                  []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
 	1.0:                                  []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xF0, 0x3F},
@@ -84,10 +89,10 @@ var goodBytes = [][]byte{
 	[]byte{0x0C, 0xAC, 0xDC, 0x01, 0x00, 0x10, 0x0F},
 }
 
-var badBytes = [][]interface{}{
-	[]interface{}{ErrUnexpectedEOF, []byte(nil)},                          //empty array with no length
-	[]interface{}{ErrNegativeBytesLength, []byte{0x05, 0x03, 0xFF, 0x0A}}, //negative length
-	[]interface{}{ErrUnexpectedEOF, []byte{0x08, 0xFF}},                   //length > array size
+var badBytes = []badInput{
+	{ErrUnexpectedEOF, []byte(nil)},                          //empty array with no length
+	{ErrNegativeBytesLength, []byte{0x05, 0x03, 0xFF, 0x0A}}, //negative length
+	{ErrUnexpectedEOF, []byte{0x08, 0xFF}},                   //length > array size
 }
 
 var goodStrings = map[string][]byte{

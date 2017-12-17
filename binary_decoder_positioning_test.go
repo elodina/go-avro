@@ -12,68 +12,75 @@ import (
 var primitives = []string{typeBoolean, typeInt, typeLong, typeFloat, typeDouble, typeBytes, typeString}
 
 func TestPositioning(t *testing.T) {
-	bytes, types, expected := getTestData()
-	bd := NewBinaryDecoder(bytes)
-	for i := 0; i < len(types); i++ {
-		currentType := types[i]
-		currentExpected := expected[i]
+	buf, types, expected := getTestData()
+	for tPrefix, bd := range bothDecoders(buf) {
+		var lastType, lastExpected interface{}
 
-		switch currentType {
-		case typeBoolean:
-			{
-				value, _ := bd.ReadBoolean()
-				if value != currentExpected.(bool) {
-					t.Fatalf("Unexpected boolean: expected %v, actual %v\n", currentExpected, value)
+		for i := 0; i < len(types); i++ {
+			currentType := types[i]
+			currentExpected := expected[i]
+
+			prefix := fmt.Sprintf("At index %d t=%v expected=%v (previous=%v expected=%v) [%s] ", i, currentType, currentExpected, lastType, lastExpected, tPrefix)
+
+			switch currentType {
+			case typeBoolean:
+				{
+					value, _ := bd.ReadBoolean()
+					if value != currentExpected.(bool) {
+						t.Fatalf(prefix+"Unexpected boolean: expected %v, actual %v\n", currentExpected, value)
+					}
 				}
-			}
-		case typeInt:
-			{
-				value, _ := bd.ReadInt()
-				if value != currentExpected.(int32) {
-					t.Fatalf("Unexpected int: expected %v, actual %v\n", currentExpected, value)
+			case typeInt:
+				{
+					value, _ := bd.ReadInt()
+					if value != currentExpected.(int32) {
+						t.Fatalf(prefix+"Unexpected int: expected %v, actual %v\n", currentExpected, value)
+					}
 				}
-			}
-		case typeLong:
-			{
-				value, _ := bd.ReadLong()
-				if value != currentExpected.(int64) {
-					t.Fatalf("Unexpected long: expected %v, actual %v\n", currentExpected, value)
+			case typeLong:
+				{
+					value, _ := bd.ReadLong()
+					if value != currentExpected.(int64) {
+						t.Fatalf(prefix+"Unexpected long: expected %v, actual %v\n", currentExpected, value)
+					}
 				}
-			}
-		case typeFloat:
-			{
-				value, _ := bd.ReadFloat()
-				if value != currentExpected.(float32) {
-					t.Fatalf("Unexpected float: expected %v, actual %v\n", currentExpected, value)
+			case typeFloat:
+				{
+					value, _ := bd.ReadFloat()
+					if value != currentExpected.(float32) {
+						t.Fatalf(prefix+"Unexpected float: expected %v, actual %v\n", currentExpected, value)
+					}
 				}
-			}
-		case typeDouble:
-			{
-				value, _ := bd.ReadDouble()
-				if value != currentExpected.(float64) {
-					t.Fatalf("Unexpected double: expected %v, actual %v\n", currentExpected, value)
+			case typeDouble:
+				{
+					value, _ := bd.ReadDouble()
+					if value != currentExpected.(float64) {
+						t.Fatalf(prefix+"Unexpected double: expected %v, actual %v\n", currentExpected, value)
+					}
 				}
-			}
-		case typeBytes:
-			{
-				position := bd.Tell()
-				value, err := bd.ReadBytes()
-				if err != nil {
-					t.Fatal(err)
+			case typeBytes:
+				{
+					value, err := bd.ReadBytes()
+					if err != nil {
+						t.Fatal(err)
+					}
+					for i := 0; i < len(value); i++ {
+						if value[i] != currentExpected.([]byte)[i] {
+							t.Fatalf(prefix+"Unexpected byte at index %d: expected 0x%v, actual 0x%v\n", i, hex.EncodeToString([]byte{buf[i+1]}), hex.EncodeToString([]byte{value[i]}))
+						}
+					}
 				}
-				for i := 0; i < len(value); i++ {
-					if value[i] != bytes[position+int64(i)+int64(1)] {
-						t.Fatalf("Unexpected byte at index %d: expected 0x%v, actual 0x%v\n", i, hex.EncodeToString([]byte{bytes[i+1]}), hex.EncodeToString([]byte{value[i]}))
+			case typeString:
+				{
+					value, err := bd.ReadString()
+					if err != nil {
+						t.Fatalf(prefix+"Unexpected string ERR: expected nil, actual %v\n", err)
+					} else if value != currentExpected.(string) {
+						t.Fatalf(prefix+"Unexpected string: expected %v, actual %v\n", currentExpected, value)
 					}
 				}
 			}
-		case typeString:
-			{
-				value, _ := bd.ReadString()
-				if value != currentExpected.(string) {
-					t.Fatalf("Unexpected string: expected %v, actual %v\n", currentExpected, value)
-				}
-			}
+			lastType, lastExpected = currentType, currentExpected
 		}
 	}
 }
@@ -153,7 +160,8 @@ func getRandomFromMap(mapType string) ([]byte, interface{}) {
 		}
 	case typeBytes:
 		{
-			return goodBytes[rand.Intn(len(goodBytes))], "1"
+			z := goodBytes[rand.Intn(len(goodBytes))]
+			return z, z[1:]
 		}
 	case typeString:
 		{
