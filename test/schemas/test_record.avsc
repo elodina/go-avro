@@ -31,6 +31,19 @@
          }
       },
       {
+        "name":"namespacedEnumField",
+        "type":{
+           "type":"enum",
+           "namespace":"another.example",
+           "name":"bar",
+           "symbols":[
+              "X",
+              "Y",
+              "Z"
+           ]
+        }
+     },
+      {
          "name":"mapOfInts",
          "type":{
             "type":"map",

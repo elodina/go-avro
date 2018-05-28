@@ -317,11 +317,13 @@ func TestRecordCustomProps(t *testing.T) {
 
 func TestLoadSchemas(t *testing.T) {
 	schemas := LoadSchemas("test/schemas/")
-	assert(t, len(schemas), 4)
+	assert(t, len(schemas), 5)
 
 	_, exists := schemas["example.avro.Complex"]
 	assert(t, exists, true)
 	_, exists = schemas["example.avro.foo"]
+	assert(t, exists, true)
+	_, exists = schemas["another.example.bar"]
 	assert(t, exists, true)
 }
 

@@ -1032,8 +1032,11 @@ func parseEnumSchema(v map[string]interface{}, registry map[string]Schema, names
 	setOptionalField(&schema.Namespace, v, schemaNamespaceField)
 	setOptionalField(&schema.Doc, v, schemaDocField)
 	schema.Properties = getProperties(v)
-
-	return addSchema(getFullName(v[schemaNameField].(string), namespace), schema, registry), nil
+	ns := namespace
+	if schema.Namespace != "" {
+		ns = schema.Namespace
+	}
+	return addSchema(getFullName(v[schemaNameField].(string), ns), schema, registry), nil
 }
 
 func parseFixedSchema(v map[string]interface{}, registry map[string]Schema, namespace string) (Schema, error) {
@@ -1044,7 +1047,11 @@ func parseFixedSchema(v map[string]interface{}, registry map[string]Schema, name
 
 	schema := &FixedSchema{Name: v[schemaNameField].(string), Size: int(size), Properties: getProperties(v)}
 	setOptionalField(&schema.Namespace, v, schemaNamespaceField)
-	return addSchema(getFullName(v[schemaNameField].(string), namespace), schema, registry), nil
+	ns := namespace
+	if schema.Namespace != "" {
+		ns = schema.Namespace
+	}
+	return addSchema(getFullName(v[schemaNameField].(string), ns), schema, registry), nil
 }
 
 func parseUnionSchema(v []interface{}, registry map[string]Schema, namespace string) (Schema, error) {
@@ -1064,7 +1071,11 @@ func parseRecordSchema(v map[string]interface{}, registry map[string]Schema, nam
 	setOptionalField(&schema.Namespace, v, schemaNamespaceField)
 	setOptionalField(&namespace, v, schemaNamespaceField)
 	setOptionalField(&schema.Doc, v, schemaDocField)
-	addSchema(getFullName(v[schemaNameField].(string), namespace), newRecursiveSchema(schema), registry)
+	ns := namespace
+	if schema.Namespace != "" {
+		ns = schema.Namespace
+	}
+	addSchema(getFullName(v[schemaNameField].(string), ns), newRecursiveSchema(schema), registry)
 	fields := make([]*SchemaField, len(v[schemaFieldsField].([]interface{})))
 	for i := range fields {
 		field, err := parseSchemaField(v[schemaFieldsField].([]interface{})[i], registry, namespace)
